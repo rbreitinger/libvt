@@ -13,7 +13,7 @@ vt_init(VT_MODE_80x25)
 vt_view_print(1, 24)
 vt_locate(1, 1, 0)
 
-' --- status bar ---
+'--- status bar ---
 vt_color(VT_BLACK, VT_LIGHT_GREY)
 vt_locate(25, 1)
 vt_print(" vt_getkey / vt_getchar demo" & Space(52))
@@ -22,7 +22,7 @@ vt_print(" vt_getkey / vt_getchar demo" & Space(52))
 ' Demo 1 - menu with vt_getchar filtered
 ' ==========================================================================
 vt_color(VT_WHITE, VT_BLACK)
-'vt_cls()
+vt_cls()
 vt_locate(3, 4)  : vt_print("DEMO 1 - Menu selection with vt_getchar(allowed)")
 vt_color(VT_LIGHT_GREY, VT_BLACK)
 vt_locate(5, 4)  : vt_print("Only keys 1-3 are accepted. Any other key is silently ignored.")

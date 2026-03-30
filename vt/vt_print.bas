@@ -91,15 +91,11 @@ End Sub
 ' -----------------------------------------------------------------------------
 Sub vt_locate(row As Long, col As Long, vis As Long = -1, cursor_ch As Long = 0)
     If vt_internal.ready = 0 Then Exit Sub
-    If row = VT_CENTER Then
-        vt_internal.cur_row = vt_internal.scr_rows \ 2
-    ElseIf row >= 1 AndAlso row <= vt_internal.scr_rows Then
+    If row >= 1 AndAlso row <= vt_internal.scr_rows Then
         vt_internal.cur_row = row
     End If
-    If col = VT_CENTER Then
-        vt_internal.cur_col = vt_internal.scr_cols \ 2
-    ElseIf col >= 1 AndAlso col <= vt_internal.scr_cols Then
-        vt_internal.cur_col = col
+    If col >= 1 AndAlso col <= vt_internal.scr_cols Then
+        vt_internal.cur_col            = col
     End If
     If vis >= 0 Then vt_internal.cur_visible = vis
     If cursor_ch > 0 Then vt_internal.cur_ch = cursor_ch

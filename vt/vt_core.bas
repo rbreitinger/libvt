@@ -201,14 +201,6 @@ Sub vt_internal_pump()
 
             Case SDL_WINDOWEVENT
                 If evt.window.event = SDL_WINDOWEVENT_RESIZED Then
-                    ' window was resized - snap to nearest cell-grid multiple
-                    Dim new_w As Long = evt.window.data1
-                    Dim new_h As Long = evt.window.data2
-                    Dim snapped_w As Long = (new_w \ vt_internal.glyph_w) * vt_internal.glyph_w
-                    Dim snapped_h As Long = (new_h \ vt_internal.glyph_h) * vt_internal.glyph_h
-                    If snapped_w < vt_internal.glyph_w Then snapped_w = vt_internal.glyph_w
-                    If snapped_h < vt_internal.glyph_h Then snapped_h = vt_internal.glyph_h
-                    SDL_SetWindowSize(vt_internal.sdl_window, snapped_w, snapped_h)
                     vt_present()
                 End If
 
@@ -304,6 +296,12 @@ Sub vt_present()
     src_rect.h = gh
     dst_rect.w = gw
     dst_rect.h = gh
+    
+    ' Explicitly reset texture colormod to white before every frame.
+    ' last_fg_r/g/b optimization assumes texture starts white each frame.
+    ' Without this, the cursor render from the previous frame leaves the
+    ' texture tinted, causing wrong colors on cells that share fg = white.
+    SDL_SetTextureColorMod(vt_internal.sdl_texture, 255, 255, 255)
 
     last_fg_r = 255
     last_fg_g = 255
@@ -462,11 +460,12 @@ Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Lo
         Dim gy As Long = (glyph_idx \ 16)   * glyph_h
         Dim glyph_row As Long
         For glyph_row = 0 To glyph_h - 1
-            Dim font_byte As UByte = vt_font_data(glyph_idx * glyph_h + glyph_row)
-            Dim bit_idx As Long
+            Dim font_row  As Long  = (glyph_row * 16) \ glyph_h
+            Dim font_byte As UByte = vt_font_data(glyph_idx * 16 + font_row)
+            Dim bit_idx   As Long
             For bit_idx = 0 To glyph_w - 1
-                Dim on_px As Byte = (font_byte Shr (7 - bit_idx)) And 1
-                ' opaque white for glyph pixels, fully transparent for background
+                Dim font_bit As Long = (bit_idx * 8) \ glyph_w
+                Dim on_px    As Byte = (font_byte Shr (7 - font_bit)) And 1
                 surf_px[(gy + glyph_row) * surf_pitch + gx + bit_idx] = _
                     IIf(on_px, &hFFFFFFFF, &h00000000)
             Next bit_idx
@@ -476,7 +475,7 @@ Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Lo
 
     ' convert surface to GPU texture and enable alpha blending
     vt_internal.sdl_texture = SDL_CreateTextureFromSurface(vt_internal.sdl_renderer, font_surf)
-    SDL_FreeSurface(font_surf)   ' surface no longer needed - GPU texture owns the data
+    SDL_FreeSurface(font_surf)  ' surface no longer needed - GPU texture owns the data
     vt_internal.sdl_font = 0    ' not stored - freed above
 
     If vt_internal.sdl_texture = 0 Then
@@ -574,10 +573,10 @@ Function vt_init(cols_or_mode As Long, rows As Long = 0, flags As Long = VT_WIND
     If rows = 0 Then
         Select Case cols_or_mode
             Case VT_MODE_80x25 : cols = 80 : rws = 25 : gw = 8  : gh = 16
-            Case VT_MODE_80x43 : cols = 80 : rws = 43 : gw = 8  : gh = 8
-            Case VT_MODE_80x50 : cols = 80 : rws = 50 : gw = 8  : gh = 8
+            Case VT_MODE_80x43 : cols = 80 : rws = 25 : gw = 8  : gh = 16  ' fallback: need 8x8 font addition into vt_font.bi
+            Case VT_MODE_80x50 : cols = 80 : rws = 25 : gw = 8  : gh = 16  ' "" ""
             Case VT_MODE_40x25 : cols = 40 : rws = 25 : gw = 16 : gh = 16
-            Case Else           : cols = 80 : rws = 25 : gw = 8  : gh = 16
+            Case Else          : cols = 80 : rws = 25 : gw = 8  : gh = 16
         End Select
     Else
         cols = cols_or_mode

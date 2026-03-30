@@ -31,9 +31,9 @@ No other dependencies. The CP437 font is embedded — no external font files nee
 
 ## Features
 
-- Classic 80x25 and other DOS screen modes, or any custom grid size
+- Classic 80x25 and 40x25 DOS screen modes
 - Authentic CGA/DOS palette — not the washed-out modern CMD colours
-- CP437 character set — box drawing, shade blocks, all 256 glyphs
+- CP437 8x16 character set — box drawing, shade blocks, all 256 glyphs
 - Blinking text via `VT_BLINK` attribute
 - Scrollback buffer with Shift+PgUp / Shift+PgDn
 - Windowed or fullscreen with integer scaling and nearest-neighbor rendering
@@ -41,6 +41,8 @@ No other dependencies. The CP437 font is embedded — no external font files nee
 - Buffered key input via `vt_inkey` — nothing missed, nothing floods
 - Real-time key state via `vt_key_held` — for game loops
 - `vt_view_print` scroll regions — fixed status bars, split screen layouts
+- custom font loading *(coming soon)*
+- 80x43 and 80x50 modes, requires 8x8 font still *(coming soon)*
 - Page save / restore — PCOPY equivalent *(coming soon)*
 - Mouse support *(coming soon)*
 

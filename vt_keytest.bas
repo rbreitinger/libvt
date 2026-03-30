@@ -17,7 +17,7 @@ vt_cls()
 
 vt_color(VT_YELLOW, VT_BLUE)
 vt_locate(25, 1)
-vt_print(" Hold arrow keys to move   ESC to quit" & Space(42))
+vt_print("   Hold arrow keys to move - ESC to quit" & Space(40))
 
 moved = 1
 

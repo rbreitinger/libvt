@@ -4,6 +4,8 @@
 ' Include via vt.bi only - use: #include once "vt/vt.bi"
 ' =============================================================================
 
+#Define VT_NEWLINE Chr(10)
+
 
 ' -----------------------------------------------------------------------------
 ' Init flags  (combinable with Or)
@@ -14,8 +16,7 @@ Const VT_FULLSCREEN_STRETCH = 4    ' fullscreen, fills entire display (widescree
 Const VT_NO_RESIZE          = 8    ' prevent manual window resize
 Const VT_VSYNC              = 16   ' opt-in vsync (locks vt_present to monitor refresh).
                                    ' off by default - use in game loops, not text output.
-
-
+                                   
 ' -----------------------------------------------------------------------------
 ' Screen mode constants  (shorthand for well-known DOS configurations)
 ' Passed as first argument to vt_init() instead of explicit cols/rows.
@@ -24,13 +25,6 @@ Const VT_MODE_80x25 = 1   ' 8x16 glyphs - classic DOS, the default
 Const VT_MODE_80x43 = 2   ' 8x8  glyphs - EGA 43-line
 Const VT_MODE_80x50 = 3   ' 8x8  glyphs - VGA 50-line
 Const VT_MODE_40x25 = 4   ' 16x16 glyphs - wide / chunky
-
-
-' -----------------------------------------------------------------------------
-' Sentinel value
-' -----------------------------------------------------------------------------
-Const VT_CENTER = -1      ' pass to vt_locate row or col to center on that axis
-
 
 ' -----------------------------------------------------------------------------
 ' Colour constants  (fg 0-15, bg 0-15, add VT_BLINK to fg for blinking)
@@ -54,7 +48,6 @@ Const VT_YELLOW         = 14
 Const VT_WHITE          = 15
 Const VT_BLINK          = 16  ' Or with fg to enable blinking  eg. VT_WHITE Or VT_BLINK
 
-
 ' -----------------------------------------------------------------------------
 ' vt_inkey return value layout (ULong, 32 bits)
 '
@@ -74,7 +67,6 @@ Const VT_BLINK          = 16  ' Or with fg to enable blinking  eg. VT_WHITE Or V
 #Define VT_SHIFT(k)   (((k) Shr 29) And 1)     ' 1 if Shift was held
 #Define VT_CTRL(k)    (((k) Shr 30) And 1)     ' 1 if Ctrl was held
 #Define VT_ALT(k)     (((k) Shr 31) And 1)     ' 1 if Alt was held
-
 
 ' -----------------------------------------------------------------------------
 ' VT key scancode constants  (VT_SCAN(k) values - our own namespace, no SDL exposed)
@@ -123,7 +115,6 @@ Const VT_KEY_RALT   = 184
 Const VT_KEY_LWIN   = 219
 Const VT_KEY_RWIN   = 220
 
-
 ' -----------------------------------------------------------------------------
 ' Default CGA / DOS palette  - 16 colours, 3 bytes each (R, G, B)
 ' -----------------------------------------------------------------------------
@@ -145,7 +136,6 @@ Dim Shared vt_default_palette(47) As UByte = { _
   255, 255,  85,  _ ' 14 Yellow
   255, 255, 255   _ ' 15 White
 }
-
 
 ' -----------------------------------------------------------------------------
 ' Internal tuning constants  (not part of the public API - subject to change)

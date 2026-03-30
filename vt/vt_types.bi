@@ -44,7 +44,7 @@ Type vt_internal_state
     cur_row     As Long    ' current cursor row    (1-based)
     cur_visible As Byte    ' 1 = cursor shown, 0 = hidden
     cur_ch      As UByte   ' cursor glyph (default 219 = solid block)
-
+    
     ' --- active colour ---
     clr_fg      As UByte   ' current foreground (0-15, bit4 = blink)
     clr_bg      As UByte   ' current background (0-15)
