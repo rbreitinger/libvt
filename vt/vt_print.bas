@@ -190,8 +190,6 @@ Sub vt_print(txt As String)
         vt_internal_putch(ch)
         prev = ch
     Next ci
-
-    'vt_present()
 End Sub
 
 ' -----------------------------------------------------------------------------

@@ -789,6 +789,67 @@ Function vt_key_held(vtscan As Long) As Byte
     Return states[sdl_scan]
 End Function
 
+' -----------------------------------------------------------------------------
+' vt_sleep - replacement for FB's Sleep
+' ms = 0 : wait indefinitely until any key is pressed or window is closed
+' ms > 0 : delay for ms milliseconds, window stays responsive throughout
+' In both cases blink keeps ticking and vt_inkey buffer keeps filling.
+' -----------------------------------------------------------------------------
+Sub vt_sleep(ms As Long = 0)
+    Dim t_start As ULong
+    Dim t_now   As ULong
+    Dim k       As ULong
+
+    t_start = SDL_GetTicks()
+
+    Do
+        vt_internal_pump()
+        If vt_internal_blink_update() Then vt_internal.dirty = 1
+        vt_internal_present_if_dirty()
+        If vt_should_quit() Then Exit Do
+
+        If ms = 0 Then
+            k = vt_inkey()
+            If k <> 0 Then Exit Do
+        Else
+            t_now = SDL_GetTicks()
+            If t_now - t_start >= CULng(ms) Then Exit Do
+        End If
+
+        Sleep 10, 1
+    Loop
+End Sub
+
+' vt_getkey - blocking vt_inkey
+' Waits until any key event, returns full key record like vt_inkey.
+' Use VT_SCAN(k), VT_CHAR(k) etc to inspect the result.
+Function vt_getkey() As ULong
+    Dim k As ULong
+    Do
+        k = vt_inkey()
+        If k <> 0 Then Return k
+        If vt_should_quit() Then Return 0
+        Sleep 10, 1
+    Loop
+End Function
+
+' vt_getchar - blocking single printable character read
+' Wraps vt_getkey, ignores special keys, filters by allowed if provided.
+' Empty allowed = all printable characters accepted.
+Function vt_getchar(allowed As String = "") As String
+    Dim k  As ULong
+    Dim ch As UByte
+    Do
+        k = vt_getkey()
+        If k = 0 Then Return ""   ' quit signal
+        ch = VT_CHAR(k)
+        If ch >= 32 Then
+            If allowed = "" Then Return Chr(ch)
+            If InStr(allowed, Chr(ch)) > 0 Then Return Chr(ch)
+        End If
+    Loop
+End Function
+
 
 ' -----------------------------------------------------------------------------
 ' vt_key_flush - discard all pending keys in the buffer

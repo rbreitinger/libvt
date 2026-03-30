@@ -127,15 +127,9 @@ vt_print("Read back cell (34,20): ch=" & read_ch & " fg=" & read_fg & " bg=" & r
 
 vt_color(VT_DARK_GREY, VT_BLACK)
 vt_locate(24, 1)
-vt_print("Press ESC or click [x] to quit...")
+vt_print("Press any key or click [x] to quit...")
 vt_locate(25, 1)
 
-' --- wait for keypress or clicking the [x]---
-Do
-    k = vt_inkey()
-    If VT_SCAN(k) = VT_KEY_ESC Then exit do
-    If vt_should_quit() Then exit do
-    Sleep 10
-Loop
+vt_sleep(5000)
 
 vt_shutdown()
