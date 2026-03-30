@@ -135,13 +135,13 @@ Sub vt_internal_pump()
 
                 ' built-in scrollback keys: Shift+PgUp / Shift+PgDn
                 If sh AndAlso vtscan = VT_KEY_PGUP AndAlso vt_internal.sb_lines > 0 Then
-                    vt_internal.sb_offset += vt_internal.scr_rows \ 2
+                    vt_internal.sb_offset += 1
                     If vt_internal.sb_offset > vt_internal.sb_used Then
                         vt_internal.sb_offset = vt_internal.sb_used
                     End If
                     vt_present()
                 ElseIf sh AndAlso vtscan = VT_KEY_PGDN AndAlso vt_internal.sb_lines > 0 Then
-                    vt_internal.sb_offset -= vt_internal.scr_rows \ 2
+                    vt_internal.sb_offset -= 1
                     If vt_internal.sb_offset < 0 Then vt_internal.sb_offset = 0
                     vt_present()
                 Else
@@ -240,59 +240,64 @@ End Function
 ' The font texture holds all 256 glyphs, white on transparent.
 ' Per cell: fill bg rect, colormod the font texture to fg colour, blit glyph.
 '
-' Throttle guard: if called again within 2ms of the last completed flip it
-' returns immediately. Protects against accidental rapid double-calls without
-' changing behaviour in normal usage (6ms present >> 2ms guard).
+' Scrollback: for each display row we compute a logical row index.
+' Rows that map into the scrollback buffer read from sb_cells,
+' rows that map into the live screen read from cells[].
+' This handles the case where sb_offset > sb_used (partial scrollback)
+' cleanly without reading past valid data.
+' -----------------------------------------------------------------------------
+' -----------------------------------------------------------------------------
+' vt_present - compose and display the cell buffer
+' Called manually after composing a frame, or automatically by vt_inkey.
+'
+' Scrollback: only rows within view_top..view_bot mix scrollback and live data.
+' Rows outside the scroll region always read directly from the live cell buffer.
+' This keeps fixed rows (status bars etc) visible during scrollback.
 ' -----------------------------------------------------------------------------
 Sub vt_present()
     If vt_internal.ready = 0 Then Exit Sub
 
-    ' --- all locals hoisted out of hot path ---
-    Dim cells_src  As vt_cell Ptr
-    Dim sb_row     As Long
-    Dim gw         As Long
-    Dim gh         As Long
-    Dim cols       As Long
-    Dim rows       As Long
-    Dim src_rect   As SDL_Rect
-    Dim dst_rect   As SDL_Rect
-    Dim row_idx    As Long
-    Dim col_idx    As Long
-    Dim last_fg_r  As UByte
-    Dim last_fg_g  As UByte
-    Dim last_fg_b  As UByte
-    Dim cellptr    As vt_cell Ptr
-    Dim ch         As UByte
-    Dim fg         As UByte
-    Dim bg         As UByte
-    Dim fg_r       As UByte
-    Dim fg_g       As UByte
-    Dim fg_b       As UByte
-    Dim bg_r       As UByte
-    Dim bg_g       As UByte
-    Dim bg_b       As UByte
-    Dim c_col      As Long
-    Dim c_row      As Long
-    Dim cfg_r      As UByte
-    Dim cfg_g      As UByte
-    Dim cfg_b      As UByte
+    Dim gw          As Long
+    Dim gh          As Long
+    Dim cols        As Long
+    Dim rows        As Long
+    Dim src_rect    As SDL_Rect
+    Dim dst_rect    As SDL_Rect
+    Dim row_idx     As Long
+    Dim col_idx     As Long
+    Dim last_fg_r   As UByte
+    Dim last_fg_g   As UByte
+    Dim last_fg_b   As UByte
+    Dim cellptr     As vt_cell Ptr
+    Dim ch          As UByte
+    Dim fg          As UByte
+    Dim bg          As UByte
+    Dim fg_r        As UByte
+    Dim fg_g        As UByte
+    Dim fg_b        As UByte
+    Dim bg_r        As UByte
+    Dim bg_g        As UByte
+    Dim bg_b        As UByte
+    Dim c_col       As Long
+    Dim c_row       As Long
+    Dim cfg_r       As UByte
+    Dim cfg_g       As UByte
+    Dim cfg_b       As UByte
+    Dim scroll_pos  As Long   ' 0-based position within scroll region
+    Dim logical_row As Long   ' index into combined sb+live space
+    Dim live_row    As Long   ' index into live cells when past sb_used
 
     vt_internal_blink_update()
-
-    ' --- pick source cell buffer (live screen or scrollback view) ---
-    If vt_internal.sb_offset > 0 Then
-        sb_row = vt_internal.sb_used - vt_internal.sb_offset
-        If sb_row < 0 Then sb_row = 0
-        cells_src = vt_internal.sb_cells + (sb_row * vt_internal.scr_cols)
-    Else
-        cells_src = vt_internal.cells
-    End If
 
     gw   = vt_internal.glyph_w
     gh   = vt_internal.glyph_h
     cols = vt_internal.scr_cols
     rows = vt_internal.scr_rows
-
+    
+     ' set border colour before clear - SDL fills letterbox area with this
+    SDL_SetRenderDrawColor(vt_internal.sdl_renderer, _
+        vt_internal.border_r, vt_internal.border_g, vt_internal.border_b, 255)
+        
     SDL_RenderClear(vt_internal.sdl_renderer)
 
     src_rect.w = gw
@@ -300,19 +305,36 @@ Sub vt_present()
     dst_rect.w = gw
     dst_rect.h = gh
 
-    ' sentinel: force colormod on first cell
     last_fg_r = 255
     last_fg_g = 255
     last_fg_b = 255
 
     For row_idx = 0 To rows - 1
-        For col_idx = 0 To cols - 1
-            cellptr = cells_src + (row_idx * cols + col_idx)
-            ch  = cellptr->ch
-            fg  = cellptr->fg
-            bg  = cellptr->bg
 
-            ' blink: phase off -> render fg as bg colour (invisible)
+        If vt_internal.sb_offset > 0 AndAlso _
+           row_idx >= vt_internal.view_top - 1 AndAlso _
+           row_idx <= vt_internal.view_bot - 1 Then
+            ' row is inside scroll region and we are scrolled back -
+            ' mix scrollback lines and live lines
+            scroll_pos  = row_idx - (vt_internal.view_top - 1)
+            logical_row = (vt_internal.sb_used - vt_internal.sb_offset) + scroll_pos
+            If logical_row < 0 Then logical_row = 0
+            If logical_row < vt_internal.sb_used Then
+                cellptr = vt_internal.sb_cells + (logical_row * cols)
+            Else
+                live_row = logical_row - vt_internal.sb_used + (vt_internal.view_top - 1)
+                cellptr  = vt_internal.cells + (live_row * cols)
+            End If
+        Else
+            ' outside scroll region, or not scrolled back - always live screen
+            cellptr = vt_internal.cells + (row_idx * cols)
+        End If
+
+        For col_idx = 0 To cols - 1
+            ch  = cellptr[col_idx].ch
+            fg  = cellptr[col_idx].fg
+            bg  = cellptr[col_idx].bg
+
             If (fg And 16) AndAlso vt_internal.blink_visible = 0 Then fg = bg
             fg = fg And 15
 
@@ -326,11 +348,9 @@ Sub vt_present()
             dst_rect.x = col_idx * gw
             dst_rect.y = row_idx * gh
 
-            ' fill background rect
             SDL_SetRenderDrawColor(vt_internal.sdl_renderer, bg_r, bg_g, bg_b, 255)
             SDL_RenderFillRect(vt_internal.sdl_renderer, @dst_rect)
 
-            ' blit glyph - skip colormod call if fg colour unchanged from last cell
             If fg_r <> last_fg_r OrElse fg_g <> last_fg_g OrElse fg_b <> last_fg_b Then
                 SDL_SetTextureColorMod(vt_internal.sdl_texture, fg_r, fg_g, fg_b)
                 last_fg_r = fg_r
@@ -344,7 +364,7 @@ Sub vt_present()
         Next col_idx
     Next row_idx
 
-    ' --- draw cursor on top if visible and not in scrollback view ---
+    ' --- draw cursor on top if fully in live view ---
     If vt_internal.sb_offset = 0 AndAlso vt_internal.cur_visible AndAlso _
        vt_internal.blink_visible Then
         c_col = vt_internal.cur_col - 1
@@ -362,7 +382,6 @@ Sub vt_present()
 
     vt_internal.dirty = 0
     SDL_RenderPresent(vt_internal.sdl_renderer)
-    
 End Sub
 
 
@@ -399,7 +418,7 @@ Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Lo
         SDL_SetWindowFullscreen(vt_internal.sdl_window, SDL_WINDOW_FULLSCREEN)
     End If
 
-    ' --- renderer with vsync ---
+    ' --- renderer (optional) with vsync ---
     Dim rflags As ULong = SDL_RENDERER_ACCELERATED
     If flags And VT_VSYNC Then rflags = rflags Or SDL_RENDERER_PRESENTVSYNC
     vt_internal.sdl_renderer = SDL_CreateRenderer(vt_internal.sdl_window, -1, rflags)
@@ -408,6 +427,11 @@ Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Lo
         SDL_Quit()
         Return -3
     End If
+    
+    ' --- logical size: SDL scales our fixed canvas to fill the window ---
+    ' nearest-neighbor hint must be set before the renderer is used
+    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0")
+    SDL_RenderSetLogicalSize(vt_internal.sdl_renderer, win_w, win_h)
 
     If flags And VT_FULLSCREEN_ASPECT Then
         SDL_RenderSetIntegerScale(vt_internal.sdl_renderer, SDL_TRUE)
@@ -420,6 +444,7 @@ Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Lo
     Dim font_surf As SDL_Surface Ptr
     font_surf = SDL_CreateRGBSurface(0, 16 * glyph_w, 16 * glyph_h, 32, _
         &h00FF0000, &h0000FF00, &h000000FF, &hFF000000)
+        
     If font_surf = 0 Then
         SDL_DestroyRenderer(vt_internal.sdl_renderer)
         SDL_DestroyWindow(vt_internal.sdl_window)
@@ -626,6 +651,16 @@ Sub vt_palette_get(pal() As UByte)
     Next pi
 End Sub
 
+' -----------------------------------------------------------------------------
+' vt_border_color - set the letterbox border colour shown outside the viewport
+' when the window is resized larger than the logical canvas.
+' Default is black (0, 0, 0). Pass raw RGB values 0-255.
+' -----------------------------------------------------------------------------
+Sub vt_border_color(r As Long, g As Long, b As Long)
+    vt_internal.border_r = r And 255
+    vt_internal.border_g = g And 255
+    vt_internal.border_b = b And 255
+End Sub
 
 ' -----------------------------------------------------------------------------
 ' Key repeat config
@@ -695,6 +730,63 @@ Function vt_inkey() As ULong
     vt_internal.key_read  = (vt_internal.key_read + 1) Mod VT_KEY_BUFFER_SIZE
     vt_internal.key_count -= 1
     Return evt
+End Function
+
+' -----------------------------------------------------------------------------
+' vt_key_held - real-time key state poll for game loops
+' Returns 1 if the key is currently held down, 0 if not.
+' Takes a VT scancode constant (VT_KEY_UP, VT_KEY_SPACE, etc).
+' Unlike vt_inkey this is not edge-triggered - it reflects the live key state.
+' Call vt_internal_pump() before this in a game loop to keep events flowing.
+' -----------------------------------------------------------------------------
+Function vt_key_held(vtscan As Long) As Byte
+    Dim sdl_scan As Long
+    Dim numkeys  As Long
+    Dim states   As Const UByte Ptr
+
+    Select Case vtscan
+        Case VT_KEY_F1     : sdl_scan = SDL_SCANCODE_F1
+        Case VT_KEY_F2     : sdl_scan = SDL_SCANCODE_F2
+        Case VT_KEY_F3     : sdl_scan = SDL_SCANCODE_F3
+        Case VT_KEY_F4     : sdl_scan = SDL_SCANCODE_F4
+        Case VT_KEY_F5     : sdl_scan = SDL_SCANCODE_F5
+        Case VT_KEY_F6     : sdl_scan = SDL_SCANCODE_F6
+        Case VT_KEY_F7     : sdl_scan = SDL_SCANCODE_F7
+        Case VT_KEY_F8     : sdl_scan = SDL_SCANCODE_F8
+        Case VT_KEY_F9     : sdl_scan = SDL_SCANCODE_F9
+        Case VT_KEY_F10    : sdl_scan = SDL_SCANCODE_F10
+        Case VT_KEY_F11    : sdl_scan = SDL_SCANCODE_F11
+        Case VT_KEY_F12    : sdl_scan = SDL_SCANCODE_F12
+        Case VT_KEY_ESC    : sdl_scan = SDL_SCANCODE_ESCAPE
+        Case VT_KEY_ENTER  : sdl_scan = SDL_SCANCODE_RETURN
+        Case VT_KEY_BKSP   : sdl_scan = SDL_SCANCODE_BACKSPACE
+        Case VT_KEY_TAB    : sdl_scan = SDL_SCANCODE_TAB
+        Case VT_KEY_SPACE  : sdl_scan = SDL_SCANCODE_SPACE
+        Case VT_KEY_UP     : sdl_scan = SDL_SCANCODE_UP
+        Case VT_KEY_DOWN   : sdl_scan = SDL_SCANCODE_DOWN
+        Case VT_KEY_LEFT   : sdl_scan = SDL_SCANCODE_LEFT
+        Case VT_KEY_RIGHT  : sdl_scan = SDL_SCANCODE_RIGHT
+        Case VT_KEY_HOME   : sdl_scan = SDL_SCANCODE_HOME
+        Case VT_KEY_END    : sdl_scan = SDL_SCANCODE_END
+        Case VT_KEY_PGUP   : sdl_scan = SDL_SCANCODE_PAGEUP
+        Case VT_KEY_PGDN   : sdl_scan = SDL_SCANCODE_PAGEDOWN
+        Case VT_KEY_INS    : sdl_scan = SDL_SCANCODE_INSERT
+        Case VT_KEY_DEL    : sdl_scan = SDL_SCANCODE_DELETE
+        Case VT_KEY_LSHIFT : sdl_scan = SDL_SCANCODE_LSHIFT
+        Case VT_KEY_RSHIFT : sdl_scan = SDL_SCANCODE_RSHIFT
+        Case VT_KEY_LCTRL  : sdl_scan = SDL_SCANCODE_LCTRL
+        Case VT_KEY_RCTRL  : sdl_scan = SDL_SCANCODE_RCTRL
+        Case VT_KEY_LALT   : sdl_scan = SDL_SCANCODE_LALT
+        Case VT_KEY_RALT   : sdl_scan = SDL_SCANCODE_RALT
+        Case VT_KEY_LWIN   : sdl_scan = SDL_SCANCODE_LGUI
+        Case VT_KEY_RWIN   : sdl_scan = SDL_SCANCODE_RGUI
+        Case Else          : Return 0
+    End Select
+
+    states = SDL_GetKeyboardState(@numkeys)
+    If states = 0 Then Return 0
+    If sdl_scan >= numkeys Then Return 0
+    Return states[sdl_scan]
 End Function
 
 

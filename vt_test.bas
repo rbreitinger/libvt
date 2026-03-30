@@ -7,7 +7,6 @@
 
 #include once "vt/vt.bi"
 
-
 ' -----------------------------------------------------------------------------
 ' Draw a single-line box using CP437 box characters
 ' col, row: top-left corner (1-based)
@@ -93,8 +92,8 @@ vt_locate(14, 4)
 vt_print(Chr(192) & " = 192   " & Chr(217) & " = 217")
 
 ' blinking text demo
-vt_color(VT_WHITE Or VT_BLINK, VT_BLACK)
-vt_locate(16, 1)
+vt_color(VT_RED Or VT_BLINK, VT_BLACK)
+vt_locate(16, 4)
 vt_print("This text is blinking!")
 vt_color(VT_LIGHT_GREY, VT_BLACK)
 
@@ -120,6 +119,7 @@ vt_present()
 Dim read_ch As UByte
 Dim read_fg As UByte
 Dim read_bg As UByte
+
 vt_get_cell(34, 20, read_ch, read_fg, read_bg)
 vt_locate(21, 1)
 vt_color(VT_LIGHT_GREY, VT_BLACK)
@@ -127,41 +127,15 @@ vt_print("Read back cell (34,20): ch=" & read_ch & " fg=" & read_fg & " bg=" & r
 
 vt_color(VT_DARK_GREY, VT_BLACK)
 vt_locate(24, 1)
-vt_print("Press any key to continue, ESC to quit...")
+vt_print("Press ESC or click [x] to quit...")
 vt_locate(25, 1)
 
-' --- wait for keypress ---
+' --- wait for keypress or clicking the [x]---
 Do
     k = vt_inkey()
-    If VT_SCAN(k) = VT_KEY_ESC Then GoTo quit_label
-    If k <> 0 Then Exit Do
-    If vt_should_quit() Then GoTo quit_label
+    If VT_SCAN(k) = VT_KEY_ESC Then exit do
+    If vt_should_quit() Then exit do
     Sleep 10
 Loop
 
-
-' --- screen 2: input and scrolling test ---
-vt_cls()
-vt_color(VT_YELLOW, VT_BLACK)
-vt_print_center(1, "VT - Test 2 - Print and Scroll")
-vt_color(VT_LIGHT_GREY, VT_BLACK)
-vt_locate(3, 1)
-
-For ln = 1 To 30
-    vt_color(ln Mod 14 + 1, VT_BLACK)
-    vt_print("Scroll line " & ln & " - the quick brown fox jumps over the lazy dog" & Chr(10))
-Next ln
-
-vt_color(VT_DARK_GREY, VT_BLACK)
-vt_print("Done scrolling. Press ESC to quit...")
-
-Do
-    k = vt_inkey()
-    If k = VT_KEY_ESC Then Exit Do
-    If vt_should_quit() Then Exit Do
-    Sleep 10
-Loop
-
-
-quit_label:
 vt_shutdown()

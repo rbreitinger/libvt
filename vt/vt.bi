@@ -18,6 +18,8 @@
 ' -----------------------------------------------------------------------------
 #Ifndef VT_IMPL
     #Define VT_IMPL
+    
+    #Define vt_pump()   vt_internal_pump()
 
     ' pull in all implementation modules
     #include once "vt_core.bas"

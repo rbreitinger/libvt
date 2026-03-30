@@ -51,21 +51,31 @@ End Sub
 
 ' -----------------------------------------------------------------------------
 ' vt_cls - clear the screen
+' Respects view_top/view_bot - only clears the active scroll region.
 ' -----------------------------------------------------------------------------
 Sub vt_cls(bg As Long = -1)
     If vt_internal.ready = 0 Then Exit Sub
     If bg >= 0 Then vt_internal.clr_bg = bg And 15
-    Dim total As Long = vt_internal.scr_cols * vt_internal.scr_rows
-    Dim ci    As Long
-    For ci = 0 To total - 1
-        vt_internal.cells[ci].ch = 32
-        vt_internal.cells[ci].fg = vt_internal.clr_fg
-        vt_internal.cells[ci].bg = vt_internal.clr_bg
-    Next ci
+
+    Dim cols As Long = vt_internal.scr_cols
+    Dim vtop As Long = vt_internal.view_top - 1   ' 0-based
+    Dim vbot As Long = vt_internal.view_bot - 1   ' 0-based
+    Dim row  As Long
+    Dim ci   As Long
+    Dim cellptr As vt_cell Ptr
+
+    For row = vtop To vbot
+        cellptr = vt_internal.cells + (row * cols)
+        For ci = 0 To cols - 1
+            cellptr[ci].ch = 32
+            cellptr[ci].fg = vt_internal.clr_fg
+            cellptr[ci].bg = vt_internal.clr_bg
+        Next ci
+    Next row
+
     vt_internal.cur_col = 1
-    vt_internal.cur_row = 1
+    vt_internal.cur_row = vt_internal.view_top
     vt_internal.dirty   = 1
-    'vt_present()
 End Sub
 
 ' -----------------------------------------------------------------------------

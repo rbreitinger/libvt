@@ -43,6 +43,8 @@ Dim t_pres_ms  As Long   ' one vt_present() time in ms
 ' -------------------------------------------------------------------------
 vt_init(VT_MODE_80x25)
 
+vt_border_color( 63, 63, 63 )
+
 ' -------------------------------------------------------------------------
 ' Phase 1 - fill all 2000 cells via vt_set_cell
 ' vt_set_cell only sets dirty=1, it does NOT call vt_present.

@@ -91,6 +91,11 @@ Type vt_internal_state
 
     ' --- live palette (16 entries x 3 bytes = 48 bytes, R,G,B order) ---
     palette(47) As UByte
+    
+    ' --- letterbox border colour (shown outside logical viewport on resize) ---
+    border_r    As UByte   ' default 0
+    border_g    As UByte   ' default 0
+    border_b    As UByte   ' default 0
 
     ' --- dirty flag ---
     ' set by any write to the cell buffer (putch, cls, set_cell, scroll, blink toggle)
