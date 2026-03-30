@@ -44,6 +44,7 @@ Dim k      As ULong
 Dim ci     As Long
 Dim ln     As Long
 
+'result = vt_init(VT_MODE_80x25,,VT_FULLSCREEN_ASPECT)
 result = vt_init(VT_MODE_80x25)
 If result <> 0 Then
     Print "vt_init failed: "; result
@@ -152,11 +153,11 @@ For ln = 1 To 30
 Next ln
 
 vt_color(VT_DARK_GREY, VT_BLACK)
-vt_print("Done scrolling. Press any key to quit...")
+vt_print("Done scrolling. Press ESC to quit...")
 
 Do
     k = vt_inkey()
-    If k <> 0 Then Exit Do
+    If k = VT_KEY_ESC Then Exit Do
     If vt_should_quit() Then Exit Do
     Sleep 10
 Loop

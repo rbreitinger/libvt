@@ -65,7 +65,7 @@ Sub vt_cls(bg As Long = -1)
     vt_internal.cur_col = 1
     vt_internal.cur_row = 1
     vt_internal.dirty   = 1
-    vt_present()
+    'vt_present()
 End Sub
 
 ' -----------------------------------------------------------------------------
@@ -181,7 +181,7 @@ Sub vt_print(txt As String)
         prev = ch
     Next ci
 
-    vt_present()
+    'vt_present()
 End Sub
 
 ' -----------------------------------------------------------------------------

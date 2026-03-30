@@ -234,71 +234,99 @@ End Function
 
 ' -----------------------------------------------------------------------------
 ' vt_present - compose and display the cell buffer
-' Called automatically by vt_print family. Call manually after vt_set_cell loops.
+' Called manually after composing a frame, or automatically by vt_inkey.
 '
 ' Rendering strategy: GPU-accelerated blit via SDL_RenderFillRect + SDL_RenderCopy.
-' The font texture (sdl_texture) holds all 256 glyphs, white on transparent.
+' The font texture holds all 256 glyphs, white on transparent.
 ' Per cell: fill bg rect, colormod the font texture to fg colour, blit glyph.
-' This replaces the old pixel-by-pixel streaming texture lock which was ~0.5s
-' per full screen fill. GPU path is effectively instant.
+'
+' Throttle guard: if called again within 2ms of the last completed flip it
+' returns immediately. Protects against accidental rapid double-calls without
+' changing behaviour in normal usage (6ms present >> 2ms guard).
 ' -----------------------------------------------------------------------------
 Sub vt_present()
     If vt_internal.ready = 0 Then Exit Sub
 
+    ' --- all locals hoisted out of hot path ---
+    Dim cells_src  As vt_cell Ptr
+    Dim sb_row     As Long
+    Dim gw         As Long
+    Dim gh         As Long
+    Dim cols       As Long
+    Dim rows       As Long
+    Dim src_rect   As SDL_Rect
+    Dim dst_rect   As SDL_Rect
+    Dim row_idx    As Long
+    Dim col_idx    As Long
+    Dim last_fg_r  As UByte
+    Dim last_fg_g  As UByte
+    Dim last_fg_b  As UByte
+    Dim cellptr    As vt_cell Ptr
+    Dim ch         As UByte
+    Dim fg         As UByte
+    Dim bg         As UByte
+    Dim fg_r       As UByte
+    Dim fg_g       As UByte
+    Dim fg_b       As UByte
+    Dim bg_r       As UByte
+    Dim bg_g       As UByte
+    Dim bg_b       As UByte
+    Dim c_col      As Long
+    Dim c_row      As Long
+    Dim cfg_r      As UByte
+    Dim cfg_g      As UByte
+    Dim cfg_b      As UByte
+
     vt_internal_blink_update()
 
-    Dim cells_src As vt_cell Ptr
+    ' --- pick source cell buffer (live screen or scrollback view) ---
     If vt_internal.sb_offset > 0 Then
-        ' scrollback view - compute pointer into scrollback buffer
-        Dim sb_row As Long = vt_internal.sb_used - vt_internal.sb_offset
+        sb_row = vt_internal.sb_used - vt_internal.sb_offset
         If sb_row < 0 Then sb_row = 0
         cells_src = vt_internal.sb_cells + (sb_row * vt_internal.scr_cols)
     Else
         cells_src = vt_internal.cells
     End If
 
-    Dim gw   As Long = vt_internal.glyph_w
-    Dim gh   As Long = vt_internal.glyph_h
-    Dim cols As Long = vt_internal.scr_cols
-    Dim rows As Long = vt_internal.scr_rows
+    gw   = vt_internal.glyph_w
+    gh   = vt_internal.glyph_h
+    cols = vt_internal.scr_cols
+    rows = vt_internal.scr_rows
 
     SDL_RenderClear(vt_internal.sdl_renderer)
 
-    Dim src_rect As SDL_Rect
-    Dim dst_rect As SDL_Rect
     src_rect.w = gw
     src_rect.h = gh
     dst_rect.w = gw
     dst_rect.h = gh
 
-    Dim row_idx As Long
-    Dim col_idx As Long
-    Dim last_fg_r As UByte = 255
-    Dim last_fg_g As UByte = 255
-    Dim last_fg_b As UByte = 255
+    ' sentinel: force colormod on first cell
+    last_fg_r = 255
+    last_fg_g = 255
+    last_fg_b = 255
 
     For row_idx = 0 To rows - 1
         For col_idx = 0 To cols - 1
-            Dim cellptr As vt_cell Ptr = cells_src + (row_idx * cols + col_idx)
-            Dim ch  As UByte = cellptr->ch
-            Dim fg  As UByte = cellptr->fg
-            Dim bg  As UByte = cellptr->bg
+            cellptr = cells_src + (row_idx * cols + col_idx)
+            ch  = cellptr->ch
+            fg  = cellptr->fg
+            bg  = cellptr->bg
 
-            ' blink: blink bit set and phase off -> render fg as bg (invisible)
+            ' blink: phase off -> render fg as bg colour (invisible)
             If (fg And 16) AndAlso vt_internal.blink_visible = 0 Then fg = bg
             fg = fg And 15
 
-            Dim fg_r As UByte = vt_internal.palette(fg * 3)
-            Dim fg_g As UByte = vt_internal.palette(fg * 3 + 1)
-            Dim fg_b As UByte = vt_internal.palette(fg * 3 + 2)
-            Dim bg_r As UByte = vt_internal.palette(bg * 3)
-            Dim bg_g As UByte = vt_internal.palette(bg * 3 + 1)
-            Dim bg_b As UByte = vt_internal.palette(bg * 3 + 2)
+            fg_r = vt_internal.palette(fg * 3)
+            fg_g = vt_internal.palette(fg * 3 + 1)
+            fg_b = vt_internal.palette(fg * 3 + 2)
+            bg_r = vt_internal.palette(bg * 3)
+            bg_g = vt_internal.palette(bg * 3 + 1)
+            bg_b = vt_internal.palette(bg * 3 + 2)
 
             dst_rect.x = col_idx * gw
             dst_rect.y = row_idx * gh
 
-            ' fill background colour
+            ' fill background rect
             SDL_SetRenderDrawColor(vt_internal.sdl_renderer, bg_r, bg_g, bg_b, 255)
             SDL_RenderFillRect(vt_internal.sdl_renderer, @dst_rect)
 
@@ -316,14 +344,14 @@ Sub vt_present()
         Next col_idx
     Next row_idx
 
-    ' draw cursor on top if visible and not in scrollback view
+    ' --- draw cursor on top if visible and not in scrollback view ---
     If vt_internal.sb_offset = 0 AndAlso vt_internal.cur_visible AndAlso _
        vt_internal.blink_visible Then
-        Dim c_col As Long = vt_internal.cur_col - 1
-        Dim c_row As Long = vt_internal.cur_row - 1
-        Dim cfg_r As UByte = vt_internal.palette(vt_internal.clr_fg * 3)
-        Dim cfg_g As UByte = vt_internal.palette(vt_internal.clr_fg * 3 + 1)
-        Dim cfg_b As UByte = vt_internal.palette(vt_internal.clr_fg * 3 + 2)
+        c_col = vt_internal.cur_col - 1
+        c_row = vt_internal.cur_row - 1
+        cfg_r = vt_internal.palette(vt_internal.clr_fg * 3)
+        cfg_g = vt_internal.palette(vt_internal.clr_fg * 3 + 1)
+        cfg_b = vt_internal.palette(vt_internal.clr_fg * 3 + 2)
         src_rect.x = (vt_internal.cur_ch Mod 16) * gw
         src_rect.y = (vt_internal.cur_ch \ 16)   * gh
         dst_rect.x = c_col * gw
@@ -334,6 +362,7 @@ Sub vt_present()
 
     vt_internal.dirty = 0
     SDL_RenderPresent(vt_internal.sdl_renderer)
+    
 End Sub
 
 
@@ -636,6 +665,20 @@ Sub vt_set_cell(col As Long, row As Long, ch As UByte, fg As UByte, bg As UByte)
     vt_internal.dirty = 1
 End Sub
 
+' -----------------------------------------------------------------------------
+' vt_internal_present_if_dirty - auto-present for vt_inkey only
+' Skips if not dirty or called again within 2ms of last auto-flip.
+' vt_present() itself has no throttle - explicit user calls always flip.
+' -----------------------------------------------------------------------------
+Sub vt_internal_present_if_dirty()
+    If vt_internal.dirty = 0 Then Exit Sub
+    Static last_auto_tick As ULong
+    Dim now_tick As ULong
+    now_tick = SDL_GetTicks()
+    If now_tick - last_auto_tick < 2 Then Exit Sub
+    vt_present()
+    last_auto_tick = SDL_GetTicks()
+End Sub
 
 ' -----------------------------------------------------------------------------
 ' vt_inkey - non-blocking key read
@@ -646,7 +689,7 @@ Function vt_inkey() As ULong
     If vt_internal.ready = 0 Then Return 0
     vt_internal_pump()
     If vt_internal_blink_update() Then vt_internal.dirty = 1
-    If vt_internal.dirty Then vt_present()
+    vt_internal_present_if_dirty()
     If vt_internal.key_count = 0 Then Return 0
     Dim evt As ULong = vt_internal.key_buf(vt_internal.key_read)
     vt_internal.key_read  = (vt_internal.key_read + 1) Mod VT_KEY_BUFFER_SIZE

@@ -8,11 +8,11 @@
 ' -----------------------------------------------------------------------------
 ' Init flags  (combinable with Or)
 ' -----------------------------------------------------------------------------
-Const VT_WINDOWED          = 1    ' start in a resizable window (default)
-Const VT_FULLSCREEN_ASPECT = 2    ' fullscreen, integer-scaled, black bars to keep ratio
-Const VT_FULLSCREEN_STRETCH = 4   ' fullscreen, fills entire display (widescreen feel)
-Const VT_NO_RESIZE         = 8    ' prevent manual window resize
-Const VT_VSYNC             = 16   ' opt-in vsync (locks vt_present to monitor refresh).
+Const VT_WINDOWED           = 1    ' start in a resizable window (default)
+Const VT_FULLSCREEN_ASPECT  = 2    ' fullscreen, integer-scaled, black bars to keep ratio
+Const VT_FULLSCREEN_STRETCH = 4    ' fullscreen, fills entire display (widescreen feel)
+Const VT_NO_RESIZE          = 8    ' prevent manual window resize
+Const VT_VSYNC              = 16   ' opt-in vsync (locks vt_present to monitor refresh).
                                    ' off by default - use in game loops, not text output.
 
 
