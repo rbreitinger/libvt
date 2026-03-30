@@ -8,7 +8,7 @@ Dim k  As ULong
 Dim f  As Long
 Dim ln As String
 
-vt_init(VT_MODE_80x25, 0, VT_WINDOWED, 1024)
+vt_init(VT_MODE_80x25, , VT_WINDOWED, 1024)
 
 ' --- draw status bar first, scrolling disabled so it cannot be pushed off ---
 vt_scroll_enable(0)

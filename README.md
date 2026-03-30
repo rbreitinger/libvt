@@ -57,7 +57,7 @@ until a 1.0 tag is made.
 ## License
 
 MIT License
-Copyright (c) 2025 René Breitinger (yorokobi)
+Copyright (c) 2026 René Breitinger (yorokobi)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

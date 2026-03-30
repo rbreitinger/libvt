@@ -1,12 +1,9 @@
 ' =============================================================================
 ' vt_test.bas - VT Library first test
-' Tests: init, cls, color, locate, print, print_center, box drawing,
-'        vt_get_cell, vt_set_cell, vt_should_quit, vt_inkey.
 ' Compile: fbc vt_test.bas
 ' =============================================================================
 
 #include once "vt/vt.bi"
-
 ' -----------------------------------------------------------------------------
 ' Draw a single-line box using CP437 box characters
 ' col, row: top-left corner (1-based)
@@ -43,18 +40,17 @@ Dim k      As ULong
 Dim ci     As Long
 Dim ln     As Long
 
-'result = vt_init(VT_MODE_80x25,,VT_FULLSCREEN_ASPECT)
-result = vt_init(VT_MODE_80x25)
+result = vt_init(VT_MODE_80x25,,VT_FULLSCREEN_ASPECT)
 If result <> 0 Then
     Print "vt_init failed: "; result
     End
 End If
 
-' --- screen 1: colour palette display ---
 vt_cls()
 
 vt_color(VT_YELLOW, VT_BLACK)
 vt_print_center(1, "VT - Virtual Text Screen Library - Test 1")
+
 vt_color(VT_DARK_GREY, VT_BLACK)
 vt_print_center(2, "Colour palette and box drawing")
 
@@ -127,9 +123,9 @@ vt_print("Read back cell (34,20): ch=" & read_ch & " fg=" & read_fg & " bg=" & r
 
 vt_color(VT_DARK_GREY, VT_BLACK)
 vt_locate(24, 1)
-vt_print("Press any key or click [x] to quit...")
+vt_print("Press any key to quit...")
 vt_locate(25, 1)
 
-vt_sleep(5000)
+vt_sleep()
 
 vt_shutdown()
