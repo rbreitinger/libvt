@@ -156,10 +156,10 @@ Sub vt_internal_pump()
                         End If
                     End If
 
-                    keyrec = CULng(ascii_ch)                  Or _
-                             (CULng(vtscan) Shl 16)           Or _
-                             (sh Shl 29)                       Or _
-                             (ct Shl 30)                       Or _
+                    keyrec = CULng(ascii_ch)        Or _
+                             (CULng(vtscan) Shl 16) Or _
+                             (sh Shl 29)             Or _
+                             (ct Shl 30)             Or _
                              (al Shl 31)
                     vt_internal_key_push(keyrec)
 
@@ -235,6 +235,12 @@ End Function
 ' -----------------------------------------------------------------------------
 ' vt_present - compose and display the cell buffer
 ' Called automatically by vt_print family. Call manually after vt_set_cell loops.
+'
+' Rendering strategy: GPU-accelerated blit via SDL_RenderFillRect + SDL_RenderCopy.
+' The font texture (sdl_texture) holds all 256 glyphs, white on transparent.
+' Per cell: fill bg rect, colormod the font texture to fg colour, blit glyph.
+' This replaces the old pixel-by-pixel streaming texture lock which was ~0.5s
+' per full screen fill. GPU path is effectively instant.
 ' -----------------------------------------------------------------------------
 Sub vt_present()
     If vt_internal.ready = 0 Then Exit Sub
@@ -251,18 +257,25 @@ Sub vt_present()
         cells_src = vt_internal.cells
     End If
 
-    ' lock the streaming texture for direct pixel write
-    Dim pixels   As Any Ptr
-    Dim pitch    As Long
-    SDL_LockTexture(vt_internal.sdl_texture, 0, @pixels, @pitch)
-
-    Dim gw As Long = vt_internal.glyph_w
-    Dim gh As Long = vt_internal.glyph_h
+    Dim gw   As Long = vt_internal.glyph_w
+    Dim gh   As Long = vt_internal.glyph_h
     Dim cols As Long = vt_internal.scr_cols
     Dim rows As Long = vt_internal.scr_rows
 
+    SDL_RenderClear(vt_internal.sdl_renderer)
+
+    Dim src_rect As SDL_Rect
+    Dim dst_rect As SDL_Rect
+    src_rect.w = gw
+    src_rect.h = gh
+    dst_rect.w = gw
+    dst_rect.h = gh
+
     Dim row_idx As Long
     Dim col_idx As Long
+    Dim last_fg_r As UByte = 255
+    Dim last_fg_g As UByte = 255
+    Dim last_fg_b As UByte = 255
 
     For row_idx = 0 To rows - 1
         For col_idx = 0 To cols - 1
@@ -271,13 +284,10 @@ Sub vt_present()
             Dim fg  As UByte = cellptr->fg
             Dim bg  As UByte = cellptr->bg
 
-            ' blink: if blink bit set and blink phase is off, draw fg=bg (invisible)
-            If (fg And 16) AndAlso vt_internal.blink_visible = 0 Then
-                fg = bg
-            End If
-            fg = fg And 15   ' mask out blink bit for colour lookup
+            ' blink: blink bit set and phase off -> render fg as bg (invisible)
+            If (fg And 16) AndAlso vt_internal.blink_visible = 0 Then fg = bg
+            fg = fg And 15
 
-            ' look up RGB from live palette
             Dim fg_r As UByte = vt_internal.palette(fg * 3)
             Dim fg_g As UByte = vt_internal.palette(fg * 3 + 1)
             Dim fg_b As UByte = vt_internal.palette(fg * 3 + 2)
@@ -285,79 +295,50 @@ Sub vt_present()
             Dim bg_g As UByte = vt_internal.palette(bg * 3 + 1)
             Dim bg_b As UByte = vt_internal.palette(bg * 3 + 2)
 
-            ' glyph data offset in font array: ch * glyph_h bytes
-            Dim glyph_off As Long = ch * gh
+            dst_rect.x = col_idx * gw
+            dst_rect.y = row_idx * gh
 
-            ' draw glyph rows into the texture pixel buffer
-            Dim glyph_row As Long
-            For glyph_row = 0 To gh - 1
-                Dim font_byte As UByte = vt_font_data(glyph_off + glyph_row)
-                ' destination pixel row pointer (texture is ARGB8888 = 4 bytes/pixel)
-                Dim dst As UByte Ptr = CPtr(UByte Ptr, pixels) + _
-                    ((row_idx * gh + glyph_row) * pitch) + _
-                    (col_idx * gw * 4)
-                Dim bit_idx As Long
-                For bit_idx = 0 To gw - 1
-                    Dim on_px As Byte = (font_byte Shr (7 - bit_idx)) And 1
-                    If on_px Then
-                        dst[bit_idx * 4 + 0] = fg_b
-                        dst[bit_idx * 4 + 1] = fg_g
-                        dst[bit_idx * 4 + 2] = fg_r
-                        dst[bit_idx * 4 + 3] = 255
-                    Else
-                        dst[bit_idx * 4 + 0] = bg_b
-                        dst[bit_idx * 4 + 1] = bg_g
-                        dst[bit_idx * 4 + 2] = bg_r
-                        dst[bit_idx * 4 + 3] = 255
-                    End If
-                Next bit_idx
-            Next glyph_row
+            ' fill background colour
+            SDL_SetRenderDrawColor(vt_internal.sdl_renderer, bg_r, bg_g, bg_b, 255)
+            SDL_RenderFillRect(vt_internal.sdl_renderer, @dst_rect)
+
+            ' blit glyph - skip colormod call if fg colour unchanged from last cell
+            If fg_r <> last_fg_r OrElse fg_g <> last_fg_g OrElse fg_b <> last_fg_b Then
+                SDL_SetTextureColorMod(vt_internal.sdl_texture, fg_r, fg_g, fg_b)
+                last_fg_r = fg_r
+                last_fg_g = fg_g
+                last_fg_b = fg_b
+            End If
+            src_rect.x = (ch Mod 16) * gw
+            src_rect.y = (ch \ 16)   * gh
+            SDL_RenderCopy(vt_internal.sdl_renderer, vt_internal.sdl_texture, @src_rect, @dst_rect)
 
         Next col_idx
     Next row_idx
 
-    ' draw cursor on top if visible and in scrollback = 0
+    ' draw cursor on top if visible and not in scrollback view
     If vt_internal.sb_offset = 0 AndAlso vt_internal.cur_visible AndAlso _
        vt_internal.blink_visible Then
         Dim c_col As Long = vt_internal.cur_col - 1
         Dim c_row As Long = vt_internal.cur_row - 1
-        Dim fg_r As UByte = vt_internal.palette(vt_internal.clr_fg * 3)
-        Dim fg_g As UByte = vt_internal.palette(vt_internal.clr_fg * 3 + 1)
-        Dim fg_b As UByte = vt_internal.palette(vt_internal.clr_fg * 3 + 2)
-        Dim glyph_off As Long = vt_internal.cur_ch * gh
-        Dim glyph_row As Long
-        For glyph_row = 0 To gh - 1
-            Dim font_byte As UByte = vt_font_data(glyph_off + glyph_row)
-            Dim dst As UByte Ptr = CPtr(UByte Ptr, pixels) + _
-                ((c_row * gh + glyph_row) * pitch) + _
-                (c_col * gw * 4)
-            Dim bit_idx As Long
-            For bit_idx = 0 To gw - 1
-                If (font_byte Shr (7 - bit_idx)) And 1 Then
-                    dst[bit_idx * 4 + 0] = fg_b
-                    dst[bit_idx * 4 + 1] = fg_g
-                    dst[bit_idx * 4 + 2] = fg_r
-                    dst[bit_idx * 4 + 3] = 255
-                End If
-            Next bit_idx
-        Next glyph_row
+        Dim cfg_r As UByte = vt_internal.palette(vt_internal.clr_fg * 3)
+        Dim cfg_g As UByte = vt_internal.palette(vt_internal.clr_fg * 3 + 1)
+        Dim cfg_b As UByte = vt_internal.palette(vt_internal.clr_fg * 3 + 2)
+        src_rect.x = (vt_internal.cur_ch Mod 16) * gw
+        src_rect.y = (vt_internal.cur_ch \ 16)   * gh
+        dst_rect.x = c_col * gw
+        dst_rect.y = c_row * gh
+        SDL_SetTextureColorMod(vt_internal.sdl_texture, cfg_r, cfg_g, cfg_b)
+        SDL_RenderCopy(vt_internal.sdl_renderer, vt_internal.sdl_texture, @src_rect, @dst_rect)
     End If
 
-    SDL_UnlockTexture(vt_internal.sdl_texture)
-
-    ' scale texture to window and flip
-    SDL_RenderClear(vt_internal.sdl_renderer)
-    SDL_RenderCopy(vt_internal.sdl_renderer, vt_internal.sdl_texture, 0, 0)
+    vt_internal.dirty = 0
     SDL_RenderPresent(vt_internal.sdl_renderer)
 End Sub
 
 
 ' -----------------------------------------------------------------------------
-' vt_init - initialise the VT library
-' Mode variant: pass a VT_MODE_* constant as first arg (cols/rows auto-selected)
-' Raw variant:  pass cols, rows explicitly
-' Both variants share the same implementation via overloading in vt.bi.
-' This is the raw implementation called by both.
+' vt_init_impl - core initialisation, called by both vt_init overloads
 ' -----------------------------------------------------------------------------
 Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Long, _
                       flags As Long, scrollback As Long) As Long
@@ -389,8 +370,9 @@ Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Lo
         SDL_SetWindowFullscreen(vt_internal.sdl_window, SDL_WINDOW_FULLSCREEN)
     End If
 
-    ' --- renderer with integer scaling for aspect mode ---
-    Dim rflags As ULong = SDL_RENDERER_ACCELERATED Or SDL_RENDERER_PRESENTVSYNC
+    ' --- renderer with vsync ---
+    Dim rflags As ULong = SDL_RENDERER_ACCELERATED
+    If flags And VT_VSYNC Then rflags = rflags Or SDL_RENDERER_PRESENTVSYNC
     vt_internal.sdl_renderer = SDL_CreateRenderer(vt_internal.sdl_window, -1, rflags)
     If vt_internal.sdl_renderer = 0 Then
         SDL_DestroyWindow(vt_internal.sdl_window)
@@ -403,55 +385,54 @@ Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Lo
         SDL_RenderSetLogicalSize(vt_internal.sdl_renderer, win_w, win_h)
     End If
 
-    ' --- streaming texture (ARGB8888, one pixel per font pixel) ---
-    vt_internal.sdl_texture = SDL_CreateTexture(vt_internal.sdl_renderer, _
-        SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, win_w, win_h)
-    If vt_internal.sdl_texture = 0 Then
+    ' --- build font surface: 16x16 glyph grid, white glyphs on transparent bg ---
+    ' ARGB8888, glyph pixels = &hFFFFFFFF (white, opaque)
+    '           bg pixels    = &h00000000 (transparent - lets RenderFillRect bg show through)
+    Dim font_surf As SDL_Surface Ptr
+    font_surf = SDL_CreateRGBSurface(0, 16 * glyph_w, 16 * glyph_h, 32, _
+        &h00FF0000, &h0000FF00, &h000000FF, &hFF000000)
+    If font_surf = 0 Then
         SDL_DestroyRenderer(vt_internal.sdl_renderer)
         SDL_DestroyWindow(vt_internal.sdl_window)
         SDL_Quit()
         Return -4
     End If
 
-    ' --- load embedded font via SDL_RWFromMem ---
-    Dim rw As SDL_RWops Ptr = SDL_RWFromMem(@vt_font_data(0), 4096)
-    ' the font data is raw bitmap bytes, not a BMP - we build the surface manually
-    ' surface: 128 x (gh*16) pixels, 1 bit per pixel expanded to 8bpp palette surface
-    ' Simpler: build an ARGB surface directly from the raw glyph data
-    Dim font_surf As SDL_Surface Ptr
-    font_surf = SDL_CreateRGBSurface(0, 16 * glyph_w, 16 * glyph_h, 32, _
-        &h00FF0000, &h0000FF00, &h000000FF, &hFF000000)
-    SDL_RWclose(rw)
-
-    If font_surf = 0 Then
-        SDL_DestroyTexture(vt_internal.sdl_texture)
-        SDL_DestroyRenderer(vt_internal.sdl_renderer)
-        SDL_DestroyWindow(vt_internal.sdl_window)
-        SDL_Quit()
-        Return -5
-    End If
-
-    ' paint all 256 glyphs into the font surface (white on black)
+    ' paint all 256 glyphs into the surface
     SDL_LockSurface(font_surf)
-    Dim surf_px As ULong Ptr = CPtr(ULong Ptr, font_surf->pixels)
-    Dim surf_pitch As Long = font_surf->pitch \ 4  ' pitch in pixels
-    Dim glyph_idx As Long
+    Dim surf_px    As ULong Ptr = CPtr(ULong Ptr, font_surf->pixels)
+    Dim surf_pitch As Long      = font_surf->pitch \ 4  ' pitch in pixels (ULong stride)
+    Dim glyph_idx  As Long
     For glyph_idx = 0 To 255
         Dim gx As Long = (glyph_idx Mod 16) * glyph_w
-        Dim gy As Long = (glyph_idx \ 16)  * glyph_h
+        Dim gy As Long = (glyph_idx \ 16)   * glyph_h
         Dim glyph_row As Long
         For glyph_row = 0 To glyph_h - 1
             Dim font_byte As UByte = vt_font_data(glyph_idx * glyph_h + glyph_row)
             Dim bit_idx As Long
             For bit_idx = 0 To glyph_w - 1
                 Dim on_px As Byte = (font_byte Shr (7 - bit_idx)) And 1
+                ' opaque white for glyph pixels, fully transparent for background
                 surf_px[(gy + glyph_row) * surf_pitch + gx + bit_idx] = _
-                    IIf(on_px, &hFFFFFFFF, &hFF000000)
+                    IIf(on_px, &hFFFFFFFF, &h00000000)
             Next bit_idx
         Next glyph_row
     Next glyph_idx
     SDL_UnlockSurface(font_surf)
-    vt_internal.sdl_font = font_surf
+
+    ' convert surface to GPU texture and enable alpha blending
+    vt_internal.sdl_texture = SDL_CreateTextureFromSurface(vt_internal.sdl_renderer, font_surf)
+    SDL_FreeSurface(font_surf)   ' surface no longer needed - GPU texture owns the data
+    vt_internal.sdl_font = 0    ' not stored - freed above
+
+    If vt_internal.sdl_texture = 0 Then
+        SDL_DestroyRenderer(vt_internal.sdl_renderer)
+        SDL_DestroyWindow(vt_internal.sdl_window)
+        SDL_Quit()
+        Return -5
+    End If
+
+    SDL_SetTextureBlendMode(vt_internal.sdl_texture, SDL_BLENDMODE_BLEND)
 
     ' --- store geometry ---
     vt_internal.scr_cols = cols
@@ -474,7 +455,7 @@ Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Lo
         vt_internal.sb_cells = 0
     End If
 
-    ' --- allocate page save slots (start as null, allocated on first use) ---
+    ' --- allocate page save slots (null until first use) ---
     Dim sl As Long
     For sl = 0 To VT_PAGE_SLOTS - 1
         vt_internal.page_slot(sl) = 0
@@ -498,6 +479,9 @@ Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Lo
     ' --- blink ---
     vt_internal.blink_visible = 1
     vt_internal.blink_tick    = SDL_GetTicks()
+    
+    ' --- dirty starts clean (first present will draw the blank screen) ---
+    vt_internal.dirty = 0
 
     ' --- key repeat defaults ---
     vt_internal.rep_scan    = 0
@@ -525,8 +509,7 @@ End Function
 
 
 ' -----------------------------------------------------------------------------
-' vt_init overloads - exposed in vt.bi as Declare Function
-' Mode variant: VT_MODE_* constant selects cols/rows/glyph size
+' vt_init - mode constant or explicit cols/rows
 ' -----------------------------------------------------------------------------
 Function vt_init(cols_or_mode As Long, rows As Long = 0, flags As Long = VT_WINDOWED, scrollback As Long = 0) As Long
     Dim cols As Long
@@ -573,8 +556,7 @@ Sub vt_shutdown()
     If vt_internal.cells    <> 0 Then DeAllocate vt_internal.cells    : vt_internal.cells    = 0
     If vt_internal.sb_cells <> 0 Then DeAllocate vt_internal.sb_cells : vt_internal.sb_cells = 0
 
-    ' free SDL objects
-    If vt_internal.sdl_font     <> 0 Then SDL_FreeSurface(vt_internal.sdl_font)     : vt_internal.sdl_font     = 0
+    ' free SDL objects (sdl_font is always 0 after init - freed there)
     If vt_internal.sdl_texture  <> 0 Then SDL_DestroyTexture(vt_internal.sdl_texture)  : vt_internal.sdl_texture  = 0
     If vt_internal.sdl_renderer <> 0 Then SDL_DestroyRenderer(vt_internal.sdl_renderer): vt_internal.sdl_renderer = 0
     If vt_internal.sdl_window   <> 0 Then SDL_DestroyWindow(vt_internal.sdl_window)    : vt_internal.sdl_window   = 0
@@ -585,7 +567,6 @@ End Sub
 
 ' -----------------------------------------------------------------------------
 ' vt_should_quit - returns 1 if the user closed the window
-' Recommended to check in the main loop alongside vt_inkey.
 ' -----------------------------------------------------------------------------
 Function vt_should_quit() As Byte
     Return IIf(vt_internal.ready = 2, 1, 0)
@@ -652,6 +633,7 @@ Sub vt_set_cell(col As Long, row As Long, ch As UByte, fg As UByte, bg As UByte)
     cellptr->ch = ch
     cellptr->fg = fg
     cellptr->bg = bg
+    vt_internal.dirty = 1
 End Sub
 
 
@@ -659,13 +641,12 @@ End Sub
 ' vt_inkey - non-blocking key read
 ' Pumps events, redraws if blink phase changed, pops one key from the buffer.
 ' Returns 0 if no key is waiting.
-' Use VT_CHAR / VT_SCAN / VT_SHIFT / VT_CTRL / VT_ALT / VT_REPEAT macros
-' to extract fields from the returned ULong.
 ' -----------------------------------------------------------------------------
 Function vt_inkey() As ULong
     If vt_internal.ready = 0 Then Return 0
     vt_internal_pump()
-    If vt_internal_blink_update() Then vt_present()
+    If vt_internal_blink_update() Then vt_internal.dirty = 1
+    If vt_internal.dirty Then vt_present()
     If vt_internal.key_count = 0 Then Return 0
     Dim evt As ULong = vt_internal.key_buf(vt_internal.key_read)
     vt_internal.key_read  = (vt_internal.key_read + 1) Mod VT_KEY_BUFFER_SIZE

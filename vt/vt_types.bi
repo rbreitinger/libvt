@@ -25,8 +25,8 @@ Type vt_internal_state
     ' --- SDL handles ---
     sdl_window   As SDL_Window Ptr
     sdl_renderer As SDL_Renderer Ptr
-    sdl_texture  As SDL_Texture Ptr     ' streaming texture for the composed frame
-    sdl_font     As SDL_Surface Ptr     ' font tileset surface
+    sdl_texture  As SDL_Texture Ptr     ' font glyph texture (white glyphs, transparent bg)
+    sdl_font     As SDL_Surface Ptr     ' always 0 after init - surface freed after upload
 
     ' --- screen geometry ---
     scr_cols    As Long   ' screen width in cells
@@ -59,7 +59,6 @@ Type vt_internal_state
     view_bot    As Long   ' scroll region bottom row (1-based, default scr_rows)
 
     ' --- scrollback buffer ---
-    ' heap-allocated array of (sb_lines * scr_cols) cells, row-major
     sb_cells    As vt_cell Ptr
     sb_lines    As Long   ' total scrollback line capacity (0 = disabled)
     sb_used     As Long   ' lines currently stored in scrollback
@@ -88,14 +87,18 @@ Type vt_internal_state
     mouse_btns  As Long    ' last known button state bitmask
 
     ' --- page save slots ---
-    ' each slot is a heap-allocated vt_cell array of scr_cols * scr_rows
     page_slot(VT_PAGE_SLOTS - 1) As vt_cell Ptr
 
     ' --- live palette (16 entries x 3 bytes = 48 bytes, R,G,B order) ---
     palette(47) As UByte
 
+    ' --- dirty flag ---
+    ' set by any write to the cell buffer (putch, cls, set_cell, scroll, blink toggle)
+    ' cleared by vt_present after flip. vt_inkey skips present when not dirty.
+    dirty       As Byte
+
     ' --- init flag ---
-    ready       As Byte   ' 1 = vt_init completed successfully, 0 = not initialised
+    ready       As Byte   ' 1 = vt_init completed successfully, 0 = not initialised, 2 = quit
 
 End Type
 

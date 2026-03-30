@@ -12,6 +12,8 @@ Const VT_WINDOWED          = 1    ' start in a resizable window (default)
 Const VT_FULLSCREEN_ASPECT = 2    ' fullscreen, integer-scaled, black bars to keep ratio
 Const VT_FULLSCREEN_STRETCH = 4   ' fullscreen, fills entire display (widescreen feel)
 Const VT_NO_RESIZE         = 8    ' prevent manual window resize
+Const VT_VSYNC             = 16   ' opt-in vsync (locks vt_present to monitor refresh).
+                                   ' off by default - use in game loops, not text output.
 
 
 ' -----------------------------------------------------------------------------
@@ -76,8 +78,6 @@ Const VT_BLINK          = 16  ' Or with fg to enable blinking  eg. VT_WHITE Or V
 
 ' -----------------------------------------------------------------------------
 ' VT key scancode constants  (VT_SCAN(k) values - our own namespace, no SDL exposed)
-' Traditional DOS BIOS scancode values are used where they exist - familiar
-' to anyone who programmed in QBasic. Extended / modern keys follow the pattern.
 ' -----------------------------------------------------------------------------
 
 ' Function keys
@@ -123,16 +123,9 @@ Const VT_KEY_RALT   = 184
 Const VT_KEY_LWIN   = 219
 Const VT_KEY_RWIN   = 220
 
-' Scroll-back (built-in - Shift+PgUp / Shift+PgDn - consumed internally by VT)
-' Defined here for reference only; user programs do not need to handle these.
-' Const VT_KEY_SCROLLBACK_UP   = VT_KEY_PGUP  (+ Shift)
-' Const VT_KEY_SCROLLBACK_DOWN = VT_KEY_PGDN  (+ Shift)
-
 
 ' -----------------------------------------------------------------------------
 ' Default CGA / DOS palette  - 16 colours, 3 bytes each (R, G, B)
-' Applied at vt_init(). User can read / replace via vt_palette_get / vt_palette_set.
-' These are the authentic original DOS colour values, not modern CMD colours.
 ' -----------------------------------------------------------------------------
 Dim Shared vt_default_palette(47) As UByte = { _
     0,   0,   0,  _ '  0 Black
