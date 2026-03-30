@@ -23,7 +23,7 @@ vt_shutdown()
 ## Requirements
 
 - **FreeBASIC 1.10.1** (Windows)
-- **SDL2.dll** — can grab from my library archive: https://github.com/rbreitinger/fb-lib-archive/tree/main/libraries/SDL2/SDL2-2.0.14 )
+- **SDL2.dll** — get it from the [FreeBASIC library archive](https://github.com/rbreitinger/fb-lib-archive/tree/main/libraries/SDL2/SDL2-2.0.14)
 
 No other dependencies. The CP437 font is embedded — no external font files needed.
 
@@ -37,12 +37,13 @@ No other dependencies. The CP437 font is embedded — no external font files nee
 - Blinking text via `VT_BLINK` attribute
 - Scrollback buffer with Shift+PgUp / Shift+PgDn
 - Windowed or fullscreen with integer scaling and nearest-neighbor rendering
-- Resizable window that snaps to cell grid — no blurry scaling ever
+- Resizable window — SDL logical scaling keeps the canvas sharp at any size
 - Buffered key input via `vt_inkey` — nothing missed, nothing floods
 - Real-time key state via `vt_key_held` — for game loops
 - `vt_view_print` scroll regions — fixed status bars, split screen layouts
-- custom font loading *(coming soon)*
-- 80x43 and 80x50 modes, requires 8x8 font still *(coming soon)*
+- `VT_NEWLINE` constant for readable line breaks in print chains
+- 80x43 and 80x50 modes *(coming soon — needs embedded 8x8 font)*
+- Custom font loading *(coming soon)*
 - Page save / restore — PCOPY equivalent *(coming soon)*
 - Mouse support *(coming soon)*
 

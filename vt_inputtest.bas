@@ -48,7 +48,6 @@ End Select
 
 vt_locate(15, 4) : vt_print("Press any key to continue...")
 vt_present()
-vt_key_flush()   ' clear any repeat events from menu keypress
 vt_getkey()
 
 ' ==========================================================================
@@ -62,7 +61,6 @@ vt_locate(5, 4)  : vt_print("Y, y, N and n are accepted. Anything else is ignore
 vt_color(VT_YELLOW, VT_BLACK)
 vt_locate(7, 4)  : vt_print("Are you enjoying this demo? (Y/N): ")
 vt_present()
-vt_key_flush()   ' clear any repeat events from menu keypress
 
 answer = LCase(vt_getchar("YyNn"))
 
@@ -79,7 +77,6 @@ End If
 
 vt_locate(11, 4) : vt_print("Press any key to continue...")
 vt_present()
-vt_key_flush()   ' clear any repeat events from menu keypress
 vt_getkey()
 
 ' ==========================================================================
@@ -92,7 +89,6 @@ vt_color(VT_LIGHT_GREY, VT_BLACK)
 vt_locate(5, 4)  : vt_print("Press any key. Shows ASCII and scancode. ESC to finish.")
 vt_locate(7, 4)  : vt_print("Key            ASCII   Scancode")
 vt_locate(8, 4)  : vt_print(String(40, 196))
-vt_key_flush()   ' clear any repeat events from menu keypress
 
 Dim row As Long = 9
 Do

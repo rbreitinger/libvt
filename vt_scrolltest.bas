@@ -8,7 +8,7 @@ Dim k  As ULong
 Dim f  As Long
 Dim ln As String
 
-vt_init(VT_MODE_80x25, , VT_WINDOWED, 1024)
+vt_init(VT_MODE_80x25, , VT_FULLSCREEN_STRETCH, 1024)
 
 ' --- draw status bar first, scrolling disabled so it cannot be pushed off ---
 vt_scroll_enable(0)
@@ -20,7 +20,7 @@ vt_scroll_enable(1)
 ' --- restrict scroll region to rows 1-24 ---
 vt_view_print(1, 24)
 vt_locate(1, 1)
-vt_color(VT_LIGHT_GREY, VT_BLUE)
+vt_color(VT_WHITE, VT_BLUE)
 
 ' --- print file into the scroll region ---
 f = FreeFile()
