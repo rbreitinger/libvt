@@ -6,6 +6,7 @@
 #include once "SDL2/SDL.bi"
 
 #Define VT_NEWLINE  Chr(10)
+#Define vt_pump     vt_internal_pump()
 #Define vt_pump()   vt_internal_pump()
 
 ' -----------------------------------------------------------------------------
