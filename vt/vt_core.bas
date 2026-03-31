@@ -1,9 +1,9 @@
 ' =============================================================================
 ' vt_core.bas - VT Virtual Text Screen Library
-' SDL2 window, cell buffer, blink timer, palette, vt_present, simple input.
+' SDL2 window, cell buffer, blink timer, palette, vt_present, key handling.
 ' =============================================================================
 
-' forward declarations - defined later in this file
+' forward declarations implemented later in this file
 Declare Sub      vt_present()
 Declare Sub      vt_shutdown()
 Declare Function vt_init(cols_or_mode As Long, rows As Long = 0, flags As Long = VT_WINDOWED, scrollback As Long = 0) As Long
@@ -152,9 +152,10 @@ Sub vt_internal_pump()
 
                     keyrec = CULng(ascii_ch)        Or _
                              (CULng(vtscan) Shl 16) Or _
-                             (sh Shl 29)             Or _
-                             (ct Shl 30)             Or _
+                             (sh Shl 29)            Or _
+                             (ct Shl 30)            Or _
                              (al Shl 31)
+                             
                     vt_internal_key_push(keyrec)
 
                     ' start repeat tracking for this key
@@ -202,7 +203,6 @@ Sub vt_internal_pump()
     Wend
 End Sub
 
-
 ' -----------------------------------------------------------------------------
 ' Internal: update blink phase based on elapsed time
 ' Returns 1 if the phase changed (caller may want to re-present)
@@ -217,21 +217,6 @@ Function vt_internal_blink_update() As Byte
     Return 0
 End Function
 
-
-' -----------------------------------------------------------------------------
-' vt_present - compose and display the cell buffer
-' Called manually after composing a frame, or automatically by vt_inkey.
-'
-' Rendering strategy: GPU-accelerated blit via SDL_RenderFillRect + SDL_RenderCopy.
-' The font texture holds all 256 glyphs, white on transparent.
-' Per cell: fill bg rect, colormod the font texture to fg colour, blit glyph.
-'
-' Scrollback: for each display row we compute a logical row index.
-' Rows that map into the scrollback buffer read from sb_cells,
-' rows that map into the live screen read from cells[].
-' This handles the case where sb_offset > sb_used (partial scrollback)
-' cleanly without reading past valid data.
-' -----------------------------------------------------------------------------
 ' -----------------------------------------------------------------------------
 ' vt_present - compose and display the cell buffer
 ' Called manually after composing a frame, or automatically by vt_inkey.
@@ -302,7 +287,6 @@ Sub vt_present()
     last_fg_b = 255
 
     For row_idx = 0 To rows - 1
-
         If vt_internal.sb_offset > 0 AndAlso _
            row_idx >= vt_internal.view_top - 1 AndAlso _
            row_idx <= vt_internal.view_bot - 1 Then
@@ -397,6 +381,7 @@ Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Lo
     vt_internal.sdl_window = SDL_CreateWindow("VT", _
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, _
         win_w, win_h, wflags)
+        
     If vt_internal.sdl_window = 0 Then
         SDL_Quit()
         Return -2
@@ -447,25 +432,39 @@ Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Lo
 
     ' paint all 256 glyphs into the surface
     SDL_LockSurface(font_surf)
+    
     Dim surf_px    As ULong Ptr = CPtr(ULong Ptr, font_surf->pixels)
     Dim surf_pitch As Long      = font_surf->pitch \ 4  ' pitch in pixels (ULong stride)
     Dim glyph_idx  As Long
+    
+    Dim gx        As Long 
+    Dim gy        As Long 
+    Dim glyph_row As Long
+    
+    Dim font_row  As Long
+    Dim font_byte As UByte
+    Dim bit_idx   As Long
+    
+    Dim font_bit As Long
+    Dim on_px    As Byte
+    
     For glyph_idx = 0 To 255
-        Dim gx As Long = (glyph_idx Mod 16) * glyph_w
-        Dim gy As Long = (glyph_idx \ 16)   * glyph_h
-        Dim glyph_row As Long
+        gx = (glyph_idx Mod 16) * glyph_w
+        gy = (glyph_idx \ 16)   * glyph_h
+        
         For glyph_row = 0 To glyph_h - 1
-            Dim font_row  As Long  = (glyph_row * 16) \ glyph_h
-            Dim font_byte As UByte = vt_font_data_8x16(glyph_idx * 16 + font_row)
-            Dim bit_idx   As Long
+            font_row  = (glyph_row * 16) \ glyph_h
+            font_byte = vt_font_data_8x16(glyph_idx * 16 + font_row)
+            
             For bit_idx = 0 To glyph_w - 1
-                Dim font_bit As Long = (bit_idx * 8) \ glyph_w
-                Dim on_px    As Byte = (font_byte Shr (7 - font_bit)) And 1
+                font_bit = (bit_idx * 8) \ glyph_w
+                on_px    = (font_byte Shr (7 - font_bit)) And 1
                 surf_px[(gy + glyph_row) * surf_pitch + gx + bit_idx] = _
                     IIf(on_px, &hFFFFFFFF, &h00000000)
             Next bit_idx
         Next glyph_row
     Next glyph_idx
+    
     SDL_UnlockSurface(font_surf)
 
     ' convert surface to GPU texture and enable alpha blending
@@ -504,8 +503,7 @@ Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Lo
     End If
 
     ' --- allocate page save slots (null until first use) ---
-    Dim sl As Long
-    For sl = 0 To VT_PAGE_SLOTS - 1
+    For sl As Long = 0 To VT_PAGE_SLOTS - 1
         vt_internal.page_slot(sl) = 0
     Next sl
 
@@ -543,8 +541,7 @@ Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Lo
     vt_internal.mouse_bg  = VT_BLACK
 
     ' --- apply default palette ---
-    Dim pi As Long
-    For pi = 0 To 47
+    For pi As Long = 0 To 47
         vt_internal.palette(pi) = vt_default_palette(pi)
     Next pi
 
@@ -590,8 +587,7 @@ Sub vt_shutdown()
     vt_internal.ready = 0
 
     ' free page slots
-    Dim sl As Long
-    For sl = 0 To VT_PAGE_SLOTS - 1
+    For sl As Long = 0 To VT_PAGE_SLOTS - 1
         If vt_internal.page_slot(sl) <> 0 Then
             DeAllocate vt_internal.page_slot(sl)
             vt_internal.page_slot(sl) = 0
@@ -629,15 +625,13 @@ Sub vt_palette(idx As Long, r As Long, g As Long, b As Long)
 End Sub
 
 Sub vt_palette_set(pal() As UByte)
-    Dim pi As Long
-    For pi = 0 To 47
+    For pi As Long = 0 To 47
         vt_internal.palette(pi) = pal(pi)
     Next pi
 End Sub
 
 Sub vt_palette_get(pal() As UByte)
-    Dim pi As Long
-    For pi = 0 To 47
+    For pi As Long = 0 To 47
         pal(pi) = vt_internal.palette(pi)
     Next pi
 End Sub
@@ -727,7 +721,7 @@ End Function
 ' Returns 1 if the key is currently held down, 0 if not.
 ' Takes a VT scancode constant (VT_KEY_UP, VT_KEY_SPACE, etc).
 ' Unlike vt_inkey this is not edge-triggered - it reflects the live key state.
-' Call vt_internal_pump() before this in a game loop to keep events flowing.
+' Call vt_pump() before this in a game loop to keep events flowing.
 ' -----------------------------------------------------------------------------
 Function vt_key_held(vtscan As Long) As Byte
     Dim sdl_scan As Long

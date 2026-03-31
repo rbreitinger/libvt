@@ -1,16 +1,16 @@
 ' =============================================================================
 ' vt_print.bas - VT Virtual Text Screen Library
-' vt_print, vt_locate, vt_cls, vt_color, vt_scroll_enable, vt_view_print,
-' vt_print_center, vt_scroll_enable, cursor control.
+' vt_cls, vt_color, vt_locate, vt_scroll_enable, vt_view_print, 
+' vt_view_print_reset, vt_print, vt_print_center
 ' =============================================================================
 
 ' -----------------------------------------------------------------------------
 ' Internal: scroll the view region up by one line
 ' -----------------------------------------------------------------------------
 Sub vt_internal_scroll_up()
-    Dim cols    As Long = vt_internal.scr_cols
-    Dim vtop    As Long = vt_internal.view_top - 1   ' 0-based
-    Dim vbot    As Long = vt_internal.view_bot - 1   ' 0-based
+    Dim cols As Long = vt_internal.scr_cols
+    Dim vtop As Long = vt_internal.view_top - 1   ' 0-based
+    Dim vbot As Long = vt_internal.view_bot - 1   ' 0-based
 
     ' push top line into scrollback buffer if enabled
     If vt_internal.sb_lines > 0 AndAlso vt_internal.sb_cells <> 0 Then
@@ -30,8 +30,7 @@ Sub vt_internal_scroll_up()
     End If
 
     ' shift view region lines up by one
-    Dim ln As Long
-    For ln = vtop To vbot - 1
+    For ln As Long = vtop To vbot - 1
         memcpy(vt_internal.cells + (ln * cols), _
                vt_internal.cells + ((ln + 1) * cols), _
                cols * SizeOf(vt_cell))
@@ -39,8 +38,7 @@ Sub vt_internal_scroll_up()
 
     ' clear the bottom line with current bg colour
     Dim cellptr As vt_cell Ptr = vt_internal.cells + (vbot * cols)
-    Dim ci As Long
-    For ci = 0 To cols - 1
+    For ci As Long = 0 To cols - 1
         cellptr[ci].ch = 32
         cellptr[ci].fg = vt_internal.clr_fg
         cellptr[ci].bg = vt_internal.clr_bg
@@ -91,12 +89,8 @@ End Sub
 ' -----------------------------------------------------------------------------
 Sub vt_locate(row As Long = -1, col As Long = -1, vis As Long = -1, cursor_ch As Long = -1)
     If vt_internal.ready = 0 Then Exit Sub
-    If row >= 1 AndAlso row <= vt_internal.scr_rows Then
-        vt_internal.cur_row = row
-    End If
-    If col >= 1 AndAlso col <= vt_internal.scr_cols Then
-        vt_internal.cur_col            = col
-    End If
+    If row >= 1 AndAlso row <= vt_internal.scr_rows Then vt_internal.cur_row = row
+    If col >= 1 AndAlso col <= vt_internal.scr_cols Then vt_internal.cur_col = col
     If vis >= 0 Then vt_internal.cur_visible = vis
     If cursor_ch > 0 Then vt_internal.cur_ch = cursor_ch
 End Sub
@@ -112,12 +106,8 @@ End Sub
 ' vt_view_print - restrict scroll region to a row range (like VIEW PRINT)
 ' -----------------------------------------------------------------------------
 Sub vt_view_print(top_row As Long, bot_row As Long)
-    If top_row >= 1 AndAlso top_row <= vt_internal.scr_rows Then
-        vt_internal.view_top = top_row
-    End If
-    If bot_row >= top_row AndAlso bot_row <= vt_internal.scr_rows Then
-        vt_internal.view_bot = bot_row
-    End If
+    If top_row >= 1 AndAlso top_row <= vt_internal.scr_rows Then vt_internal.view_top = top_row
+    If bot_row >= top_row AndAlso bot_row <= vt_internal.scr_rows Then vt_internal.view_bot = bot_row
 End Sub
 
 Sub vt_view_print_reset()
@@ -145,6 +135,7 @@ Sub vt_internal_putch(ch As UByte)
         Case Else
             Dim cellptr As vt_cell Ptr = vt_internal.cells + _
                 ((vt_internal.cur_row - 1) * vt_internal.scr_cols + (vt_internal.cur_col - 1))
+                
             cellptr->ch = ch
             cellptr->fg = vt_internal.clr_fg
             cellptr->bg = vt_internal.clr_bg
@@ -172,11 +163,10 @@ Sub vt_print(txt As String)
     Dim slen As Long = Len(txt)
     If slen = 0 Then Exit Sub
 
-    Dim ci   As Long
     Dim ch   As UByte
     Dim prev As UByte = 0
 
-    For ci = 1 To slen
+    For ci As Long = 1 To slen
         ch = txt[ci - 1]
         ' collapse CRLF into a single LF
         If ch = 10 AndAlso prev = 13 Then

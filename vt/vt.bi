@@ -5,12 +5,6 @@
 
 #include once "SDL2/SDL.bi"
 
-' =============================================================================
-' vt_const.bi - VT Virtual Text Screen Library
-' All public constants, key codes, palette defaults, and internal tuning values.
-' Include via vt.bi only - use: #include once "vt/vt.bi"
-' =============================================================================
-
 #Define VT_NEWLINE  Chr(10)
 #Define vt_pump()   vt_internal_pump()
 
@@ -21,39 +15,42 @@ Const VT_WINDOWED           = 1    ' start in a resizable window (default)
 Const VT_FULLSCREEN_ASPECT  = 2    ' fullscreen, integer-scaled, black bars to keep ratio
 Const VT_FULLSCREEN_STRETCH = 4    ' fullscreen, fills entire display (widescreen feel)
 Const VT_NO_RESIZE          = 8    ' prevent manual window resize
-Const VT_VSYNC              = 16   ' opt-in vsync (locks vt_present to monitor refresh).
-                                   ' off by default - use in game loops, not text output.
+Const VT_VSYNC              = 16   ' vsync (locks vt_present to monitor refresh), off by default
                                    
 ' -----------------------------------------------------------------------------
 ' Screen mode constants  (shorthand for well-known DOS configurations)
 ' Passed as first argument to vt_init() instead of explicit cols/rows.
 ' -----------------------------------------------------------------------------
-Const VT_MODE_80x25 = 1   ' 8x16  glyphs - classic DOS, the default
-Const VT_MODE_80x43 = 2   ' 8x8   glyphs - EGA 43-line
-Const VT_MODE_80x50 = 3   ' 8x8   glyphs - VGA 50-line
-Const VT_MODE_40x25 = 4   ' 16x16 glyphs - wide / chunky like SCREEN 13
+Enum VT_MODE_LIST
+    VT_MODE_80x25 = 1   ' 8x16  glyphs - classic DOS, the default
+    VT_MODE_80x43       ' 8x8   glyphs - EGA 43-line
+    VT_MODE_80x50       ' 8x8   glyphs - VGA 50-line
+    VT_MODE_40x25       ' 16x16 glyphs - wide / chunky like SCREEN 13
+End Enum
 
 ' -----------------------------------------------------------------------------
 ' Colour constants  (fg 0-15, bg 0-15, add VT_BLINK to fg for blinking)
 ' Uses the original DOS / CGA palette - NOT modern CMD colours.
 ' -----------------------------------------------------------------------------
-Const VT_BLACK          =  0
-Const VT_BLUE           =  1
-Const VT_GREEN          =  2
-Const VT_CYAN           =  3
-Const VT_RED            =  4
-Const VT_MAGENTA        =  5
-Const VT_BROWN          =  6
-Const VT_LIGHT_GREY     =  7
-Const VT_DARK_GREY      =  8
-Const VT_BRIGHT_BLUE    =  9
-Const VT_BRIGHT_GREEN   = 10
-Const VT_BRIGHT_CYAN    = 11
-Const VT_BRIGHT_RED     = 12
-Const VT_BRIGHT_MAGENTA = 13
-Const VT_YELLOW         = 14
-Const VT_WHITE          = 15
-Const VT_BLINK          = 16  ' Or with fg to enable blinking  eg. VT_WHITE Or VT_BLINK
+Enum VT_COLOR_IDX
+    VT_BLACK
+    VT_BLUE
+    VT_GREEN
+    VT_CYAN
+    VT_RED
+    VT_MAGENTA
+    VT_BROWN
+    VT_LIGHT_GREY
+    VT_DARK_GREY
+    VT_BRIGHT_BLUE
+    VT_BRIGHT_GREEN
+    VT_BRIGHT_CYAN
+    VT_BRIGHT_RED
+    VT_BRIGHT_MAGENTA
+    VT_YELLOW
+    VT_WHITE
+    VT_BLINK           ' OR with fg to enable blinking  eg. VT_WHITE Or VT_BLINK
+End Enum
 
 ' -----------------------------------------------------------------------------
 ' vt_inkey return value layout (ULong, 32 bits)
@@ -153,12 +150,6 @@ Const VT_PAGE_SLOTS         = 4     ' number of vt_page_save / vt_page_restore s
 Const VT_KEY_REPEAT_INITIAL = 400   ' default initial key-repeat delay in ms
 Const VT_KEY_REPEAT_RATE    = 30    ' default repeat interval in ms after initial delay
 
-' =============================================================================
-' vt_types.bi - VT Virtual Text Screen Library
-' Cell type and internal state UDT.
-' Include via vt.bi only - use: #include once "vt/vt.bi"
-' =============================================================================
-
 ' -----------------------------------------------------------------------------
 ' vt_cell - one character cell on the virtual screen
 ' -----------------------------------------------------------------------------
@@ -168,10 +159,9 @@ Type vt_cell
     bg  As UByte   ' background colour 0-15
 End Type
 
-
 ' -----------------------------------------------------------------------------
 ' vt_internal_state - complete internal library state
-' One Dim Shared instance (vt_internal) lives in vt_core.bas.
+' One Dim Shared instance (vt_internal)
 ' No other module declares additional globals - everything lives here.
 ' User code must never access vt_internal directly.
 ' -----------------------------------------------------------------------------
@@ -259,16 +249,11 @@ Type vt_internal_state
 
     ' --- init flag ---
     ready       As Byte   ' 1 = vt_init completed successfully, 0 = not initialised, 2 = quit
-
 End Type
 
-' -----------------------------------------------------------------------------
-' The single shared instance - all VT modules access state through this only
-' -----------------------------------------------------------------------------
 Dim Shared vt_internal As vt_internal_state
 
 #include once "vt_font_8x16.bi"
 '#include once "vt_font_8x8.bi"
-
 #include once "vt_core.bas"
 #include once "vt_print.bas"

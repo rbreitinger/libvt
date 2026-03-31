@@ -1,13 +1,9 @@
 ' =============================================================================
 ' vt_stress.bas  -  VT render speed test 
-' Compile:  fbc vt_stress.bas
 ' =============================================================================
-
 #include once "vt/vt.bi"
 
 Dim k          As ULong
-Dim r          As Long
-Dim c          As Long
 Dim fg_clr     As Long
 Dim bg_clr     As Long
 Dim t1         As Double
@@ -15,12 +11,7 @@ Dim t2         As Double
 Dim t_fill_ms  As Long   ' vt_set_cell loop time in ms
 Dim t_pres_ms  As Long   ' one vt_present() time in ms
 
-' -------------------------------------------------------------------------
-' Init
-' -------------------------------------------------------------------------
 vt_init(VT_MODE_80x25)
-
-vt_border_color( 63, 63, 63 )
 
 ' -------------------------------------------------------------------------
 ' fill all 2000 cells via vt_set_cell
@@ -29,8 +20,8 @@ vt_border_color( 63, 63, 63 )
 ' -------------------------------------------------------------------------
 t1 = Timer
 
-For r = 1 To 25
-    For c = 1 To 80
+For r As Long = 1 To 25
+    For c As Long = 1 To 80
         fg_clr = (c Mod 15) + 1            ' colours 1-15 cycling across each row
         bg_clr = r Mod 8                   ' colours 0-7 cycling down each column
         vt_set_cell(c, r, _
@@ -52,11 +43,8 @@ vt_present()
 t2 = Timer
 t_pres_ms = CLng((t2 - t1) * 1000.0)
 
-' brief pause so the filled screen is visible before we overlay the results
-vt_sleep(1000)
-
 ' -------------------------------------------------------------------------
-' overlay results on the colourful fill
+' overlay results 
 ' -------------------------------------------------------------------------
 Dim renderer_name As String = "unknown"
 
@@ -77,7 +65,7 @@ vt_locate(14, 22) : vt_print("  vt_present x1   : " & Str(t_pres_ms) & " ms     
 vt_locate(15, 22) : vt_print(" =============================== ")
 vt_locate(16, 22) : vt_print("  Press ESC to quit              ")
 vt_locate(17, 22) : vt_print(" =============================== ")
-
+vt_locate( ,,0  )
 ' -------------------------------------------------------------------------
 ' Phase 4 - wait for ESC or [x]
 ' -------------------------------------------------------------------------
