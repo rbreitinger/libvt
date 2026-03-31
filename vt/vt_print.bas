@@ -7,7 +7,7 @@
 ' -----------------------------------------------------------------------------
 ' Internal: scroll the view region up by one line
 ' -----------------------------------------------------------------------------
-Private Sub vt_internal_scroll_up()
+Sub vt_internal_scroll_up()
     Dim cols    As Long = vt_internal.scr_cols
     Dim vtop    As Long = vt_internal.view_top - 1   ' 0-based
     Dim vbot    As Long = vt_internal.view_bot - 1   ' 0-based
@@ -81,15 +81,15 @@ End Sub
 ' -----------------------------------------------------------------------------
 ' vt_color - set active foreground and/or background colour
 ' -----------------------------------------------------------------------------
-Sub vt_color(fg As Long, bg As Long = -1)
-    vt_internal.clr_fg = fg And 31
+Sub vt_color(fg As Long = -1, bg As Long = -1)
+    if fg >= 0 then vt_internal.clr_fg = fg And 31
     If bg >= 0 Then vt_internal.clr_bg = bg And 15
 End Sub
 
 ' -----------------------------------------------------------------------------
 ' vt_locate - move cursor, optionally set visibility and cursor glyph
 ' -----------------------------------------------------------------------------
-Sub vt_locate(row As Long, col As Long, vis As Long = -1, cursor_ch As Long = 0)
+Sub vt_locate(row As Long = -1, col As Long = -1, vis As Long = -1, cursor_ch As Long = -1)
     If vt_internal.ready = 0 Then Exit Sub
     If row >= 1 AndAlso row <= vt_internal.scr_rows Then
         vt_internal.cur_row = row
@@ -129,7 +129,7 @@ End Sub
 ' Internal: write one character at the current cursor position and advance.
 ' Does NOT call vt_present - caller does that after the full string.
 ' -----------------------------------------------------------------------------
-Private Sub vt_internal_putch(ch As UByte)
+Sub vt_internal_putch(ch As UByte)
     Select Case ch
         Case 13   ' carriage return
             vt_internal.cur_col = 1

@@ -1,22 +1,18 @@
 ' =============================================================================
 ' vt_core.bas - VT Virtual Text Screen Library
-' SDL2 window, cell buffer, blink timer, palette, vt_present.
-' Compile as part of the VT library - not a standalone module.
+' SDL2 window, cell buffer, blink timer, palette, vt_present, simple input.
 ' =============================================================================
-
-#include once "vt.bi"
 
 ' forward declarations - defined later in this file
 Declare Sub      vt_present()
 Declare Sub      vt_shutdown()
 Declare Function vt_init(cols_or_mode As Long, rows As Long = 0, flags As Long = VT_WINDOWED, scrollback As Long = 0) As Long
 
-
 ' -----------------------------------------------------------------------------
 ' Internal: push one key event ULong into the circular buffer
 ' Called from vt_internal_pump only.
 ' -----------------------------------------------------------------------------
-Private Sub vt_internal_key_push(evt As ULong)
+Sub vt_internal_key_push(evt As ULong)
     If vt_internal.key_count >= VT_KEY_BUFFER_SIZE Then
         ' buffer full - drop oldest entry to make room
         vt_internal.key_read = (vt_internal.key_read + 1) Mod VT_KEY_BUFFER_SIZE
@@ -27,12 +23,11 @@ Private Sub vt_internal_key_push(evt As ULong)
     vt_internal.key_count += 1
 End Sub
 
-
 ' -----------------------------------------------------------------------------
 ' Internal: map SDL scancode to VT scancode
 ' Returns 0 for keys we do not map (caller should still check ASCII).
 ' -----------------------------------------------------------------------------
-Private Function vt_internal_sdl_to_vtscan(sdlscan As Long) As Long
+Function vt_internal_sdl_to_vtscan(sdlscan As Long) As Long
     Select Case sdlscan
         Case SDL_SCANCODE_F1      : Return VT_KEY_F1
         Case SDL_SCANCODE_F2      : Return VT_KEY_F2
@@ -73,7 +68,6 @@ Private Function vt_internal_sdl_to_vtscan(sdlscan As Long) As Long
     End Select
     Return 0
 End Function
-
 
 ' -----------------------------------------------------------------------------
 ' Internal: SDL event pump
@@ -213,7 +207,7 @@ End Sub
 ' Internal: update blink phase based on elapsed time
 ' Returns 1 if the phase changed (caller may want to re-present)
 ' -----------------------------------------------------------------------------
-Private Function vt_internal_blink_update() As Byte
+Function vt_internal_blink_update() As Byte
     Dim tick As ULong = SDL_GetTicks()
     If tick - vt_internal.blink_tick >= VT_BLINK_MS Then
         vt_internal.blink_visible = 1 - vt_internal.blink_visible
@@ -382,10 +376,9 @@ Sub vt_present()
     SDL_RenderPresent(vt_internal.sdl_renderer)
 End Sub
 
-
-' -----------------------------------------------------------------------------
-' vt_init_impl - core initialisation, called by both vt_init overloads
-' -----------------------------------------------------------------------------
+' -----------------------------------------------------------
+' vt_init_impl - core initialisation, called by both vt_init 
+' -----------------------------------------------------------
 Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Long, _
                       flags As Long, scrollback As Long) As Long
 
@@ -439,6 +432,8 @@ Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Lo
     ' --- build font surface: 16x16 glyph grid, white glyphs on transparent bg ---
     ' ARGB8888, glyph pixels = &hFFFFFFFF (white, opaque)
     '           bg pixels    = &h00000000 (transparent - lets RenderFillRect bg show through)
+    
+    ' TODO: gate fonts 8x8 and 8x16
     Dim font_surf As SDL_Surface Ptr
     font_surf = SDL_CreateRGBSurface(0, 16 * glyph_w, 16 * glyph_h, 32, _
         &h00FF0000, &h0000FF00, &h000000FF, &hFF000000)
@@ -461,7 +456,7 @@ Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Lo
         Dim glyph_row As Long
         For glyph_row = 0 To glyph_h - 1
             Dim font_row  As Long  = (glyph_row * 16) \ glyph_h
-            Dim font_byte As UByte = vt_font_data(glyph_idx * 16 + font_row)
+            Dim font_byte As UByte = vt_font_data_8x16(glyph_idx * 16 + font_row)
             Dim bit_idx   As Long
             For bit_idx = 0 To glyph_w - 1
                 Dim font_bit As Long = (bit_idx * 8) \ glyph_w
@@ -560,7 +555,6 @@ Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Lo
     Return 0
 End Function
 
-
 ' -----------------------------------------------------------------------------
 ' vt_init - mode constant or explicit cols/rows
 ' -----------------------------------------------------------------------------
@@ -587,7 +581,6 @@ Function vt_init(cols_or_mode As Long, rows As Long = 0, flags As Long = VT_WIND
 
     Return vt_init_impl(cols, rws, gw, gh, flags, scrollback)
 End Function
-
 
 ' -----------------------------------------------------------------------------
 ' vt_shutdown - free all SDL resources and reset state
@@ -624,7 +617,6 @@ End Sub
 Function vt_should_quit() As Byte
     Return IIf(vt_internal.ready = 2, 1, 0)
 End Function
-
 
 ' -----------------------------------------------------------------------------
 ' Palette API
@@ -668,7 +660,6 @@ Sub vt_key_repeat(initial_ms As Long, rate_ms As Long)
     vt_internal.rep_initial = initial_ms
     vt_internal.rep_rate    = rate_ms
 End Sub
-
 
 ' -----------------------------------------------------------------------------
 ' Query functions
@@ -819,9 +810,11 @@ Sub vt_sleep(ms As Long = 0)
     Loop
 End Sub
 
+' -----------------------------------------------------------------------------
 ' vt_getkey - blocking vt_inkey
 ' Waits until any key event, returns full key record like vt_inkey.
 ' Use VT_SCAN(k), VT_CHAR(k) etc to inspect the result.
+' -----------------------------------------------------------------------------
 Function vt_getkey() As ULong
     Dim k As ULong
     Do
@@ -832,9 +825,11 @@ Function vt_getkey() As ULong
     Loop
 End Function
 
+' -----------------------------------------------------------------------------
 ' vt_getchar - blocking single printable character read
 ' Wraps vt_getkey, ignores special keys, filters by allowed if provided.
 ' Empty allowed = all printable characters accepted.
+' -----------------------------------------------------------------------------
 Function vt_getchar(allowed As String = "") As String
     Dim k  As ULong
     Dim ch As UByte
@@ -848,7 +843,6 @@ Function vt_getchar(allowed As String = "") As String
         End If
     Loop
 End Function
-
 
 ' -----------------------------------------------------------------------------
 ' vt_key_flush - discard all pending keys in the buffer

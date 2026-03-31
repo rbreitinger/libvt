@@ -1,5 +1,5 @@
 ' =============================================================================
-' vt_font.bi - VT Virtual Text Screen Library
+' vt_font_8x16.bi - VT Virtual Text Screen Library
 ' Embedded 8x16 CP437 font bitmap. 256 glyphs x 16 bytes = 4096 bytes total.
 ' One byte per row, 8 pixels wide, bit 7 = leftmost pixel.
 ' Glyph C is at offset C*16. Source: Uni2-VGA16 (unicode-remapped to CP437)
@@ -7,7 +7,7 @@
 ' Include via vt.bi only - use: #include once "vt/vt.bi"
 ' =============================================================================
 
-Dim Shared vt_font_data(4095) As UByte = { _
+Dim Shared vt_font_data_8x16(4095) As UByte = { _
     &h00,&h00,&h00,&h00,&h00,&h00,&h00,&h00,&h00,&h00,&h00,&h00,&h00,&h00,&h00,&h00, _  '   0 null
     &h00,&h00,&h7E,&h81,&hA5,&h81,&h81,&hBD,&h99,&h81,&h81,&h7E,&h00,&h00,&h00,&h00, _  '   1 smiley
     &h00,&h00,&h7E,&hFF,&hDB,&hFF,&hFF,&hC3,&hE7,&hFF,&hFF,&h7E,&h00,&h00,&h00,&h00, _  '   2 smiley filled
