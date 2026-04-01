@@ -48,6 +48,46 @@ Sub vt_internal_scroll_up()
 End Sub
 
 ' -----------------------------------------------------------------------------
+' Internal: write one character at the current cursor position and advance.
+' Does NOT call vt_present - caller does that after the full string.
+' -----------------------------------------------------------------------------
+Sub vt_internal_putch(ch As UByte)
+    Select Case ch
+        Case 13   ' carriage return
+            vt_internal.cur_col = 1
+
+        Case 10   ' line feed - advance row AND reset column to 1 (DOS behaviour)
+            vt_internal.cur_col = 1
+            If vt_internal.cur_row < vt_internal.view_bot Then
+                vt_internal.cur_row += 1
+            ElseIf vt_internal.scroll_on Then
+                vt_internal_scroll_up()
+            End If
+
+        Case Else
+            Dim cellptr As vt_cell Ptr = vt_internal.cells + _
+                ((vt_internal.cur_row - 1) * vt_internal.scr_cols + (vt_internal.cur_col - 1))
+                
+            cellptr->ch = ch
+            cellptr->fg = vt_internal.clr_fg
+            cellptr->bg = vt_internal.clr_bg
+            vt_internal.dirty = 1
+
+            ' advance cursor
+            vt_internal.cur_col += 1
+            If vt_internal.cur_col > vt_internal.scr_cols Then
+                vt_internal.cur_col = 1
+                If vt_internal.cur_row < vt_internal.view_bot Then
+                    vt_internal.cur_row += 1
+                ElseIf vt_internal.scroll_on Then
+                    vt_internal_scroll_up()
+                End If
+            End If
+
+    End Select
+End Sub
+
+' -----------------------------------------------------------------------------
 ' vt_cls - clear the screen
 ' Respects view_top/view_bot - only clears the active scroll region.
 ' -----------------------------------------------------------------------------
@@ -115,46 +155,6 @@ Sub vt_view_print(top_row As Long = -1, bot_row As Long = -1)
       
     If top_row >= 1 AndAlso top_row <= vt_internal.scr_rows Then vt_internal.view_top = top_row
     If bot_row >= top_row AndAlso bot_row <= vt_internal.scr_rows Then vt_internal.view_bot = bot_row
-End Sub
-
-' -----------------------------------------------------------------------------
-' Internal: write one character at the current cursor position and advance.
-' Does NOT call vt_present - caller does that after the full string.
-' -----------------------------------------------------------------------------
-Sub vt_internal_putch(ch As UByte)
-    Select Case ch
-        Case 13   ' carriage return
-            vt_internal.cur_col = 1
-
-        Case 10   ' line feed - advance row AND reset column to 1 (DOS behaviour)
-            vt_internal.cur_col = 1
-            If vt_internal.cur_row < vt_internal.view_bot Then
-                vt_internal.cur_row += 1
-            ElseIf vt_internal.scroll_on Then
-                vt_internal_scroll_up()
-            End If
-
-        Case Else
-            Dim cellptr As vt_cell Ptr = vt_internal.cells + _
-                ((vt_internal.cur_row - 1) * vt_internal.scr_cols + (vt_internal.cur_col - 1))
-                
-            cellptr->ch = ch
-            cellptr->fg = vt_internal.clr_fg
-            cellptr->bg = vt_internal.clr_bg
-            vt_internal.dirty = 1
-
-            ' advance cursor
-            vt_internal.cur_col += 1
-            If vt_internal.cur_col > vt_internal.scr_cols Then
-                vt_internal.cur_col = 1
-                If vt_internal.cur_row < vt_internal.view_bot Then
-                    vt_internal.cur_row += 1
-                ElseIf vt_internal.scroll_on Then
-                    vt_internal_scroll_up()
-                End If
-            End If
-
-    End Select
 End Sub
 
 ' -----------------------------------------------------------------------------

@@ -260,3 +260,16 @@ Dim Shared vt_internal As vt_internal_state
 #include once "vt_print.bas"
 
 #undef vt_internal
+#undef vt_default_palette
+
+' vt_core.bas
+#undef vt_internal_key_push
+#undef vt_internal_sdl_to_vtscan
+#undef vt_internal_pump
+#undef vt_internal_blink_update
+#undef vt_init_impl
+#undef vt_internal_present_if_dirty
+
+' vt_print.bas
+#undef vt_internal_scroll_up
+#undef vt_internal_putch

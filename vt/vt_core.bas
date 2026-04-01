@@ -223,149 +223,6 @@ Function vt_internal_blink_update() As Byte
     Return 0
 End Function
 
-' -----------------------------------------------------------------------------
-' vt_present - compose and display the cell buffer
-' Called manually after composing a frame, or automatically by vt_inkey.
-'
-' Scrollback: only rows within view_top..view_bot mix scrollback and live data.
-' Rows outside the scroll region always read directly from the live cell buffer.
-' This keeps fixed rows (status bars etc) visible during scrollback.
-' -----------------------------------------------------------------------------
-Sub vt_present()
-    If vt_internal.ready = 0 Then Exit Sub
-    
-    Dim gw          As Long
-    Dim gh          As Long
-    Dim cols        As Long
-    Dim rows        As Long
-    Dim src_rect    As SDL_Rect
-    Dim dst_rect    As SDL_Rect
-    Dim row_idx     As Long
-    Dim col_idx     As Long
-    Dim last_fg_r   As UByte
-    Dim last_fg_g   As UByte
-    Dim last_fg_b   As UByte
-    Dim cellptr     As vt_cell Ptr
-    Dim ch          As UByte
-    Dim fg          As UByte
-    Dim bg          As UByte
-    Dim fg_r        As UByte
-    Dim fg_g        As UByte
-    Dim fg_b        As UByte
-    Dim bg_r        As UByte
-    Dim bg_g        As UByte
-    Dim bg_b        As UByte
-    Dim c_col       As Long
-    Dim c_row       As Long
-    Dim cfg_r       As UByte
-    Dim cfg_g       As UByte
-    Dim cfg_b       As UByte
-    Dim scroll_pos  As Long   ' 0-based position within scroll region
-    Dim logical_row As Long   ' index into combined sb+live space
-    Dim live_row    As Long   ' index into live cells when past sb_used
-
-    vt_internal_blink_update()
-
-    gw   = vt_internal.glyph_w
-    gh   = vt_internal.glyph_h
-    cols = vt_internal.scr_cols
-    rows = vt_internal.scr_rows
-    
-     ' set border colour before clear - SDL fills letterbox area with this
-    SDL_SetRenderDrawColor(vt_internal.sdl_renderer, _
-        vt_internal.border_r, vt_internal.border_g, vt_internal.border_b, 255)
-        
-    SDL_RenderClear(vt_internal.sdl_renderer)
-
-    src_rect.w = gw
-    src_rect.h = gh
-    dst_rect.w = gw
-    dst_rect.h = gh
-    
-    ' Explicitly reset texture colormod to white before every frame.
-    ' last_fg_r/g/b optimization assumes texture starts white each frame.
-    ' Without this, the cursor render from the previous frame leaves the
-    ' texture tinted, causing wrong colors on cells that share fg = white.
-    SDL_SetTextureColorMod(vt_internal.sdl_texture, 255, 255, 255)
-
-    last_fg_r = 255
-    last_fg_g = 255
-    last_fg_b = 255
-
-    For row_idx = 0 To rows - 1
-        If vt_internal.sb_offset > 0 AndAlso _
-           row_idx >= vt_internal.view_top - 1 AndAlso _
-           row_idx <= vt_internal.view_bot - 1 Then
-            ' row is inside scroll region and we are scrolled back -
-            ' mix scrollback lines and live lines
-            scroll_pos  = row_idx - (vt_internal.view_top - 1)
-            logical_row = (vt_internal.sb_used - vt_internal.sb_offset) + scroll_pos
-            If logical_row < 0 Then logical_row = 0
-            If logical_row < vt_internal.sb_used Then
-                cellptr = vt_internal.sb_cells + (logical_row * cols)
-            Else
-                live_row = logical_row - vt_internal.sb_used + (vt_internal.view_top - 1)
-                cellptr  = vt_internal.cells + (live_row * cols)
-            End If
-        Else
-            ' outside scroll region, or not scrolled back - always live screen
-            cellptr = vt_internal.cells + (row_idx * cols)
-        End If
-
-        For col_idx = 0 To cols - 1
-            ch  = cellptr[col_idx].ch
-            fg  = cellptr[col_idx].fg
-            bg  = cellptr[col_idx].bg
-
-            If (fg And 16) AndAlso vt_internal.blink_visible = 0 Then fg = bg
-            fg = fg And 15
-
-            fg_r = vt_internal.palette(fg * 3)
-            fg_g = vt_internal.palette(fg * 3 + 1)
-            fg_b = vt_internal.palette(fg * 3 + 2)
-            bg_r = vt_internal.palette(bg * 3)
-            bg_g = vt_internal.palette(bg * 3 + 1)
-            bg_b = vt_internal.palette(bg * 3 + 2)
-
-            dst_rect.x = col_idx * gw
-            dst_rect.y = row_idx * gh
-
-            SDL_SetRenderDrawColor(vt_internal.sdl_renderer, bg_r, bg_g, bg_b, 255)
-            SDL_RenderFillRect(vt_internal.sdl_renderer, @dst_rect)
-
-            If fg_r <> last_fg_r OrElse fg_g <> last_fg_g OrElse fg_b <> last_fg_b Then
-                SDL_SetTextureColorMod(vt_internal.sdl_texture, fg_r, fg_g, fg_b)
-                last_fg_r = fg_r
-                last_fg_g = fg_g
-                last_fg_b = fg_b
-            End If
-            src_rect.x = (ch Mod 16) * gw
-            src_rect.y = (ch \ 16)   * gh
-            SDL_RenderCopy(vt_internal.sdl_renderer, vt_internal.sdl_texture, @src_rect, @dst_rect)
-
-        Next col_idx
-    Next row_idx
-
-    ' --- draw cursor on top if fully in live view ---
-    If vt_internal.sb_offset = 0 AndAlso vt_internal.cur_visible AndAlso _
-       vt_internal.blink_visible Then
-        c_col = vt_internal.cur_col - 1
-        c_row = vt_internal.cur_row - 1
-        cfg_r = vt_internal.palette(vt_internal.clr_fg * 3)
-        cfg_g = vt_internal.palette(vt_internal.clr_fg * 3 + 1)
-        cfg_b = vt_internal.palette(vt_internal.clr_fg * 3 + 2)
-        src_rect.x = (vt_internal.cur_ch Mod 16) * gw
-        src_rect.y = (vt_internal.cur_ch \ 16)   * gh
-        dst_rect.x = c_col * gw
-        dst_rect.y = c_row * gh
-        SDL_SetTextureColorMod(vt_internal.sdl_texture, cfg_r, cfg_g, cfg_b)
-        SDL_RenderCopy(vt_internal.sdl_renderer, vt_internal.sdl_texture, @src_rect, @dst_rect)
-    End If
-
-    vt_internal.dirty = 0
-    SDL_RenderPresent(vt_internal.sdl_renderer)
-End Sub
-
 ' -----------------------------------------------------------
 ' vt_init_impl - core initialisation, called by both vt_init 
 ' -----------------------------------------------------------
@@ -558,6 +415,8 @@ Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Lo
     Return 0
 End Function
 
+' API BEGIN
+
 ' -----------------------------------------------------------------------------
 ' vt_init - mode constant or explicit cols/rows
 ' -----------------------------------------------------------------------------
@@ -591,6 +450,149 @@ Function vt_init( _
 
     Return vt_init_impl(cols, rws, gw, gh, flags, scrollback, title)
 End Function
+
+' -----------------------------------------------------------------------------
+' vt_present - compose and display the cell buffer
+' Called manually after composing a frame, or automatically by vt_inkey.
+'
+' Scrollback: only rows within view_top..view_bot mix scrollback and live data.
+' Rows outside the scroll region always read directly from the live cell buffer.
+' This keeps fixed rows (status bars etc) visible during scrollback.
+' -----------------------------------------------------------------------------
+Sub vt_present()
+    If vt_internal.ready = 0 Then Exit Sub
+    
+    Dim gw          As Long
+    Dim gh          As Long
+    Dim cols        As Long
+    Dim rows        As Long
+    Dim src_rect    As SDL_Rect
+    Dim dst_rect    As SDL_Rect
+    Dim row_idx     As Long
+    Dim col_idx     As Long
+    Dim last_fg_r   As UByte
+    Dim last_fg_g   As UByte
+    Dim last_fg_b   As UByte
+    Dim cellptr     As vt_cell Ptr
+    Dim ch          As UByte
+    Dim fg          As UByte
+    Dim bg          As UByte
+    Dim fg_r        As UByte
+    Dim fg_g        As UByte
+    Dim fg_b        As UByte
+    Dim bg_r        As UByte
+    Dim bg_g        As UByte
+    Dim bg_b        As UByte
+    Dim c_col       As Long
+    Dim c_row       As Long
+    Dim cfg_r       As UByte
+    Dim cfg_g       As UByte
+    Dim cfg_b       As UByte
+    Dim scroll_pos  As Long   ' 0-based position within scroll region
+    Dim logical_row As Long   ' index into combined sb+live space
+    Dim live_row    As Long   ' index into live cells when past sb_used
+
+    vt_internal_blink_update()
+
+    gw   = vt_internal.glyph_w
+    gh   = vt_internal.glyph_h
+    cols = vt_internal.scr_cols
+    rows = vt_internal.scr_rows
+    
+     ' set border colour before clear - SDL fills letterbox area with this
+    SDL_SetRenderDrawColor(vt_internal.sdl_renderer, _
+        vt_internal.border_r, vt_internal.border_g, vt_internal.border_b, 255)
+        
+    SDL_RenderClear(vt_internal.sdl_renderer)
+
+    src_rect.w = gw
+    src_rect.h = gh
+    dst_rect.w = gw
+    dst_rect.h = gh
+    
+    ' Explicitly reset texture colormod to white before every frame.
+    ' last_fg_r/g/b optimization assumes texture starts white each frame.
+    ' Without this, the cursor render from the previous frame leaves the
+    ' texture tinted, causing wrong colors on cells that share fg = white.
+    SDL_SetTextureColorMod(vt_internal.sdl_texture, 255, 255, 255)
+
+    last_fg_r = 255
+    last_fg_g = 255
+    last_fg_b = 255
+
+    For row_idx = 0 To rows - 1
+        If vt_internal.sb_offset > 0 AndAlso _
+           row_idx >= vt_internal.view_top - 1 AndAlso _
+           row_idx <= vt_internal.view_bot - 1 Then
+            ' row is inside scroll region and we are scrolled back -
+            ' mix scrollback lines and live lines
+            scroll_pos  = row_idx - (vt_internal.view_top - 1)
+            logical_row = (vt_internal.sb_used - vt_internal.sb_offset) + scroll_pos
+            If logical_row < 0 Then logical_row = 0
+            If logical_row < vt_internal.sb_used Then
+                cellptr = vt_internal.sb_cells + (logical_row * cols)
+            Else
+                live_row = logical_row - vt_internal.sb_used + (vt_internal.view_top - 1)
+                cellptr  = vt_internal.cells + (live_row * cols)
+            End If
+        Else
+            ' outside scroll region, or not scrolled back - always live screen
+            cellptr = vt_internal.cells + (row_idx * cols)
+        End If
+
+        For col_idx = 0 To cols - 1
+            ch  = cellptr[col_idx].ch
+            fg  = cellptr[col_idx].fg
+            bg  = cellptr[col_idx].bg
+
+            If (fg And 16) AndAlso vt_internal.blink_visible = 0 Then fg = bg
+            fg = fg And 15
+
+            fg_r = vt_internal.palette(fg * 3)
+            fg_g = vt_internal.palette(fg * 3 + 1)
+            fg_b = vt_internal.palette(fg * 3 + 2)
+            bg_r = vt_internal.palette(bg * 3)
+            bg_g = vt_internal.palette(bg * 3 + 1)
+            bg_b = vt_internal.palette(bg * 3 + 2)
+
+            dst_rect.x = col_idx * gw
+            dst_rect.y = row_idx * gh
+
+            SDL_SetRenderDrawColor(vt_internal.sdl_renderer, bg_r, bg_g, bg_b, 255)
+            SDL_RenderFillRect(vt_internal.sdl_renderer, @dst_rect)
+
+            If fg_r <> last_fg_r OrElse fg_g <> last_fg_g OrElse fg_b <> last_fg_b Then
+                SDL_SetTextureColorMod(vt_internal.sdl_texture, fg_r, fg_g, fg_b)
+                last_fg_r = fg_r
+                last_fg_g = fg_g
+                last_fg_b = fg_b
+            End If
+            src_rect.x = (ch Mod 16) * gw
+            src_rect.y = (ch \ 16)   * gh
+            SDL_RenderCopy(vt_internal.sdl_renderer, vt_internal.sdl_texture, @src_rect, @dst_rect)
+
+        Next col_idx
+    Next row_idx
+
+    ' --- draw cursor on top if fully in live view ---
+    If vt_internal.sb_offset = 0 AndAlso vt_internal.cur_visible AndAlso _
+       vt_internal.blink_visible Then
+        c_col = vt_internal.cur_col - 1
+        c_row = vt_internal.cur_row - 1
+        cfg_r = vt_internal.palette(vt_internal.clr_fg * 3)
+        cfg_g = vt_internal.palette(vt_internal.clr_fg * 3 + 1)
+        cfg_b = vt_internal.palette(vt_internal.clr_fg * 3 + 2)
+        src_rect.x = (vt_internal.cur_ch Mod 16) * gw
+        src_rect.y = (vt_internal.cur_ch \ 16)   * gh
+        dst_rect.x = c_col * gw
+        dst_rect.y = c_row * gh
+        SDL_SetTextureColorMod(vt_internal.sdl_texture, cfg_r, cfg_g, cfg_b)
+        SDL_RenderCopy(vt_internal.sdl_renderer, vt_internal.sdl_texture, @src_rect, @dst_rect)
+    End If
+
+    vt_internal.dirty = 0
+    SDL_RenderPresent(vt_internal.sdl_renderer)
+End Sub
 
 ' -----------------------------------------------------------------------------
 ' vt_shutdown - free all SDL resources and reset state
@@ -630,13 +632,6 @@ End Function
 ' -----------------------------------------------------------------------------
 ' Palette API
 ' -----------------------------------------------------------------------------
-Sub vt_palette(idx As Long, r As Long, g As Long, b As Long)
-    If idx < 0 Or idx > 15 Then Exit Sub
-    vt_internal.palette(idx * 3)     = r And 255
-    vt_internal.palette(idx * 3 + 1) = g And 255
-    vt_internal.palette(idx * 3 + 2) = b And 255
-End Sub
-
 Sub vt_palette_set(pal() As UByte)
     For pi As Long = 0 To 47
         vt_internal.palette(pi) = pal(pi)
@@ -647,6 +642,16 @@ Sub vt_palette_get(pal() As UByte)
     For pi As Long = 0 To 47
         pal(pi) = vt_internal.palette(pi)
     Next pi
+End Sub
+
+Sub vt_palette(idx As Long = -1, r As Long = -1, g As Long = -1, b As Long = -1)
+    If idx < 0 Or idx > 15 Then 
+      vt_palette_set vt_default_palette()
+      Exit Sub
+    end if
+    vt_internal.palette(idx * 3)     = r And 255
+    vt_internal.palette(idx * 3 + 1) = g And 255
+    vt_internal.palette(idx * 3 + 2) = b And 255
 End Sub
 
 ' -----------------------------------------------------------------------------

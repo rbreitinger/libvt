@@ -20,24 +20,26 @@ Dim arne_v20_palette(47) As UByte = { _
   178, 220, 239 _
 }
 
-dim idx as long
-dim col as long
-
 vt_init VT_MODE_40x25,,,, "Custom Palette Example"
 
-'' set our custom palette, index 0-15, each holding R, G, B = 48 entries
-for idx = 0 to 47 step 3
-  vt_palette idx, arne_v20_palette(idx), arne_v20_palette(idx+1), arne_v20_palette(idx+2)
-next
+'' load custom palette
+vt_palette_set arne_v20_palette()
 
 '' print some text using the custom palette
-for col = 0 to 15
-    vt_locate 3+col, 14
+for col as long = 0 to 15
+    vt_locate 3 + col , 14
     vt_color col
     vt_print chr(219) & " Hello Arne! " & chr(219)
 next
 
-vt_print_center 21, " any key to quit "
+vt_print_center 21 , " any key to restore default palette "
+
+vt_sleep
+
+vt_palette '' vt_palette without arguments restores the default palette
+vt_present
+
+vt_print_center 23 , " any key to end the demo "
 
 vt_sleep
 
