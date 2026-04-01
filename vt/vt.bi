@@ -258,3 +258,5 @@ Dim Shared vt_internal As vt_internal_state
 '#include once "vt_font_8x8.bi"
 #include once "vt_core.bas"
 #include once "vt_print.bas"
+
+#undef vt_internal
