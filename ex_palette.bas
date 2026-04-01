@@ -23,7 +23,7 @@ Dim arne_v20_palette(47) As UByte = { _
 dim idx as long
 dim col as long
 
-vt_init VT_MODE_40x25
+vt_init VT_MODE_40x25,,,, "Custom Palette Example"
 
 '' set our custom palette, index 0-15, each holding R, G, B = 48 entries
 for idx = 0 to 47 step 3

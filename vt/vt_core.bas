@@ -6,7 +6,13 @@
 ' forward declarations implemented later in this file
 Declare Sub      vt_present()
 Declare Sub      vt_shutdown()
-Declare Function vt_init(cols_or_mode As Long, rows As Long = 0, flags As Long = VT_WINDOWED, scrollback As Long = 0) As Long
+Declare Function vt_init( _
+                          cols_or_mode As Long, _
+                          rows As Long = 0, _
+                          flags As Long = VT_WINDOWED, _
+                          scrollback As Long = 0, _
+                          title As String = "Virtual Text Screen" _
+                        ) As Long
 
 ' -----------------------------------------------------------------------------
 ' Internal: push one key event ULong into the circular buffer
@@ -364,7 +370,7 @@ End Sub
 ' vt_init_impl - core initialisation, called by both vt_init 
 ' -----------------------------------------------------------
 Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Long, _
-                      flags As Long, scrollback As Long) As Long
+                      flags As Long, scrollback As Long, title as String) As Long
 
     If vt_internal.ready Then vt_shutdown()  ' re-init: clean up first
 
@@ -378,7 +384,7 @@ Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Lo
     Dim win_w As Long = cols * glyph_w
     Dim win_h As Long = rows * glyph_h
 
-    vt_internal.sdl_window = SDL_CreateWindow("VT", _
+    vt_internal.sdl_window = SDL_CreateWindow( title, _
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, _
         win_w, win_h, wflags)
         
@@ -555,7 +561,14 @@ End Function
 ' -----------------------------------------------------------------------------
 ' vt_init - mode constant or explicit cols/rows
 ' -----------------------------------------------------------------------------
-Function vt_init(cols_or_mode As Long, rows As Long = 0, flags As Long = VT_WINDOWED, scrollback As Long = 0) As Long
+Function vt_init( _
+      cols_or_mode As Long, _
+      rows As Long = 0, _
+      flags As Long = VT_WINDOWED, _
+      scrollback As Long = 0, _
+      title As String = "Virtual Text Screen" _
+    ) As Long
+    
     Dim cols As Long
     Dim rws  As Long
     Dim gw   As Long
@@ -576,7 +589,7 @@ Function vt_init(cols_or_mode As Long, rows As Long = 0, flags As Long = VT_WIND
         gh   = IIf(rws <= 30, 16, 8)
     End If
 
-    Return vt_init_impl(cols, rws, gw, gh, flags, scrollback)
+    Return vt_init_impl(cols, rws, gw, gh, flags, scrollback, title)
 End Function
 
 ' -----------------------------------------------------------------------------
