@@ -1,21 +1,17 @@
 #include once "vt/vt.bi"
 
-vt_init  VT_MODE_40x25,,VT_NO_RESIZE
+vt_init
 vt_color VT_YELLOW
 
-windowtitle "Hello World Test" '' <-- not working, need own
-
+vt_scroll_enable 0
+vt_locate ,,0
 do
-  for i as long = 5 to 19
-    vt_color i-4, 15
-    vt_locate i, 15, 0
-    vt_print (string (8, chr(176) ) )
-  next
-  vt_present
+  vt_color int(rnd*14)+1
+  vt_print (string (8, chr(176) ) ) & VT_NEWLINE
   
   vt_pump
   if vt_should_quit then exit do
-  vt_sleep 10
+  vt_sleep 1
 loop
 
 vt_shutdown

@@ -7,7 +7,7 @@
 Declare Sub      vt_present()
 Declare Sub      vt_shutdown()
 Declare Function vt_init( _
-                          cols_or_mode As Long, _
+                          cols_or_mode As Long = VT_MODE_80x25, _
                           rows As Long = 0, _
                           flags As Long = VT_WINDOWED, _
                           scrollback As Long = 0, _
