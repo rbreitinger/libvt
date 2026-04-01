@@ -1,7 +1,7 @@
 ' =============================================================================
 ' vt_print.bas - VT Virtual Text Screen Library
 ' vt_cls, vt_color, vt_locate, vt_scroll_enable, vt_view_print, 
-' vt_view_print_reset, vt_print, vt_print_center
+' vt_print, vt_print_center
 ' =============================================================================
 
 ' -----------------------------------------------------------------------------
@@ -104,15 +104,17 @@ End Sub
 
 ' -----------------------------------------------------------------------------
 ' vt_view_print - restrict scroll region to a row range (like VIEW PRINT)
+' omit arguments resets the viewport
 ' -----------------------------------------------------------------------------
-Sub vt_view_print(top_row As Long, bot_row As Long)
+Sub vt_view_print(top_row As Long = -1, bot_row As Long = -1)
+    if top_row = -1 AndAlso bot_row = -1 Then
+        vt_internal.view_top = 1
+        vt_internal.view_bot = vt_internal.scr_rows
+        Exit Sub
+    end if
+      
     If top_row >= 1 AndAlso top_row <= vt_internal.scr_rows Then vt_internal.view_top = top_row
     If bot_row >= top_row AndAlso bot_row <= vt_internal.scr_rows Then vt_internal.view_bot = bot_row
-End Sub
-
-Sub vt_view_print_reset()
-    vt_internal.view_top = 1
-    vt_internal.view_bot = vt_internal.scr_rows
 End Sub
 
 ' -----------------------------------------------------------------------------
