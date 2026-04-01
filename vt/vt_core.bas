@@ -227,8 +227,7 @@ End Function
 ' -----------------------------------------------------------------------------
 Sub vt_present()
     If vt_internal.ready = 0 Then Exit Sub
-    If vt_internal.dirty = 0 Then Exit Sub       ' <-- NEW, correct?
-
+    
     Dim gw          As Long
     Dim gh          As Long
     Dim cols        As Long

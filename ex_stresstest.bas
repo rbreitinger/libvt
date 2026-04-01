@@ -1,5 +1,5 @@
 ' =============================================================================
-' vt_stress.bas  -  VT render speed test 
+' VT render speed test 
 ' =============================================================================
 #include once "vt/vt.bi"
 
@@ -11,7 +11,7 @@ Dim t2         As Double
 Dim t_fill_ms  As Long   ' vt_set_cell loop time in ms
 Dim t_pres_ms  As Long   ' one vt_present() time in ms
 
-vt_init(VT_MODE_80x25)
+vt_init VT_MODE_80x25
 
 ' -------------------------------------------------------------------------
 ' fill all 2000 cells via vt_set_cell
@@ -24,10 +24,10 @@ For r As Long = 1 To 25
     For c As Long = 1 To 80
         fg_clr = (c Mod 15) + 1            ' colours 1-15 cycling across each row
         bg_clr = r Mod 8                   ' colours 0-7 cycling down each column
-        vt_set_cell(c, r, _
+        vt_set_cell c, r, _
             65 + ((r + c) Mod 26), _       ' A-Z cycling
             fg_clr, _
-            bg_clr)
+            bg_clr
     Next c
 Next r
 
@@ -39,7 +39,7 @@ t_fill_ms = CLng((t2 - t1) * 1000.0)
 ' This renders the filled buffer to the screen.
 ' -------------------------------------------------------------------------
 t1 = Timer
-vt_present()
+vt_present
 t2 = Timer
 t_pres_ms = CLng((t2 - t1) * 1000.0)
 
@@ -54,26 +54,26 @@ If SDL_GetRendererInfo(vt_internal.sdl_renderer, @rinfo) = 0 Then
     renderer_name = *rinfo.name
 End If
 
-vt_color(VT_WHITE, VT_BLUE)
+vt_color VT_WHITE, VT_BLUE
 
-vt_locate(9,  22) : vt_print(" =============================== ")
-vt_locate(10, 22) : vt_print("   VT stress test results        ")
-vt_locate(11, 22) : vt_print(" =============================== ")
-vt_locate(12, 22) : vt_print("  renderer : " & Left(renderer_name, 19) & Space(19 - Len(renderer_name)) & " ")
-vt_locate(13, 22) : vt_print("  set_cell x2000  : " & Str(t_fill_ms) & " ms         ")
-vt_locate(14, 22) : vt_print("  vt_present x1   : " & Str(t_pres_ms) & " ms         ")
-vt_locate(15, 22) : vt_print(" =============================== ")
-vt_locate(16, 22) : vt_print("  Press ESC to quit              ")
-vt_locate(17, 22) : vt_print(" =============================== ")
-vt_locate( ,,0  )
+vt_locate 9,  22  : vt_print " =============================== " 
+vt_locate 10, 22  : vt_print "   VT stress test results        " 
+vt_locate 11, 22  : vt_print " =============================== " 
+vt_locate 12, 22  : vt_print "  renderer : " & Left(renderer_name, 19) & Space(19 - Len(renderer_name)) & " " 
+vt_locate 13, 22  : vt_print "  set_cell x2000  : " & Str(t_fill_ms) & " ms         " 
+vt_locate 14, 22  : vt_print "  vt_present x1   : " & Str(t_pres_ms) & " ms         " 
+vt_locate 15, 22  : vt_print " =============================== " 
+vt_locate 16, 22  : vt_print "  Press ESC to quit              " 
+vt_locate 17, 22  : vt_print " =============================== " 
+vt_locate , , 0
+
 ' -------------------------------------------------------------------------
-' Phase 4 - wait for ESC or [x]
+' wait for ESC or [x] to quit
 ' -------------------------------------------------------------------------
 Do
-    k = vt_inkey()
-    If VT_SCAN(k) = VT_KEY_ESC Then Exit Do
-    If vt_should_quit() Then Exit Do
-    vt_sleep(10)
+    k = vt_inkey
+    If VT_SCAN(k) = VT_KEY_ESC orelse vt_should_quit Then Exit Do
+    vt_sleep 10 
 Loop
 
-vt_shutdown()
+vt_shutdown
