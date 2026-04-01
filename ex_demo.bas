@@ -35,7 +35,7 @@ Dim k      As ULong
 Dim ci     As Long
 Dim ln     As Long
 
-result = vt_init(VT_MODE_80x25,,VT_FULLSCREEN_ASPECT)
+result = vt_screen( , VT_FULLSCREEN_ASPECT )
 If result <> 0 Then
     Print "vt_init failed: "; result
     End
@@ -121,6 +121,4 @@ vt_locate 24, 1
 vt_print "Press any key to quit..."
 vt_locate 25, 1
 
-vt_sleep
-
-vt_shutdown
+vt_sleep 

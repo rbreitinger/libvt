@@ -4,7 +4,8 @@ Dim choice As String
 Dim k      As ULong
 Dim answer As String
 
-vt_init VT_MODE_80x25
+vt_title "vt_getchar Demo"
+vt_screen
 vt_view_print 1, 24
 vt_locate , , 0
 
@@ -44,6 +45,4 @@ End Select
 
 vt_locate 15, 4 : vt_print "Press any key to quit..."
 
-vt_sleep
-
-vt_shutdown
+vt_sleep 

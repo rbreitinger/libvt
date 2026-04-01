@@ -1,7 +1,3 @@
-' =============================================================================
-' scrollback + vt_view_print test
-' =============================================================================
-
 #include once "vt/vt.bi"
 
 Dim k  As ULong
@@ -9,7 +5,9 @@ Dim f  As Long
 Dim ln As String
 
 ' --- init videomode in fullscren with 1024 lines of scrollback buffer ---
-vt_init VT_MODE_80x25, , VT_FULLSCREEN_ASPECT, 1024
+vt_title "vt_scrollback + vt_view_print Demo"
+vt_screen 0, VT_FULLSCREEN_ASPECT
+vt_scrollback 1024
 
 ' --- draw status bar first, scrolling disabled so it cannot be pushed off ---
 vt_scroll_enable 0
@@ -34,8 +32,6 @@ Close #f
 
 Do
     k = vt_inkey
-    If VT_SCAN(k) = VT_KEY_ESC orelse vt_should_quit Then Exit Do
+    If VT_SCAN(k) = VT_KEY_ESC Then Exit Do
     vt_sleep 10
 Loop
-
-vt_shutdown()

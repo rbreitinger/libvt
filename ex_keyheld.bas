@@ -4,7 +4,8 @@ Dim px    As Long = 40
 Dim py    As Long = 12
 Dim moved As Byte
 
-vt_init VT_MODE_80x25
+vt_title "vt_key_held Demo"
+vt_screen
 vt_view_print 1, 24
 vt_locate , , 0     ' hide cursor
 
@@ -30,9 +31,6 @@ Do
     End If
 
     If vt_key_held(VT_KEY_ESC) Then Exit Do
-    If vt_should_quit          Then Exit Do
     
     vt_sleep 16
-Loop
-
-vt_shutdown
+Loop 

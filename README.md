@@ -1,7 +1,7 @@
-# VT — Virtual Text Screen Library for FreeBASIC
+# VT -- Virtual Text Screen Library for FreeBASIC
 
 A self-contained FreeBASIC library that gives you a proper DOS-style text screen
-in a real SDL2 window. Drop-in replacement for `Screen 0` and the Windows CMD console —
+in a real SDL2 window. Drop-in replacement for `Screen 0` and the Windows CMD console --
 with the things that always should have worked: real blinking text, correct CP437
 characters, scrollback history, fullscreen with integer scaling, and reliable key input.
 
@@ -10,56 +10,91 @@ Zero SDL2 knowledge required. One include, and you write code that feels like QB
 ```freebasic
 #include once "vt/vt.bi"
 
-vt_init(VT_MODE_80x25)
+vt_title("My Program")
+vt_screen(VT_SCREEN_0)
 vt_color(VT_YELLOW, VT_BLUE)
 vt_print_center(12, "Hello, World!")
-vt_sleep()
-vt_shutdown()
+vt_sleep(0)
 ```
+
+No shutdown call needed. The window cleans up automatically on exit.
 
 ---
 
 ## Requirements
 
 - **FreeBASIC 1.10.1** (Windows)
-- **SDL2.dll** — get it from the [FreeBASIC library archive](https://github.com/rbreitinger/fb-lib-archive/tree/main/libraries/SDL2/SDL2-2.0.14)
+- **SDL2.dll** -- ships with FreeBASIC, or get it from the
+  [FreeBASIC library archive](https://github.com/rbreitinger/fb-lib-archive/tree/main/libraries/SDL2/SDL2-2.0.14)
 
-No other dependencies. The CP437 font is embedded — no external font files needed.
+No other dependencies. All three CP437 fonts are embedded -- no external files needed.
+
+---
+
+## Screen Modes
+
+| Constant            | Cols x Rows | Font  | Canvas   | Original                  |
+|---------------------|-------------|-------|----------|---------------------------|
+| `VT_SCREEN_0`       | 80 x 25     | 8x16  | 640x400  | VGA text mode (default)   |
+| `VT_SCREEN_2`       | 80 x 25     | 8x8   | 640x200  | CGA hi-res text grid      |
+| `VT_SCREEN_9`       | 80 x 25     | 8x14  | 640x350  | EGA text grid             |
+| `VT_SCREEN_12`      | 80 x 30     | 8x16  | 640x480  | VGA hi-res text grid      |
+| `VT_SCREEN_13`      | 40 x 25     | 8x8   | 320x200  | VGA Mode 13h text grid    |
+| `VT_SCREEN_EGA43`   | 80 x 43     | 8x8   | 640x344  | EGA 43-line               |
+| `VT_SCREEN_VGA50`   | 80 x 50     | 8x8   | 640x400  | VGA 50-line               |
+| `VT_SCREEN_TILES`   | 40 x 25     | 16x16 | 640x400  | Square tiles, game use    |
+
+Mode constants match the original QBasic `SCREEN` numbers where applicable.
+`VT_SCREEN_0` is the default when no mode is passed.
 
 ---
 
 ## Features
 
-- Classic 80x25 and 40x25 DOS screen modes
-- Authentic CGA/DOS palette — not the washed-out modern CMD colours
-- CP437 8x16 character set — box drawing, shade blocks, all 256 glyphs
+- Authentic IBM VGA CP437 fonts -- 8x8, 8x14 and 8x16, all embedded
+- Authentic CGA/DOS palette -- not the washed-out modern CMD colours
+- All 256 CP437 glyphs -- box drawing, shade blocks, symbols
 - Blinking text via `VT_BLINK` attribute
-- Scrollback buffer with Shift+PgUp / Shift+PgDn
+- Scrollback buffer with Shift+PgUp / Shift+PgDn (call `vt_scrollback(n)` after `vt_screen`)
 - Windowed or fullscreen with integer scaling and nearest-neighbor rendering
-- Resizable window — SDL logical scaling keeps the canvas sharp at any size
-- Buffered key input via `vt_inkey` — nothing missed, nothing floods
-- Real-time key state via `vt_key_held` — for game loops
-- `vt_view_print` scroll regions — fixed status bars, split screen layouts
+- Resizable window -- SDL logical scaling keeps the canvas sharp at any size
+- Buffered key input via `vt_inkey` -- nothing missed, nothing floods
+- Real-time key state via `vt_key_held` -- for game loops
+- `vt_view_print` scroll regions -- fixed status bars, split screen layouts
 - `VT_NEWLINE` constant for readable line breaks in print chains
-- 80x43 and 80x50 modes *(coming soon — needs embedded 8x8 font)*
-- Custom font loading *(coming soon)*
-- Page save / restore — PCOPY equivalent *(coming soon)*
+- Page save / restore -- PCOPY equivalent *(coming soon)*
 - Mouse support *(coming soon)*
+- `vt_input` blocking line editor *(coming soon)*
+
+---
+
+## Init and Teardown
+
+```freebasic
+vt_title("Window Title")   ' optional, call before vt_screen
+vt_screen(VT_SCREEN_0)     ' open the screen, VT_WINDOWED is default flag
+vt_scrollback(200)         ' optional, call after vt_screen
+```
+
+To change mode mid-program, call `vt_screen` again -- it closes and reopens cleanly.
+
+The screen closes and SDL shuts down automatically when the program exits or the
+window is closed. `vt_shutdown` exists for the rare case you want to close the
+window explicitly mid-program.
 
 ---
 
 ## Status
 
-Early but functional. Core rendering, input, scrollback and scroll regions are
-complete and tested. The API is still evolving — breaking changes are possible
-until a 1.0 tag is made.
+Core rendering, input, scrollback and scroll regions are complete and tested.
+The API is still evolving -- breaking changes are possible until a 1.0 tag is made.
 
 ---
 
 ## License
 
 MIT License
-Copyright (c) 2026 René Breitinger (yorokobi)
+Copyright (c) 2026 Rene Breitinger (yorokobi)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

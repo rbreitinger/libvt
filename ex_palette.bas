@@ -20,7 +20,8 @@ Dim arne_v20_palette(47) As UByte = { _
   178, 220, 239 _
 }
 
-vt_init VT_MODE_40x25,,,, "Custom Palette Example"
+vt_title "vt_palette_set Example"
+vt_screen VT_SCREEN_TILES
 
 '' load custom palette
 vt_palette_set arne_v20_palette()
@@ -37,10 +38,7 @@ vt_print_center 21 , " any key to restore default palette "
 vt_sleep
 
 vt_palette '' vt_palette without arguments restores the default palette
-vt_present
 
 vt_print_center 23 , " any key to end the demo "
 
 vt_sleep
-
-vt_shutdown

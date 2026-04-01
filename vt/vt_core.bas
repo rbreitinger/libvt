@@ -1,27 +1,32 @@
 ' =============================================================================
 ' vt_core.bas - VT Virtual Text Screen Library
-' SDL2 window, cell buffer, blink timer, palette, vt_present, key handling.
+' SDL2 window, cell buffer, blink, palette, vt_present, key handling.
 ' =============================================================================
 
-' forward declarations implemented later in this file
+' forward declarations
 Declare Sub      vt_present()
 Declare Sub      vt_shutdown()
-Declare Function vt_init( _
-                          cols_or_mode As Long = VT_MODE_80x25, _
-                          rows As Long = 0, _
-                          flags As Long = VT_WINDOWED, _
-                          scrollback As Long = 0, _
-                          title As String = "Virtual Text Screen" _
-                        ) As Long
+Declare Sub      vt_internal_shutdown()
+Declare Function vt_screen(mode As Long = VT_SCREEN_0, flags As Long = VT_WINDOWED) As Long
 
 ' -----------------------------------------------------------------------------
-' Internal: push one key event ULong into the circular buffer
-' Called from vt_internal_pump only.
+' Auto-cleanup type -- destructor fires on program exit (via End or fall-through).
+' SDL_QUIT calls End, which triggers this. No explicit vt_shutdown needed.
+' User types declared AFTER #include "vt/vt.bi" get their destructors first
+' (LIFO order), so they can still use VT functions during their own cleanup.
+' -----------------------------------------------------------------------------
+' Auto-cleanup destructor -- runs automatically on program exit (End or fall-through).
+' SDL_QUIT calls End, which triggers this. No explicit vt_shutdown needed.
+Sub vt_auto_cleanup() Destructor
+    vt_internal_shutdown()
+End Sub
+
+' -----------------------------------------------------------------------------
+' Internal: push one key event into the circular buffer
 ' -----------------------------------------------------------------------------
 Sub vt_internal_key_push(evt As ULong)
     If vt_internal.key_count >= VT_KEY_BUFFER_SIZE Then
-        ' buffer full - drop oldest entry to make room
-        vt_internal.key_read = (vt_internal.key_read + 1) Mod VT_KEY_BUFFER_SIZE
+        vt_internal.key_read  = (vt_internal.key_read + 1) Mod VT_KEY_BUFFER_SIZE
         vt_internal.key_count -= 1
     End If
     vt_internal.key_buf(vt_internal.key_write) = evt
@@ -31,7 +36,6 @@ End Sub
 
 ' -----------------------------------------------------------------------------
 ' Internal: map SDL scancode to VT scancode
-' Returns 0 for keys we do not map (caller should still check ASCII).
 ' -----------------------------------------------------------------------------
 Function vt_internal_sdl_to_vtscan(sdlscan As Long) As Long
     Select Case sdlscan
@@ -77,12 +81,8 @@ End Function
 
 ' -----------------------------------------------------------------------------
 ' Internal: SDL event pump
-' Must be called regularly to keep the window alive and fill the key buffer.
-' Called automatically by vt_print, vt_cls, vt_present, vt_inkey, vt_input.
-' User programs that do heavy computation without any VT calls should call
-' vt_present() occasionally to keep the window responsive.
 ' -----------------------------------------------------------------------------
-Sub vt_internal_pump()
+Sub vt_pump()
     If vt_internal.ready = 0 Then Exit Sub
 
     Dim evt       As SDL_Event
@@ -92,12 +92,11 @@ Sub vt_internal_pump()
     Dim tick      As ULong
     Dim ascii_ch  As UByte
 
-    ' --- handle key repeat via our own timer ---
+    ' --- key repeat ---
     tick = SDL_GetTicks()
     If vt_internal.rep_scan <> 0 Then
         Dim rep_due As Long = 0
         If vt_internal.rep_last = 0 Then
-            ' waiting for initial delay
             If tick - vt_internal.rep_tick >= CULng(vt_internal.rep_initial) Then
                 rep_due = 1
                 vt_internal.rep_last = tick
@@ -109,10 +108,9 @@ Sub vt_internal_pump()
             End If
         End If
         If rep_due AndAlso vt_internal.rep_rate > 0 AndAlso vt_internal.rep_initial > 0 Then
-            ' re-push the held key as a repeat event
             keyrec = vt_internal.key_buf((vt_internal.key_write + VT_KEY_BUFFER_SIZE - 1) _
                      Mod VT_KEY_BUFFER_SIZE)
-            keyrec = keyrec Or (1UL Shl 28)   ' set repeat flag
+            keyrec = keyrec Or (1UL Shl 28)
             vt_internal_key_push(keyrec)
         End If
     End If
@@ -121,11 +119,11 @@ Sub vt_internal_pump()
     While SDL_PollEvent(@evt)
         Select Case evt.type
             Case SDL_QUIT_
-                ' signal shutdown - set a flag, user checks vt_should_quit()
-                vt_internal.ready = 2   ' 2 = quit requested
+                ' Window closed -- terminate immediately.
+                ' The vt_auto_cleanup destructor fires on End and frees SDL.
+                End
 
             Case SDL_KEYDOWN
-                ' build modifier flags
                 modstate = SDL_GetModState()
                 Dim sh As ULong = IIf((modstate And KMOD_SHIFT) <> 0, 1UL, 0UL)
                 Dim ct As ULong = IIf((modstate And KMOD_CTRL)  <> 0, 1UL, 0UL)
@@ -133,7 +131,7 @@ Sub vt_internal_pump()
 
                 vtscan = vt_internal_sdl_to_vtscan(evt.key.keysym.scancode)
 
-                ' built-in scrollback keys: Shift+PgUp / Shift+PgDn
+                ' built-in scrollback: Shift+PgUp / Shift+PgDn
                 If sh AndAlso vtscan = VT_KEY_PGUP AndAlso vt_internal.sb_lines > 0 Then
                     vt_internal.sb_offset += 1
                     If vt_internal.sb_offset > vt_internal.sb_used Then
@@ -145,14 +143,11 @@ Sub vt_internal_pump()
                     If vt_internal.sb_offset < 0 Then vt_internal.sb_offset = 0
                     vt_present()
                 Else
-                    ' ASCII for printable keys is delivered via SDL_TEXTINPUT,
-                    ' so here we only push scancode + modifiers (ascii = 0).
-                    ' Exception: Ctrl combos don't fire TEXTINPUT, handle them here.
                     ascii_ch = 0
                     If ct Then
                         Dim sym As Long = evt.key.keysym.sym
                         If sym >= SDLK_a AndAlso sym <= SDLK_z Then
-                            ascii_ch = CByte(sym - SDLK_a + 1)  ' Ctrl+A=1 .. Ctrl+Z=26
+                            ascii_ch = CByte(sym - SDLK_a + 1)
                         End If
                     End If
 
@@ -161,37 +156,27 @@ Sub vt_internal_pump()
                              (sh Shl 29)            Or _
                              (ct Shl 30)            Or _
                              (al Shl 31)
-                             
-                    vt_internal_key_push(keyrec)
 
-                    ' start repeat tracking for this key
+                    vt_internal_key_push(keyrec)
                     vt_internal.rep_scan = vtscan
                     vt_internal.rep_tick = tick
                     vt_internal.rep_last = 0
                 End If
 
             Case SDL_KEYUP
-                ' stop repeat if this is the key we were tracking
                 If vt_internal_sdl_to_vtscan(evt.key.keysym.scancode) = vt_internal.rep_scan Then
                     vt_internal.rep_scan = 0
                     vt_internal.rep_last = 0
                 End If
 
             Case SDL_TEXTINPUT
-                ' one printable character (already layout/IME processed by OS)
-                ' evt.text.text is a null-terminated UTF-8 string
-                ' We take only the first byte - for CP437 range this is correct
                 Dim ch As UByte = CPtr(UByte Ptr, @evt.text.text)[0]
                 If ch >= 32 AndAlso ch <> 127 Then
-                    ' re-use the scancode from the last keydown we recorded
                     keyrec = CULng(ch) Or (CULng(vt_internal.rep_scan) Shl 16)
-                    ' modifiers: SDL_GetModState() still valid here
                     modstate = SDL_GetModState()
                     If (modstate And KMOD_SHIFT) Then keyrec = keyrec Or (1UL Shl 29)
                     If (modstate And KMOD_CTRL)  Then keyrec = keyrec Or (1UL Shl 30)
                     If (modstate And KMOD_ALT)   Then keyrec = keyrec Or (1UL Shl 31)
-                    ' overwrite the bare-scancode event we pushed in KEYDOWN with this
-                    ' richer version (pop last, push new)
                     If vt_internal.key_count > 0 Then
                         vt_internal.key_write = (vt_internal.key_write + VT_KEY_BUFFER_SIZE - 1) _
                                                 Mod VT_KEY_BUFFER_SIZE
@@ -210,8 +195,7 @@ Sub vt_internal_pump()
 End Sub
 
 ' -----------------------------------------------------------------------------
-' Internal: update blink phase based on elapsed time
-' Returns 1 if the phase changed (caller may want to re-present)
+' Internal: blink phase update
 ' -----------------------------------------------------------------------------
 Function vt_internal_blink_update() As Byte
     Dim tick As ULong = SDL_GetTicks()
@@ -223,41 +207,66 @@ Function vt_internal_blink_update() As Byte
     Return 0
 End Function
 
-' -----------------------------------------------------------
-' vt_init_impl - core initialisation, called by both vt_init 
-' -----------------------------------------------------------
+' -----------------------------------------------------------------------------
+' Internal: free all SDL and heap resources, reset state
+' Called by the auto-cleanup destructor and by vt_shutdown.
+' Also called at the top of vt_init_impl for re-init (mode change).
+' -----------------------------------------------------------------------------
+Sub vt_internal_shutdown()
+    If vt_internal.ready = 0 Then Exit Sub
+    vt_internal.ready = 0
+
+    For sl As Long = 0 To VT_PAGE_SLOTS - 1
+        If vt_internal.page_slot(sl) <> 0 Then
+            DeAllocate vt_internal.page_slot(sl)
+            vt_internal.page_slot(sl) = 0
+        End If
+    Next sl
+
+    If vt_internal.cells    <> 0 Then DeAllocate vt_internal.cells    : vt_internal.cells    = 0
+    If vt_internal.sb_cells <> 0 Then DeAllocate vt_internal.sb_cells : vt_internal.sb_cells = 0
+
+    If vt_internal.sdl_texture  <> 0 Then SDL_DestroyTexture(vt_internal.sdl_texture)  : vt_internal.sdl_texture  = 0
+    If vt_internal.sdl_renderer <> 0 Then SDL_DestroyRenderer(vt_internal.sdl_renderer): vt_internal.sdl_renderer = 0
+    If vt_internal.sdl_window   <> 0 Then SDL_DestroyWindow(vt_internal.sdl_window)    : vt_internal.sdl_window   = 0
+
+    SDL_Quit()
+End Sub
+
+' -----------------------------------------------------------------------------
+' Internal: core init -- called by vt_screen
+' -----------------------------------------------------------------------------
 Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Long, _
-                      flags As Long, scrollback As Long, title as String) As Long
+                      fptr As UByte Ptr, fsrc_h As Long, flags As Long) As Long
 
-    If vt_internal.ready Then vt_shutdown()  ' re-init: clean up first
+    If vt_internal.ready Then vt_internal_shutdown()  ' re-init: clean up first
 
-    ' --- SDL2 init ---
     If SDL_Init(SDL_INIT_VIDEO) <> 0 Then Return -1
 
-    ' --- window flags ---
     Dim wflags As ULong = SDL_WINDOW_SHOWN
     If (flags And VT_NO_RESIZE) = 0 Then wflags = wflags Or SDL_WINDOW_RESIZABLE
 
     Dim win_w As Long = cols * glyph_w
     Dim win_h As Long = rows * glyph_h
 
-    vt_internal.sdl_window = SDL_CreateWindow( title, _
+    Dim wtitle As String = vt_internal.win_title
+    If wtitle = "" Then wtitle = "VT"
+
+    vt_internal.sdl_window = SDL_CreateWindow(wtitle, _
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, _
         win_w, win_h, wflags)
-        
+
     If vt_internal.sdl_window = 0 Then
         SDL_Quit()
         Return -2
     End If
 
-    ' --- fullscreen ---
     If flags And VT_FULLSCREEN_ASPECT Then
         SDL_SetWindowFullscreen(vt_internal.sdl_window, SDL_WINDOW_FULLSCREEN_DESKTOP)
     ElseIf flags And VT_FULLSCREEN_STRETCH Then
         SDL_SetWindowFullscreen(vt_internal.sdl_window, SDL_WINDOW_FULLSCREEN)
     End If
 
-    ' --- renderer (optional) with vsync ---
     Dim rflags As ULong = SDL_RENDERER_ACCELERATED
     If flags And VT_VSYNC Then rflags = rflags Or SDL_RENDERER_PRESENTVSYNC
     vt_internal.sdl_renderer = SDL_CreateRenderer(vt_internal.sdl_window, -1, rflags)
@@ -266,26 +275,18 @@ Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Lo
         SDL_Quit()
         Return -3
     End If
-    
-    ' --- logical size: SDL scales our fixed canvas to fill the window ---
-    ' nearest-neighbor hint must be set before the renderer is used
+
     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0")
     SDL_RenderSetLogicalSize(vt_internal.sdl_renderer, win_w, win_h)
-
     If flags And VT_FULLSCREEN_ASPECT Then
         SDL_RenderSetIntegerScale(vt_internal.sdl_renderer, SDL_TRUE)
-        SDL_RenderSetLogicalSize(vt_internal.sdl_renderer, win_w, win_h)
     End If
 
-    ' --- build font surface: 16x16 glyph grid, white glyphs on transparent bg ---
-    ' ARGB8888, glyph pixels = &hFFFFFFFF (white, opaque)
-    '           bg pixels    = &h00000000 (transparent - lets RenderFillRect bg show through)
-    
-    ' TODO: gate fonts 8x8 and 8x16
+    ' --- build font texture: 16x16 glyph grid, white on transparent ---
     Dim font_surf As SDL_Surface Ptr
     font_surf = SDL_CreateRGBSurface(0, 16 * glyph_w, 16 * glyph_h, 32, _
         &h00FF0000, &h0000FF00, &h000000FF, &hFF000000)
-        
+
     If font_surf = 0 Then
         SDL_DestroyRenderer(vt_internal.sdl_renderer)
         SDL_DestroyWindow(vt_internal.sdl_window)
@@ -293,33 +294,31 @@ Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Lo
         Return -4
     End If
 
-    ' paint all 256 glyphs into the surface
     SDL_LockSurface(font_surf)
-    
+
     Dim surf_px    As ULong Ptr = CPtr(ULong Ptr, font_surf->pixels)
-    Dim surf_pitch As Long      = font_surf->pitch \ 4  ' pitch in pixels (ULong stride)
+    Dim surf_pitch As Long      = font_surf->pitch \ 4
     Dim glyph_idx  As Long
-    
-    Dim gx        As Long 
-    Dim gy        As Long 
-    Dim glyph_row As Long
-    
-    Dim font_row  As Long
-    Dim font_byte As UByte
-    Dim bit_idx   As Long
-    
-    Dim font_bit As Long
-    Dim on_px    As Byte
-    
+    Dim gx         As Long
+    Dim gy         As Long
+    Dim glyph_row  As Long
+    Dim font_row   As Long
+    Dim font_byte  As UByte
+    Dim bit_idx    As Long
+    Dim font_bit   As Long
+    Dim on_px      As Byte
+
     For glyph_idx = 0 To 255
         gx = (glyph_idx Mod 16) * glyph_w
         gy = (glyph_idx \ 16)   * glyph_h
-        
+
         For glyph_row = 0 To glyph_h - 1
-            font_row  = (glyph_row * 16) \ glyph_h
-            font_byte = vt_font_data_8x16(glyph_idx * 16 + font_row)
-            
+            ' scale glyph_row into source font row (handles upscaling for TILES)
+            font_row  = (glyph_row * fsrc_h) \ glyph_h
+            font_byte = fptr[glyph_idx * fsrc_h + font_row]
+
             For bit_idx = 0 To glyph_w - 1
+                ' scale bit_idx into source bit (handles width-doubling for 40-col)
                 font_bit = (bit_idx * 8) \ glyph_w
                 on_px    = (font_byte Shr (7 - font_bit)) And 1
                 surf_px[(gy + glyph_row) * surf_pitch + gx + bit_idx] = _
@@ -327,13 +326,12 @@ Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Lo
             Next bit_idx
         Next glyph_row
     Next glyph_idx
-    
+
     SDL_UnlockSurface(font_surf)
 
-    ' convert surface to GPU texture and enable alpha blending
     vt_internal.sdl_texture = SDL_CreateTextureFromSurface(vt_internal.sdl_renderer, font_surf)
-    SDL_FreeSurface(font_surf)  ' surface no longer needed - GPU texture owns the data
-    vt_internal.sdl_font = 0    ' not stored - freed above
+    SDL_FreeSurface(font_surf)
+    vt_internal.sdl_font = 0
 
     If vt_internal.sdl_texture = 0 Then
         SDL_DestroyRenderer(vt_internal.sdl_renderer)
@@ -344,43 +342,40 @@ Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Lo
 
     SDL_SetTextureBlendMode(vt_internal.sdl_texture, SDL_BLENDMODE_BLEND)
 
-    ' --- store geometry ---
-    vt_internal.scr_cols = cols
-    vt_internal.scr_rows = rows
-    vt_internal.glyph_w  = glyph_w
-    vt_internal.glyph_h  = glyph_h
+    ' --- store geometry and font ---
+    vt_internal.scr_cols   = cols
+    vt_internal.scr_rows   = rows
+    vt_internal.glyph_w    = glyph_w
+    vt_internal.glyph_h    = glyph_h
+    vt_internal.font_ptr   = fptr
+    vt_internal.font_src_h = fsrc_h
 
-    ' --- allocate cell buffer ---
-    Dim cell_count As Long = cols * rows
-    vt_internal.cells = CAllocate(cell_count, SizeOf(vt_cell))
+    ' --- cell buffer ---
+    vt_internal.cells = CAllocate(cols * rows, SizeOf(vt_cell))
     If vt_internal.cells = 0 Then Return -6
 
-    ' --- allocate scrollback buffer ---
-    vt_internal.sb_lines  = scrollback
+    ' --- scrollback not allocated here -- call vt_scrollback() after vt_screen() ---
+    vt_internal.sb_lines  = 0
     vt_internal.sb_used   = 0
     vt_internal.sb_offset = 0
-    If scrollback > 0 Then
-        vt_internal.sb_cells = CAllocate(scrollback * cols, SizeOf(vt_cell))
-    Else
-        vt_internal.sb_cells = 0
-    End If
+    vt_internal.sb_cells  = 0
 
-    ' --- allocate page save slots (null until first use) ---
+    ' --- page slots ---
     For sl As Long = 0 To VT_PAGE_SLOTS - 1
         vt_internal.page_slot(sl) = 0
     Next sl
 
-    ' --- cursor defaults ---
+    ' --- cursor ---
     vt_internal.cur_col     = 1
     vt_internal.cur_row     = 1
     vt_internal.cur_visible = 1
     vt_internal.cur_ch      = 219
 
-    ' --- colour defaults ---
+    ' --- colour ---
     vt_internal.clr_fg = VT_LIGHT_GREY
     vt_internal.clr_bg = VT_BLACK
 
-    ' --- scroll defaults ---
+    ' --- scroll region ---
     vt_internal.scroll_on = 1
     vt_internal.view_top  = 1
     vt_internal.view_bot  = rows
@@ -388,80 +383,87 @@ Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Lo
     ' --- blink ---
     vt_internal.blink_visible = 1
     vt_internal.blink_tick    = SDL_GetTicks()
-    
-    ' --- dirty starts clean (first present will draw the blank screen) ---
+
+    ' --- dirty ---
     vt_internal.dirty = 0
 
-    ' --- key repeat defaults ---
+    ' --- key repeat ---
     vt_internal.rep_scan    = 0
     vt_internal.rep_initial = VT_KEY_REPEAT_INITIAL
     vt_internal.rep_rate    = VT_KEY_REPEAT_RATE
 
-    ' --- mouse off ---
+    ' --- mouse ---
     vt_internal.mouse_on  = 0
     vt_internal.mouse_ch  = 219
     vt_internal.mouse_fg  = VT_WHITE
     vt_internal.mouse_bg  = VT_BLACK
 
-    ' --- apply default palette ---
+    ' --- palette ---
     For pi As Long = 0 To 47
         vt_internal.palette(pi) = vt_default_palette(pi)
     Next pi
 
-    ' --- mark ready and do first present ---
     vt_internal.ready = 1
     vt_present()
 
     Return 0
 End Function
 
-' API BEGIN
-
 ' -----------------------------------------------------------------------------
-' vt_init - mode constant or explicit cols/rows
+' vt_screen - open the virtual text screen
+' mode  : VT_SCREEN_0 .. VT_SCREEN_TILES
+' flags : VT_WINDOWED, VT_FULLSCREEN_ASPECT, VT_NO_RESIZE, VT_VSYNC, ...
+' Call vt_title() before to set the window title.
+' Call vt_scrollback() after to enable the scrollback buffer.
+' Calling vt_screen() again closes and re-opens with the new mode.
 ' -----------------------------------------------------------------------------
-Function vt_init( _
-      cols_or_mode As Long, _
-      rows As Long = 0, _
-      flags As Long = VT_WINDOWED, _
-      scrollback As Long = 0, _
-      title As String = "Virtual Text Screen" _
-    ) As Long
-    
-    Dim cols As Long
-    Dim rws  As Long
-    Dim gw   As Long
-    Dim gh   As Long
+Function vt_screen(mode As Long, flags As Long) As Long
+    Dim cols   As Long
+    Dim rows   As Long
+    Dim gw     As Long
+    Dim gh     As Long
+    Dim fptr   As UByte Ptr
+    Dim fsrc_h As Long
 
-    If rows = 0 Then
-        Select Case cols_or_mode
-            Case VT_MODE_80x25 : cols = 80 : rws = 25 : gw = 8  : gh = 16
-            Case VT_MODE_80x43 : cols = 80 : rws = 25 : gw = 8  : gh = 16  ' fallback: need 8x8 font addition into vt_font.bi
-            Case VT_MODE_80x50 : cols = 80 : rws = 25 : gw = 8  : gh = 16  ' "" ""
-            Case VT_MODE_40x25 : cols = 40 : rws = 25 : gw = 16 : gh = 16
-            Case Else          : cols = 80 : rws = 25 : gw = 8  : gh = 16
-        End Select
-    Else
-        cols = cols_or_mode
-        rws  = rows
-        gw   = 8
-        gh   = IIf(rws <= 30, 16, 8)
-    End If
+    Select Case mode
+        Case VT_SCREEN_0
+            cols = 80 : rows = 25 : gw = 8  : gh = 16
+            fptr = @vt_font_data_8x16(0) : fsrc_h = 16
+        Case VT_SCREEN_2
+            cols = 80 : rows = 25 : gw = 8  : gh = 8
+            fptr = @vt_font_data_8x8(0)  : fsrc_h = 8
+        Case VT_SCREEN_9
+            cols = 80 : rows = 25 : gw = 8  : gh = 14
+            fptr = @vt_font_data_8x14(0) : fsrc_h = 14
+        Case VT_SCREEN_12
+            cols = 80 : rows = 30 : gw = 8  : gh = 16
+            fptr = @vt_font_data_8x16(0) : fsrc_h = 16
+        Case VT_SCREEN_13
+            cols = 40 : rows = 25 : gw = 8  : gh = 8
+            fptr = @vt_font_data_8x8(0)  : fsrc_h = 8
+        Case VT_SCREEN_EGA43
+            cols = 80 : rows = 43 : gw = 8  : gh = 8
+            fptr = @vt_font_data_8x8(0)  : fsrc_h = 8
+        Case VT_SCREEN_VGA50
+            cols = 80 : rows = 50 : gw = 8  : gh = 8
+            fptr = @vt_font_data_8x8(0)  : fsrc_h = 8
+        Case VT_SCREEN_TILES
+            cols = 40 : rows = 25 : gw = 16 : gh = 16
+            fptr = @vt_font_data_8x8(0)  : fsrc_h = 8
+        Case Else
+            cols = 80 : rows = 25 : gw = 8  : gh = 16
+            fptr = @vt_font_data_8x16(0) : fsrc_h = 16
+    End Select
 
-    Return vt_init_impl(cols, rws, gw, gh, flags, scrollback, title)
+    Return vt_init_impl(cols, rows, gw, gh, fptr, fsrc_h, flags)
 End Function
 
 ' -----------------------------------------------------------------------------
-' vt_present - compose and display the cell buffer
-' Called manually after composing a frame, or automatically by vt_inkey.
-'
-' Scrollback: only rows within view_top..view_bot mix scrollback and live data.
-' Rows outside the scroll region always read directly from the live cell buffer.
-' This keeps fixed rows (status bars etc) visible during scrollback.
+' vt_present - composite and flip the cell buffer to the screen
 ' -----------------------------------------------------------------------------
 Sub vt_present()
     If vt_internal.ready = 0 Then Exit Sub
-    
+
     Dim gw          As Long
     Dim gh          As Long
     Dim cols        As Long
@@ -488,9 +490,9 @@ Sub vt_present()
     Dim cfg_r       As UByte
     Dim cfg_g       As UByte
     Dim cfg_b       As UByte
-    Dim scroll_pos  As Long   ' 0-based position within scroll region
-    Dim logical_row As Long   ' index into combined sb+live space
-    Dim live_row    As Long   ' index into live cells when past sb_used
+    Dim scroll_pos  As Long
+    Dim logical_row As Long
+    Dim live_row    As Long
 
     vt_internal_blink_update()
 
@@ -498,24 +500,19 @@ Sub vt_present()
     gh   = vt_internal.glyph_h
     cols = vt_internal.scr_cols
     rows = vt_internal.scr_rows
-    
-     ' set border colour before clear - SDL fills letterbox area with this
+
     SDL_SetRenderDrawColor(vt_internal.sdl_renderer, _
         vt_internal.border_r, vt_internal.border_g, vt_internal.border_b, 255)
-        
     SDL_RenderClear(vt_internal.sdl_renderer)
 
     src_rect.w = gw
     src_rect.h = gh
     dst_rect.w = gw
     dst_rect.h = gh
-    
-    ' Explicitly reset texture colormod to white before every frame.
-    ' last_fg_r/g/b optimization assumes texture starts white each frame.
-    ' Without this, the cursor render from the previous frame leaves the
-    ' texture tinted, causing wrong colors on cells that share fg = white.
-    SDL_SetTextureColorMod(vt_internal.sdl_texture, 255, 255, 255)
 
+    ' Reset texture colormod to white before cell loop each frame.
+    ' Cursor render from previous frame would otherwise taint fg=white cells.
+    SDL_SetTextureColorMod(vt_internal.sdl_texture, 255, 255, 255)
     last_fg_r = 255
     last_fg_g = 255
     last_fg_b = 255
@@ -524,8 +521,6 @@ Sub vt_present()
         If vt_internal.sb_offset > 0 AndAlso _
            row_idx >= vt_internal.view_top - 1 AndAlso _
            row_idx <= vt_internal.view_bot - 1 Then
-            ' row is inside scroll region and we are scrolled back -
-            ' mix scrollback lines and live lines
             scroll_pos  = row_idx - (vt_internal.view_top - 1)
             logical_row = (vt_internal.sb_used - vt_internal.sb_offset) + scroll_pos
             If logical_row < 0 Then logical_row = 0
@@ -536,7 +531,6 @@ Sub vt_present()
                 cellptr  = vt_internal.cells + (live_row * cols)
             End If
         Else
-            ' outside scroll region, or not scrolled back - always live screen
             cellptr = vt_internal.cells + (row_idx * cols)
         End If
 
@@ -574,7 +568,7 @@ Sub vt_present()
         Next col_idx
     Next row_idx
 
-    ' --- draw cursor on top if fully in live view ---
+    ' --- cursor ---
     If vt_internal.sb_offset = 0 AndAlso vt_internal.cur_visible AndAlso _
        vt_internal.blink_visible Then
         c_col = vt_internal.cur_col - 1
@@ -595,39 +589,44 @@ Sub vt_present()
 End Sub
 
 ' -----------------------------------------------------------------------------
-' vt_shutdown - free all SDL resources and reset state
+' vt_shutdown - optional explicit teardown (auto-cleanup handles this on exit)
+' Useful if you want to close the VT screen mid-program.
 ' -----------------------------------------------------------------------------
 Sub vt_shutdown()
-    If vt_internal.ready = 0 Then Exit Sub
-    vt_internal.ready = 0
-
-    ' free page slots
-    For sl As Long = 0 To VT_PAGE_SLOTS - 1
-        If vt_internal.page_slot(sl) <> 0 Then
-            DeAllocate vt_internal.page_slot(sl)
-            vt_internal.page_slot(sl) = 0
-        End If
-    Next sl
-
-    ' free cell buffers
-    If vt_internal.cells    <> 0 Then DeAllocate vt_internal.cells    : vt_internal.cells    = 0
-    If vt_internal.sb_cells <> 0 Then DeAllocate vt_internal.sb_cells : vt_internal.sb_cells = 0
-
-    ' free SDL objects (sdl_font is always 0 after init - freed there)
-    If vt_internal.sdl_texture  <> 0 Then SDL_DestroyTexture(vt_internal.sdl_texture)  : vt_internal.sdl_texture  = 0
-    If vt_internal.sdl_renderer <> 0 Then SDL_DestroyRenderer(vt_internal.sdl_renderer): vt_internal.sdl_renderer = 0
-    If vt_internal.sdl_window   <> 0 Then SDL_DestroyWindow(vt_internal.sdl_window)    : vt_internal.sdl_window   = 0
-
-    SDL_Quit()
+    vt_internal_shutdown()
 End Sub
 
+' -----------------------------------------------------------------------------
+' vt_title - set the window title
+' Safe to call before or after vt_screen().
+' Before: stored and used when the window is created.
+' After:  applied to the live window immediately.
+' -----------------------------------------------------------------------------
+Sub vt_title(txt As String)
+    vt_internal.win_title = txt
+    If vt_internal.ready Then
+        SDL_SetWindowTitle(vt_internal.sdl_window, txt)
+    End If
+End Sub
 
 ' -----------------------------------------------------------------------------
-' vt_should_quit - returns 1 if the user closed the window
+' vt_scrollback - enable or resize the scrollback buffer
+' Must be called after vt_screen(). Calling again clears the existing buffer.
+' lines = 0 disables scrollback and frees the buffer.
 ' -----------------------------------------------------------------------------
-Function vt_should_quit() As Byte
-    Return IIf(vt_internal.ready = 2, 1, 0)
-End Function
+Sub vt_scrollback(lines As Long)
+    If vt_internal.ready = 0 Then Exit Sub
+    If vt_internal.sb_cells <> 0 Then
+        DeAllocate vt_internal.sb_cells
+        vt_internal.sb_cells = 0
+    End If
+    vt_internal.sb_lines  = lines
+    vt_internal.sb_used   = 0
+    vt_internal.sb_offset = 0
+    If lines > 0 Then
+        vt_internal.sb_cells = CAllocate(lines * vt_internal.scr_cols, SizeOf(vt_cell))
+    End If
+End Sub
 
 ' -----------------------------------------------------------------------------
 ' Palette API
@@ -645,19 +644,17 @@ Sub vt_palette_get(pal() As UByte)
 End Sub
 
 Sub vt_palette(idx As Long = -1, r As Long = -1, g As Long = -1, b As Long = -1)
-    If idx < 0 Or idx > 15 Then 
-      vt_palette_set vt_default_palette()
-      Exit Sub
-    end if
+    If idx < 0 Or idx > 15 Then
+        vt_palette_set(vt_default_palette())
+        Exit Sub
+    End If
     vt_internal.palette(idx * 3)     = r And 255
     vt_internal.palette(idx * 3 + 1) = g And 255
     vt_internal.palette(idx * 3 + 2) = b And 255
 End Sub
 
 ' -----------------------------------------------------------------------------
-' vt_border_color - set the letterbox border colour shown outside the viewport
-' when the window is resized larger than the logical canvas.
-' Default is black (0, 0, 0). Pass raw RGB values 0-255.
+' vt_border_color - letterbox colour outside the logical viewport
 ' -----------------------------------------------------------------------------
 Sub vt_border_color(r As Long, g As Long, b As Long)
     vt_internal.border_r = r And 255
@@ -666,7 +663,7 @@ Sub vt_border_color(r As Long, g As Long, b As Long)
 End Sub
 
 ' -----------------------------------------------------------------------------
-' Key repeat config
+' vt_key_repeat - configure key repeat timing
 ' -----------------------------------------------------------------------------
 Sub vt_key_repeat(initial_ms As Long, rate_ms As Long)
     vt_internal.rep_initial = initial_ms
@@ -681,6 +678,9 @@ Function vt_pos()    As Long : Return vt_internal.cur_col  : End Function
 Function vt_cols()   As Long : Return vt_internal.scr_cols : End Function
 Function vt_rows()   As Long : Return vt_internal.scr_rows : End Function
 
+' -----------------------------------------------------------------------------
+' vt_get_cell / vt_set_cell
+' -----------------------------------------------------------------------------
 Sub vt_get_cell(col As Long, row As Long, ByRef ch As UByte, ByRef fg As UByte, ByRef bg As UByte)
     If vt_internal.ready = 0 Then Exit Sub
     If col < 1 Or col > vt_internal.scr_cols Then Exit Sub
@@ -703,9 +703,7 @@ Sub vt_set_cell(col As Long, row As Long, ch As UByte, fg As UByte, bg As UByte)
 End Sub
 
 ' -----------------------------------------------------------------------------
-' vt_internal_present_if_dirty - auto-present for vt_inkey only
-' Skips if not dirty or called again within 2ms of last auto-flip.
-' vt_present() itself has no throttle - explicit user calls always flip.
+' Internal: auto-present for vt_inkey -- throttled, skips if not dirty
 ' -----------------------------------------------------------------------------
 Sub vt_internal_present_if_dirty()
     If vt_internal.dirty = 0 Then Exit Sub
@@ -719,12 +717,10 @@ End Sub
 
 ' -----------------------------------------------------------------------------
 ' vt_inkey - non-blocking key read
-' Pumps events, redraws if blink phase changed, pops one key from the buffer.
-' Returns 0 if no key is waiting.
 ' -----------------------------------------------------------------------------
 Function vt_inkey() As ULong
     If vt_internal.ready = 0 Then Return 0
-    vt_internal_pump()
+    vt_pump()
     If vt_internal_blink_update() Then vt_internal.dirty = 1
     vt_internal_present_if_dirty()
     If vt_internal.key_count = 0 Then Return 0
@@ -736,10 +732,6 @@ End Function
 
 ' -----------------------------------------------------------------------------
 ' vt_key_held - real-time key state poll for game loops
-' Returns 1 if the key is currently held down, 0 if not.
-' Takes a VT scancode constant (VT_KEY_UP, VT_KEY_SPACE, etc).
-' Unlike vt_inkey this is not edge-triggered - it reflects the live key state.
-' Call vt_pump() before this in a game loop to keep events flowing.
 ' -----------------------------------------------------------------------------
 Function vt_key_held(vtscan As Long) As Byte
     Dim sdl_scan As Long
@@ -792,10 +784,9 @@ Function vt_key_held(vtscan As Long) As Byte
 End Function
 
 ' -----------------------------------------------------------------------------
-' vt_sleep - replacement for FB's Sleep
-' ms = 0 : wait indefinitely until any key is pressed or window is closed
-' ms > 0 : delay for ms milliseconds, window stays responsive throughout
-' In both cases blink keeps ticking and vt_inkey buffer keeps filling.
+' vt_sleep
+' ms = 0 : wait for any key
+' ms > 0 : delay for ms milliseconds
 ' -----------------------------------------------------------------------------
 Sub vt_sleep(ms As Long = 0)
     Dim t_start As ULong
@@ -805,49 +796,42 @@ Sub vt_sleep(ms As Long = 0)
     t_start = SDL_GetTicks()
 
     Do
-        vt_internal_pump()
+        vt_pump()
         If vt_internal_blink_update() Then vt_internal.dirty = 1
         vt_internal_present_if_dirty()
-        If vt_should_quit() Then Exit Do
 
         If ms = 0 Then
             k = vt_inkey()
             If k <> 0 Then Exit Do
+            Sleep 10, 1
         Else
             t_now = SDL_GetTicks()
             If t_now - t_start >= CULng(ms) Then Exit Do
-        End If
-
-        Sleep 10, 1
+            Sleep 1, 1
+        End If 
     Loop
 End Sub
 
 ' -----------------------------------------------------------------------------
 ' vt_getkey - blocking vt_inkey
-' Waits until any key event, returns full key record like vt_inkey.
-' Use VT_SCAN(k), VT_CHAR(k) etc to inspect the result.
 ' -----------------------------------------------------------------------------
 Function vt_getkey() As ULong
     Dim k As ULong
     Do
         k = vt_inkey()
         If k <> 0 Then Return k
-        If vt_should_quit() Then Return 0
         Sleep 10, 1
     Loop
 End Function
 
 ' -----------------------------------------------------------------------------
-' vt_getchar - blocking single printable character read
-' Wraps vt_getkey, ignores special keys, filters by allowed if provided.
-' Empty allowed = all printable characters accepted.
+' vt_getchar - blocking single printable character
 ' -----------------------------------------------------------------------------
 Function vt_getchar(allowed As String = "") As String
     Dim k  As ULong
     Dim ch As UByte
     Do
-        k = vt_getkey()
-        If k = 0 Then Return ""   ' quit signal
+        k  = vt_getkey()
         ch = VT_CHAR(k)
         If ch >= 32 Then
             If allowed = "" Then Return Chr(ch)
@@ -857,7 +841,7 @@ Function vt_getchar(allowed As String = "") As String
 End Function
 
 ' -----------------------------------------------------------------------------
-' vt_key_flush - discard all pending keys in the buffer
+' vt_key_flush - discard all pending keys
 ' -----------------------------------------------------------------------------
 Sub vt_key_flush()
     vt_internal.key_read  = 0
