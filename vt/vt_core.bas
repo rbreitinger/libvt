@@ -8,6 +8,7 @@ Declare Sub      vt_present()
 Declare Sub      vt_shutdown()
 Declare Sub      vt_internal_shutdown()
 Declare Function vt_screen(mode As Long = VT_SCREEN_0, flags As Long = VT_WINDOWED) As Long
+Declare Function vt_scroll(amount As Long) As Byte
 
 ' -----------------------------------------------------------------------------
 ' Auto-cleanup type -- destructor fires on program exit (via End or fall-through).
@@ -135,38 +136,42 @@ Sub vt_pump()
 
                 vtscan = vt_internal_sdl_to_vtscan(evt.key.keysym.scancode)
 
-                ' built-in scrollback: Shift+PgUp / Shift+PgDn
-                If sh AndAlso vtscan = VT_KEY_PGUP AndAlso vt_internal.sb_lines > 0 Then
-                    vt_internal.sb_offset += 1
-                    If vt_internal.sb_offset > vt_internal.sb_used Then
-                        vt_internal.sb_offset = vt_internal.sb_used
-                    End If
-                    vt_present()
-                ElseIf sh AndAlso vtscan = VT_KEY_PGDN AndAlso vt_internal.sb_lines > 0 Then
-                    vt_internal.sb_offset -= 1
-                    If vt_internal.sb_offset < 0 Then vt_internal.sb_offset = 0
-                    vt_present()
+                ' scrollback
+                If ct = 0 then
+                  If (sh) AndAlso (vtscan = VT_KEY_PGUP) Then
+                      vt_scroll(1)
+                  ElseIf (sh) AndAlso (vtscan = VT_KEY_PGDN) Then
+                      vt_scroll(-1)
+                  End If
+                    
                 Else
-                    ascii_ch = 0
-                    If ct Then
-                        Dim sym As Long = evt.key.keysym.sym
-                        If sym >= SDLK_a AndAlso sym <= SDLK_z Then
-                            ascii_ch = CByte(sym - SDLK_a + 1)
-                        End If
+                  
+                    If(sh) AndAlso (vtscan = VT_KEY_PGUP) Then
+                        vt_scroll(vt_internal.scr_rows \ 2)
+                    ElseIf (sh) AndAlso (vtscan = VT_KEY_PGDN) Then
+                        vt_scroll(-(vt_internal.scr_rows \ 2))
                     End If
-
-                    keyrec = CULng(ascii_ch)        Or _
-                             (CULng(vtscan) Shl 16) Or _
-                             (sh Shl 29)            Or _
-                             (ct Shl 30)            Or _
-                             (al Shl 31)
-
-                    vt_internal_key_push(keyrec)
-                    vt_internal.rep_scan = vtscan
-                    vt_internal.rep_tick = tick
-                    vt_internal.rep_last = 0
+                End If
+                
+                ascii_ch = 0
+                If ct Then
+                    Dim sym As Long = evt.key.keysym.sym
+                    If sym >= SDLK_a AndAlso sym <= SDLK_z Then
+                        ascii_ch = CByte(sym - SDLK_a + 1)
+                    End If
                 End If
 
+                keyrec = CULng(ascii_ch)        Or _
+                         (CULng(vtscan) Shl 16) Or _
+                         (sh Shl 29)            Or _
+                         (ct Shl 30)            Or _
+                         (al Shl 31)
+
+                vt_internal_key_push(keyrec)
+                vt_internal.rep_scan = vtscan
+                vt_internal.rep_tick = tick
+                vt_internal.rep_last = 0
+                
             Case SDL_KEYUP
                 If vt_internal_sdl_to_vtscan(evt.key.keysym.scancode) = vt_internal.rep_scan Then
                     vt_internal.rep_scan = 0
@@ -615,6 +620,31 @@ Sub vt_title(txt As String)
         SDL_SetWindowTitle(vt_internal.sdl_window, txt)
     End If
 End Sub
+
+' -----------------------------------------------------------------------------
+' vt_scroll - scroll the scrollback view by amount lines
+' Positive = scroll back (older content), negative = toward live view.
+' Returns 1 if the offset changed, 0 if already at limit or scrollback disabled.
+' Does not call vt_present -- caller handles that.
+' -----------------------------------------------------------------------------
+Function vt_scroll(amount As Long) As Byte
+    If vt_internal.ready   = 0 Then Return 0
+    If vt_internal.sb_lines = 0 Then Return 0
+    If amount = 0               Then Return 0
+
+    Dim prev As Long = vt_internal.sb_offset
+
+    vt_internal.sb_offset += amount
+    If vt_internal.sb_offset > vt_internal.sb_used Then _
+        vt_internal.sb_offset = vt_internal.sb_used
+    If vt_internal.sb_offset < 0 Then _
+        vt_internal.sb_offset = 0
+
+    If vt_internal.sb_offset = prev Then Return 0
+
+    vt_internal.dirty = 1
+    Return 1
+End Function
 
 ' -----------------------------------------------------------------------------
 ' vt_scrollback - enable or resize the scrollback buffer

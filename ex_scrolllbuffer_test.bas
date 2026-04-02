@@ -1,3 +1,7 @@
+' simple file viewer, that demonstrates scrolling and view print 
+' note that internal hardcoded (ctrl) + shift + PGDN/PGUP always 
+' work to scroll IF scrolling was enabled.
+
 #include once "vt/vt.bi"
 
 Dim k  As ULong
@@ -13,13 +17,14 @@ vt_scrollback 1024
 vt_scroll_enable 0
 vt_locate 25, 1
 vt_color VT_BLACK, VT_LIGHT_GREY
-vt_print " Shift+PgUp / Shift+PgDn to scroll   ESC to quit" & Space(32)
+vt_print " Press Arrow Up/Down to scroll, ESC to quit" & space(37)
 vt_scroll_enable 1
 
 ' --- restrict scroll region to rows 1-24 ---
 vt_view_print 1, 24
 vt_locate 1, 1
 vt_color VT_WHITE, VT_BLUE
+vt_cls
 
 ' --- print file into the scroll region ---
 f = FreeFile()
@@ -31,7 +36,8 @@ Wend
 Close #f
 
 Do
-    k = vt_inkey
-    If VT_SCAN(k) = VT_KEY_ESC Then Exit Do
-    vt_sleep 10
+    k = vt_getkey
+    If VT_SCAN(k) = VT_KEY_ESC  Then Exit Do
+    If VT_SCAN(k) = VT_KEY_UP   Then vt_scroll 1
+    If VT_SCAN(k) = VT_KEY_DOWN Then vt_scroll -1
 Loop
