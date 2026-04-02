@@ -253,6 +253,7 @@ Dim Shared vt_internal As vt_internal_state
 
 #include once "vt_core.bas"
 #include once "vt_print.bas"
+#include once "vt_input.bas"
 
 ' --- undef internals so nothing leaks into user sources ---
 '#undef vt_internal <-- we cannot undef this one as the destructor needs it live
