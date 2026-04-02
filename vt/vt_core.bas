@@ -467,7 +467,7 @@ Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Lo
     vt_internal.mouse_btns  = 0
     vt_internal.mouse_vis   = 1
     vt_internal.mouse_wheel = 0
-    vt_internal.mouse_flags = VT_MOUSE_DEFAULT
+    vt_internal.mouse_flags = VT_MOUSE_TRANS
 
     ' --- palette ---
     For pi As Long = 0 To 47
@@ -687,7 +687,7 @@ Sub vt_present()
             dst_rect.x = mc_col * gw
             dst_rect.y = mc_row * gh
     
-            If vt_internal.mouse_flags = VT_MOUSE_INVERT Then
+            If vt_internal.mouse_flags = VT_MOUSE_TRANS Then
                 ' semi-transparent white overlay over the already-rendered cell
                 ' cell content shows through, always visible on any background
                 SDL_SetRenderDrawBlendMode(vt_internal.sdl_renderer, SDL_BLENDMODE_BLEND)
@@ -695,7 +695,7 @@ Sub vt_present()
                 SDL_RenderFillRect(vt_internal.sdl_renderer, @dst_rect)
                 SDL_SetRenderDrawBlendMode(vt_internal.sdl_renderer, SDL_BLENDMODE_NONE)
             Else
-                ' VT_MOUSE_DEFAULT: opaque mouse_ch in mouse_fg over mouse_bg
+                ' VT_MOUSE_SOLID: opaque mouse_ch in mouse_fg over mouse_bg
                 mc_fg_r = vt_internal.palette(vt_internal.mouse_fg * 3)
                 mc_fg_g = vt_internal.palette(vt_internal.mouse_fg * 3 + 1)
                 mc_fg_b = vt_internal.palette(vt_internal.mouse_fg * 3 + 2)

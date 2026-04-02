@@ -115,7 +115,7 @@ End Sub
 '         VT_MOUSE_INVERT  = invert fg/bg of the cell under the cursor
 ' -----------------------------------------------------------------------------
 Sub vt_mousecursor(ch As UByte = 219, clr As UByte = VT_WHITE, _
-                   flags As Long = VT_MOUSE_DEFAULT)
+                   flags As Long = VT_MOUSE_TRANS)
     If vt_internal.ready = 0 Then Exit Sub
     vt_internal.mouse_ch    = ch
     vt_internal.mouse_fg    = clr

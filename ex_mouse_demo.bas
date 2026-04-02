@@ -25,9 +25,8 @@ For row_i = 1 To 24
     Next col_i
 Next row_i
 
-' invert mode so the cursor shows cell content underneath
 vt_mouse(1)
-vt_mousecursor(219, VT_WHITE, VT_MOUSE_INVERT)
+vt_mousecursor(219, VT_WHITE)
 
 Dim mx          As Long
 Dim my          As Long
@@ -118,7 +117,6 @@ Do
     k = vt_inkey()
     If VT_SCAN(k) = VT_KEY_ESC Then Exit Do
 
-    vt_present()
     vt_sleep 1
 Loop
 

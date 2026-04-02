@@ -148,8 +148,8 @@ Const VT_KEY_REPEAT_RATE    = 30
 ' -----------------------------------------------------------------------------
 ' Mouse cursor style flags
 ' -----------------------------------------------------------------------------
-Const VT_MOUSE_DEFAULT = 0   ' draw cursor char in fixed fg colour
-Const VT_MOUSE_INVERT  = 1   ' invert fg/bg of the cell under the cursor
+Const VT_MOUSE_TRANS = 0
+Const VT_MOUSE_SOLID = 1
 
 ' -----------------------------------------------------------------------------
 ' Mouse button bitmask constants  (vt_getmouse btns param)
