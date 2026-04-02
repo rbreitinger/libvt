@@ -4,50 +4,48 @@
 ' =============================================================================
 
 ' -----------------------------------------------------------------------------
+' vt_mouselock - enable or disable window grab (cursor confined to window)
+' Safe to call before or after vt_mouse(1). Takes effect immediately if the
+' mouse is already active. Fullscreen modes auto-lock at vt_screen() time.
+' -----------------------------------------------------------------------------
+Sub vt_mouselock(onoff As Byte)
+    If vt_internal.ready = 0 Then Exit Sub
+    vt_internal.mouse_lock = IIf(onoff <> 0, 1, 0)
+    If vt_internal.mouse_on Then
+        SDL_SetWindowGrab(vt_internal.sdl_window, _
+                          IIf(vt_internal.mouse_lock, SDL_TRUE, SDL_FALSE))
+    End If
+End Sub
+
+' -----------------------------------------------------------------------------
 ' vt_mouse - enable or disable mouse tracking entirely
 ' enabled = 1 : hide OS cursor, start tracking, snap char cursor to current pos
 ' enabled = 0 : restore OS cursor, clear btns and wheel, stop drawing cursor
 ' -----------------------------------------------------------------------------
 Sub vt_mouse(enabled As Byte)
-    Dim px      As Long
-    Dim py      As Long
-    Dim wnd_w   As Long
-    Dim wnd_h   As Long
-    Dim log_w   As Long
-    Dim log_h   As Long
-    Dim scl_x   As Double
-    Dim scl_y   As Double
-    Dim scl     As Double
-    Dim off_x   As Long
-    Dim off_y   As Long
-    Dim new_col As Long
-    Dim new_row As Long
+    Dim px As Long
+    Dim py As Long
 
     If vt_internal.ready = 0 Then Exit Sub
     vt_internal.mouse_on = IIf(enabled <> 0, 1, 0)
 
     If enabled Then
         SDL_ShowCursor(SDL_DISABLE)
+        If vt_internal.mouse_lock Then
+            SDL_SetWindowGrab(vt_internal.sdl_window, SDL_TRUE)
+        End If
         ' Snap char cursor to current physical mouse position immediately
         ' so it doesn't sit at (1,1) waiting for the first motion event.
         SDL_GetMouseState(@px, @py)
-        SDL_GetWindowSize(vt_internal.sdl_window, @wnd_w, @wnd_h)
-        log_w = vt_internal.scr_cols * vt_internal.glyph_w
-        log_h = vt_internal.scr_rows * vt_internal.glyph_h
-        scl_x = CDbl(wnd_w) / CDbl(log_w)
-        scl_y = CDbl(wnd_h) / CDbl(log_h)
-        scl   = IIf(scl_x < scl_y, scl_x, scl_y)
-        off_x = CLng((wnd_w - log_w * scl) * 0.5)
-        off_y = CLng((wnd_h - log_h * scl) * 0.5)
-        new_col = CLng((px - off_x) / scl) \ vt_internal.glyph_w + 1
-        new_row = CLng((py - off_y) / scl) \ vt_internal.glyph_h + 1
-        If new_col < 1 Then new_col = 1
-        If new_col > vt_internal.scr_cols Then new_col = vt_internal.scr_cols
-        If new_row < 1 Then new_row = 1
-        If new_row > vt_internal.scr_rows Then new_row = vt_internal.scr_rows
-        vt_internal.mouse_col = new_col
-        vt_internal.mouse_row = new_row
+        vt_internal_pixel_to_cell(px, py, @vt_internal.mouse_col, @vt_internal.mouse_row)
+        If vt_internal.mouse_col < 1 Then vt_internal.mouse_col = 1
+        If vt_internal.mouse_col > vt_internal.scr_cols Then _
+            vt_internal.mouse_col = vt_internal.scr_cols
+        If vt_internal.mouse_row < 1 Then vt_internal.mouse_row = 1
+        If vt_internal.mouse_row > vt_internal.scr_rows Then _
+            vt_internal.mouse_row = vt_internal.scr_rows
     Else
+        SDL_SetWindowGrab(vt_internal.sdl_window, SDL_FALSE)
         SDL_ShowCursor(SDL_ENABLE)
         vt_internal.mouse_btns  = 0
         vt_internal.mouse_wheel = 0
@@ -106,19 +104,3 @@ Sub vt_setmouse(col As Long = -1, row As Long = -1, vis As Byte = -1)
     End If
     vt_internal.dirty = 1
 End Sub
-
-' -----------------------------------------------------------------------------
-' vt_mousecursor - configure cursor appearance
-' ch    : character to draw (default 219 = full block)
-' clr   : foreground colour index (default VT_WHITE)
-' flags : VT_MOUSE_DEFAULT = draw ch in clr over mouse_bg
-'         VT_MOUSE_INVERT  = invert fg/bg of the cell under the cursor
-' -----------------------------------------------------------------------------
-Sub vt_mousecursor(ch As UByte = 219, clr As UByte = VT_WHITE, _
-                   flags As Long = VT_MOUSE_TRANS)
-    If vt_internal.ready = 0 Then Exit Sub
-    vt_internal.mouse_ch    = ch
-    vt_internal.mouse_fg    = clr
-    vt_internal.mouse_flags = flags
-    vt_internal.dirty = 1
-End Sub 

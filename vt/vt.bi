@@ -146,12 +146,6 @@ Const VT_KEY_REPEAT_INITIAL = 400
 Const VT_KEY_REPEAT_RATE    = 30
 
 ' -----------------------------------------------------------------------------
-' Mouse cursor style flags
-' -----------------------------------------------------------------------------
-Const VT_MOUSE_TRANS = 0
-Const VT_MOUSE_SOLID = 1
-
-' -----------------------------------------------------------------------------
 ' Mouse button bitmask constants  (vt_getmouse btns param)
 ' -----------------------------------------------------------------------------
 Const VT_MOUSE_BTN_LEFT   = 1   ' bit 0
@@ -233,14 +227,11 @@ Type vt_internal_state
     mouse_on    As Byte
     mouse_col   As Long
     mouse_row   As Long
-    mouse_ch    As UByte
-    mouse_fg    As UByte
-    mouse_bg    As UByte
     mouse_btns  As Long
     mouse_vis   As Byte    ' 1 = cursor drawn on screen, 0 = hidden
     mouse_wheel As Long    ' accumulated wheel delta, reset on vt_getmouse read
-    mouse_flags As Long    ' VT_MOUSE_DEFAULT or VT_MOUSE_INVERT
-
+    mouse_lock  As Byte    ' 1 = SDL window grab active
+    
     ' --- page save slots ---
     page_slot(VT_PAGE_SLOTS - 1) As vt_cell Ptr
 
@@ -258,6 +249,7 @@ Type vt_internal_state
     ' --- flags ---
     dirty       As Byte
     ready       As Byte   ' 1 = running, 0 = not init
+    init_flags  As Long   ' flags passed to vt_screen (fullscreen mode, grab, etc.)
 
 End Type
 
@@ -286,6 +278,7 @@ Dim Shared vt_internal As vt_internal_state
 #undef vt_internal_blink_update
 #undef vt_init_impl
 #undef vt_internal_present_if_dirty
+#undef vt_internal_pixel_to_cell
 
 ' vt_print.bas
 #undef vt_internal_scroll_up

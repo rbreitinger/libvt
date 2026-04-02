@@ -14,7 +14,6 @@ vt_screen 0, VT_FULLSCREEN_ASPECT
 vt_scrollback 1024
 
 vt_mouse 1
-vt_mousecursor 219, VT_WHITE, VT_MOUSE_INVERT
 
 ' --- draw status bar first, scrolling disabled so it cannot be pushed off ---
 vt_scroll_enable 0
@@ -34,7 +33,7 @@ f = FreeFile()
 Open "vt/vt_core.bas" For Input As #f
 While Not EOF(f)
     Line Input #f, ln
-    vt_print(ln & Chr(10))
+    vt_print  ln & VT_NEWLINE
 Wend
 Close #f
 

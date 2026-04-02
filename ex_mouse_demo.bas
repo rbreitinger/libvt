@@ -12,6 +12,8 @@
 vt_title "VT Mouse Test"
 vt_screen VT_SCREEN_0
 
+vt_mouselock 1
+
 ' restrict scroll region, row 25 is the status bar
 vt_view_print(1, 24)
 vt_locate(25, 1, 0)
@@ -26,7 +28,6 @@ For row_i = 1 To 24
 Next row_i
 
 vt_mouse(1)
-vt_mousecursor(219, VT_WHITE)
 
 Dim mx          As Long
 Dim my          As Long

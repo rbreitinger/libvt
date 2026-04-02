@@ -9,7 +9,9 @@ Declare Sub      vt_shutdown()
 Declare Sub      vt_internal_shutdown()
 Declare Function vt_screen(mode As Long = VT_SCREEN_0, flags As Long = VT_WINDOWED) As Long
 Declare Function vt_scroll(amount As Long) As Byte
-
+Declare Sub      vt_internal_pixel_to_cell(px As Long, py As Long, _
+                                           col_out As Long Ptr, row_out As Long Ptr)
+                                           
 ' -----------------------------------------------------------------------------
 ' Auto-cleanup type -- destructor fires on program exit (via End or fall-through).
 ' SDL_QUIT calls End, which triggers this. No explicit vt_shutdown needed.
@@ -80,6 +82,38 @@ Function vt_internal_sdl_to_vtscan(sdlscan As Long) As Long
     End Select
     Return 0
 End Function
+
+' -----------------------------------------------------------------------------
+' Internal: convert raw SDL window pixel coords to 1-based cell coords.
+' Uses SDL_RenderGetScale so the result is correct under all window modes:
+' VT_WINDOWED, VT_FULLSCREEN_ASPECT (integer scale), VT_FULLSCREEN_STRETCH,
+' and maximized windows. No stored flags needed -- SDL tells us what it used.
+' -----------------------------------------------------------------------------
+Sub vt_internal_pixel_to_cell(px As Long, py As Long, _
+                              col_out As Long Ptr, row_out As Long Ptr)
+    Dim sx    As Single
+    Dim sy    As Single
+    Dim out_w As Long
+    Dim out_h As Long
+    Dim vp_x  As Long
+    Dim vp_y  As Long
+    Dim log_w As Long
+    Dim log_h As Long
+
+    SDL_RenderGetScale(vt_internal.sdl_renderer, @sx, @sy)
+    SDL_GetRendererOutputSize(vt_internal.sdl_renderer, @out_w, @out_h)
+
+    log_w = vt_internal.scr_cols * vt_internal.glyph_w
+    log_h = vt_internal.scr_rows * vt_internal.glyph_h
+
+    ' Letterbox offset in output pixels -- matches what SDL computed internally
+    vp_x = (out_w - CLng(log_w * sx)) \ 2
+    vp_y = (out_h - CLng(log_h * sy)) \ 2
+
+    ' Convert to logical pixel, then to 1-based cell
+    *col_out = CLng((px - vp_x) / sx) \ vt_internal.glyph_w + 1
+    *row_out = CLng((py - vp_y) / sy) \ vt_internal.glyph_h + 1
+End Sub
 
 ' -----------------------------------------------------------------------------
 ' Internal: SDL event pump
@@ -202,22 +236,14 @@ Sub vt_pump()
 
             Case SDL_MOUSEMOTION
                 If vt_internal.mouse_on Then
-                    Dim wnd_w   As Long
-                    Dim wnd_h   As Long
-                      SDL_GetWindowSize(vt_internal.sdl_window, @wnd_w, @wnd_h)
-                      
-                    Dim log_w   As Long   = vt_internal.scr_cols * vt_internal.glyph_w
-                    Dim log_h   As Long   = vt_internal.scr_rows * vt_internal.glyph_h
-                    Dim scl_x   As Double = CDbl(wnd_w) / CDbl(log_w)
-                    Dim scl_y   As Double = CDbl(wnd_h) / CDbl(log_h)
-                    Dim scl     As Double = IIf(scl_x < scl_y, scl_x, scl_y)
-                    Dim off_x   As Long   = CLng((wnd_w - log_w * scl) * 0.5)
-                    Dim off_y   As Long   = CLng((wnd_h - log_h * scl) * 0.5)
-                    Dim lx      As Long   = CLng((evt.motion.x - off_x) / scl)
-                    Dim ly      As Long   = CLng((evt.motion.y - off_y) / scl)
-                    Dim new_col As Long   = lx \ vt_internal.glyph_w + 1
-                    Dim new_row As Long   = ly \ vt_internal.glyph_h + 1
-                    
+                    Dim new_col As Long
+                    Dim new_row As Long
+                    ' SDL_RenderSetLogicalSize registers an internal event filter that
+                    ' pre-transforms motion coordinates from window pixels to logical
+                    ' pixels before we ever see them. Do NOT apply scale/offset again.
+                    ' Just divide by glyph size -- SDL already did everything else.
+                    new_col = evt.motion.x \ vt_internal.glyph_w + 1
+                    new_row = evt.motion.y \ vt_internal.glyph_h + 1
                     If new_col < 1 Then new_col = 1
                     If new_col > vt_internal.scr_cols Then new_col = vt_internal.scr_cols
                     If new_row < 1 Then new_row = 1
@@ -461,18 +487,24 @@ Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Lo
     vt_internal.mouse_on    = 0
     vt_internal.mouse_col   = 1
     vt_internal.mouse_row   = 1
-    vt_internal.mouse_ch    = 219
-    vt_internal.mouse_fg    = VT_WHITE
-    vt_internal.mouse_bg    = VT_BLACK
     vt_internal.mouse_btns  = 0
     vt_internal.mouse_vis   = 1
     vt_internal.mouse_wheel = 0
-    vt_internal.mouse_flags = VT_MOUSE_TRANS
+    
+     ' auto-lock in fullscreen, user can override with vt_mouselock()
+    If flags And (VT_FULLSCREEN_ASPECT Or VT_FULLSCREEN_STRETCH) Then
+        vt_internal.mouse_lock = 1
+    Else
+        vt_internal.mouse_lock = 0
+    End If
 
     ' --- palette ---
     For pi As Long = 0 To 47
         vt_internal.palette(pi) = vt_default_palette(pi)
     Next pi
+    
+    ' --- init flags ---
+    vt_internal.init_flags = flags
 
     vt_internal.ready = 1
     vt_present()
@@ -656,63 +688,58 @@ Sub vt_present()
         SDL_RenderCopy(vt_internal.sdl_renderer, vt_internal.sdl_texture, @src_rect, @dst_rect)
     End If
 
-    ' --- mouse cursor ---
-    ' Drawn last so it always sits on top. Hidden during scrollback.
+    ' --- mouse cursor: inverted cell colors ---
+    ' Chr(219) filled with inverted bg, original char on top with inverted fg.
+    ' Always fully opaque -- readable on any background, no blending needed.
+    ' Drawn last so it sits on top of text cursor and all cell content.
+    ' Hidden during scrollback (sb_offset > 0).
     If vt_internal.mouse_on AndAlso vt_internal.mouse_vis AndAlso _
        vt_internal.sb_offset = 0 Then
-        Dim mc_col  As Long  = vt_internal.mouse_col - 1
-        Dim mc_row  As Long  = vt_internal.mouse_row - 1
-        Dim mc_ch   As UByte
-        Dim mc_fg_r As UByte
-        Dim mc_fg_g As UByte
-        Dim mc_fg_b As UByte
-        Dim mc_bg_r As UByte
-        Dim mc_bg_g As UByte
-        Dim mc_bg_b As UByte
+        Dim mc_col     As Long
+        Dim mc_row     As Long
+        Dim mc_cellptr As vt_cell Ptr
+        Dim mc_ch      As UByte
+        Dim mc_cfg     As UByte
+        Dim mc_cbg     As UByte
+        Dim inv_bg_r   As UByte
+        Dim inv_bg_g   As UByte
+        Dim inv_bg_b   As UByte
+        Dim inv_fg_r   As UByte
+        Dim inv_fg_g   As UByte
+        Dim inv_fg_b   As UByte
+
+        mc_col = vt_internal.mouse_col - 1
+        mc_row = vt_internal.mouse_row - 1
+
+        mc_cellptr = vt_internal.cells + (mc_row * cols + mc_col)
+        mc_ch  = mc_cellptr->ch
+        mc_cfg = mc_cellptr->fg And 15   ' strip blink bit before palette lookup
+        mc_cbg = mc_cellptr->bg And 15
+
+        ' Invert the actual palette RGB -- works with any custom palette
+        inv_bg_r = 255 - vt_internal.palette(mc_cbg * 3)
+        inv_bg_g = 255 - vt_internal.palette(mc_cbg * 3 + 1)
+        inv_bg_b = 255 - vt_internal.palette(mc_cbg * 3 + 2)
+        inv_fg_r = 255 - vt_internal.palette(mc_cfg * 3)
+        inv_fg_g = 255 - vt_internal.palette(mc_cfg * 3 + 1)
+        inv_fg_b = 255 - vt_internal.palette(mc_cfg * 3 + 2)
+
         dst_rect.x = mc_col * gw
         dst_rect.y = mc_row * gh
 
-        ' --- mouse cursor ---
-        ' Drawn last so it always sits on top. Hidden during scrollback.
-        If vt_internal.mouse_on AndAlso vt_internal.mouse_vis AndAlso _
-           vt_internal.sb_offset = 0 Then
-            Dim mc_col  As Long = vt_internal.mouse_col - 1
-            Dim mc_row  As Long = vt_internal.mouse_row - 1
-            Dim mc_fg_r As UByte
-            Dim mc_fg_g As UByte
-            Dim mc_fg_b As UByte
-            Dim mc_bg_r As UByte
-            Dim mc_bg_g As UByte
-            Dim mc_bg_b As UByte
-            dst_rect.x = mc_col * gw
-            dst_rect.y = mc_row * gh
-    
-            If vt_internal.mouse_flags = VT_MOUSE_TRANS Then
-                ' semi-transparent white overlay over the already-rendered cell
-                ' cell content shows through, always visible on any background
-                SDL_SetRenderDrawBlendMode(vt_internal.sdl_renderer, SDL_BLENDMODE_BLEND)
-                SDL_SetRenderDrawColor(vt_internal.sdl_renderer, 255, 255, 255, 128)
-                SDL_RenderFillRect(vt_internal.sdl_renderer, @dst_rect)
-                SDL_SetRenderDrawBlendMode(vt_internal.sdl_renderer, SDL_BLENDMODE_NONE)
-            Else
-                ' VT_MOUSE_SOLID: opaque mouse_ch in mouse_fg over mouse_bg
-                mc_fg_r = vt_internal.palette(vt_internal.mouse_fg * 3)
-                mc_fg_g = vt_internal.palette(vt_internal.mouse_fg * 3 + 1)
-                mc_fg_b = vt_internal.palette(vt_internal.mouse_fg * 3 + 2)
-                mc_bg_r = vt_internal.palette(vt_internal.mouse_bg * 3)
-                mc_bg_g = vt_internal.palette(vt_internal.mouse_bg * 3 + 1)
-                mc_bg_b = vt_internal.palette(vt_internal.mouse_bg * 3 + 2)
-                src_rect.x = (vt_internal.mouse_ch Mod 16) * gw
-                src_rect.y = (vt_internal.mouse_ch \ 16)   * gh
-                SDL_SetRenderDrawColor(vt_internal.sdl_renderer, mc_bg_r, mc_bg_g, mc_bg_b, 255)
-                SDL_RenderFillRect(vt_internal.sdl_renderer, @dst_rect)
-                SDL_SetTextureColorMod(vt_internal.sdl_texture, mc_fg_r, mc_fg_g, mc_fg_b)
-                SDL_RenderCopy(vt_internal.sdl_renderer, vt_internal.sdl_texture, @src_rect, @dst_rect)
-            End If
-        End If
-        
-    End If
+        ' Pass 1: Chr(219) solid block tinted with inverted bg -- fills the cell
+        src_rect.x = (219 Mod 16) * gw
+        src_rect.y = (219 \ 16)   * gh
+        SDL_SetTextureColorMod(vt_internal.sdl_texture, inv_bg_r, inv_bg_g, inv_bg_b)
+        SDL_RenderCopy(vt_internal.sdl_renderer, vt_internal.sdl_texture, @src_rect, @dst_rect)
 
+        ' Pass 2: original char tinted with inverted fg -- draws the glyph on top
+        src_rect.x = (mc_ch Mod 16) * gw
+        src_rect.y = (mc_ch \ 16)   * gh
+        SDL_SetTextureColorMod(vt_internal.sdl_texture, inv_fg_r, inv_fg_g, inv_fg_b)
+        SDL_RenderCopy(vt_internal.sdl_renderer, vt_internal.sdl_texture, @src_rect, @dst_rect)
+    End If
+    
     vt_internal.dirty = 0
     SDL_RenderPresent(vt_internal.sdl_renderer)
 End Sub
