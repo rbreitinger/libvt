@@ -10,11 +10,11 @@ Zero SDL2 knowledge required. One include, and you write code that feels like QB
 ```freebasic
 #include once "vt/vt.bi"
 
-vt_title("My Program")
-vt_screen(VT_SCREEN_0)
-vt_color(VT_YELLOW, VT_BLUE)
-vt_print_center(12, "Hello, World!")
-vt_sleep(0)
+vt_title "My Program"
+vt_screen VT_SCREEN_0
+vt_color VT_YELLOW, VT_BLUE
+vt_print_center 12, "Hello, World!"
+vt_sleep
 ```
 
 No shutdown call needed. The window cleans up automatically on exit.
@@ -53,18 +53,19 @@ Mode constants match the original QBasic `SCREEN` numbers where applicable.
 
 - Authentic IBM VGA CP437 fonts -- 8x8, 8x14 and 8x16, all embedded
 - Authentic CGA/DOS palette -- not the washed-out modern CMD colours
+- Palette manipulation in all screen modes
 - All 256 CP437 glyphs -- box drawing, shade blocks, symbols
 - Blinking text via `VT_BLINK` attribute
 - Scrollback buffer with Shift+PgUp / Shift+PgDn (call `vt_scrollback(n)` after `vt_screen`)
 - Windowed or fullscreen with integer scaling and nearest-neighbor rendering
-- Resizable window -- SDL logical scaling keeps the canvas sharp at any size
 - Buffered key input via `vt_inkey` -- nothing missed, nothing floods
 - Real-time key state via `vt_key_held` -- for game loops
 - `vt_view_print` scroll regions -- fixed status bars, split screen layouts
 - `VT_NEWLINE` constant for readable line breaks in print chains
-- Page save / restore -- PCOPY equivalent *(coming soon)*
-- Mouse support *(coming soon)*
 - `vt_input` blocking line editor *(coming soon)*
+- Mouse support *(coming soon)*
+- BLOAD / BSAVE equivalents (*.vts) *(coming soon)*
+- Screen Pages -- PCOPY equivalent *(coming soon)*
 
 ---
 

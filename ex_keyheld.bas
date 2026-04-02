@@ -16,8 +16,6 @@ vt_print "   Hold arrow keys to move - ESC to quit" & Space(40)
 moved = 1
 
 Do
-    vt_pump
-
     If vt_key_held(VT_KEY_UP)    AndAlso py > 1  Then py -= 1 : moved = 1
     If vt_key_held(VT_KEY_DOWN)  AndAlso py < 24 Then py += 1 : moved = 1
     If vt_key_held(VT_KEY_LEFT)  AndAlso px > 2  Then px -= 2 : moved = 1

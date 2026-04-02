@@ -84,6 +84,10 @@ End Function
 ' -----------------------------------------------------------------------------
 Sub vt_pump()
     If vt_internal.ready = 0 Then Exit Sub
+    
+    Static pump_active As Byte
+    If pump_active Then Exit Sub
+    pump_active = 1
 
     Dim evt       As SDL_Event
     Dim modstate  As SDL_Keymod
@@ -192,6 +196,8 @@ Sub vt_pump()
 
         End Select
     Wend
+    
+    pump_active = 0
 End Sub
 
 ' -----------------------------------------------------------------------------
@@ -463,6 +469,7 @@ End Function
 ' -----------------------------------------------------------------------------
 Sub vt_present()
     If vt_internal.ready = 0 Then Exit Sub
+    vt_pump()
 
     Dim gw          As Long
     Dim gh          As Long
