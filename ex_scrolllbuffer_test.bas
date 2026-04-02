@@ -13,6 +13,9 @@ vt_title "vt_scrollback + vt_view_print Demo"
 vt_screen 0, VT_FULLSCREEN_ASPECT
 vt_scrollback 1024
 
+vt_mouse 1
+vt_mousecursor 219, VT_WHITE, VT_MOUSE_INVERT
+
 ' --- draw status bar first, scrolling disabled so it cannot be pushed off ---
 vt_scroll_enable 0
 vt_locate 25, 1

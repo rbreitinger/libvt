@@ -146,6 +146,19 @@ Const VT_KEY_REPEAT_INITIAL = 400
 Const VT_KEY_REPEAT_RATE    = 30
 
 ' -----------------------------------------------------------------------------
+' Mouse cursor style flags
+' -----------------------------------------------------------------------------
+Const VT_MOUSE_DEFAULT = 0   ' draw cursor char in fixed fg colour
+Const VT_MOUSE_INVERT  = 1   ' invert fg/bg of the cell under the cursor
+
+' -----------------------------------------------------------------------------
+' Mouse button bitmask constants  (vt_getmouse btns param)
+' -----------------------------------------------------------------------------
+Const VT_MOUSE_BTN_LEFT   = 1   ' bit 0
+Const VT_MOUSE_BTN_RIGHT  = 2   ' bit 1
+Const VT_MOUSE_BTN_MIDDLE = 4   ' bit 2
+
+' -----------------------------------------------------------------------------
 ' vt_cell - one character cell on the virtual screen
 ' -----------------------------------------------------------------------------
 Type vt_cell
@@ -224,6 +237,9 @@ Type vt_internal_state
     mouse_fg    As UByte
     mouse_bg    As UByte
     mouse_btns  As Long
+    mouse_vis   As Byte    ' 1 = cursor drawn on screen, 0 = hidden
+    mouse_wheel As Long    ' accumulated wheel delta, reset on vt_getmouse read
+    mouse_flags As Long    ' VT_MOUSE_DEFAULT or VT_MOUSE_INVERT
 
     ' --- page save slots ---
     page_slot(VT_PAGE_SLOTS - 1) As vt_cell Ptr
@@ -254,6 +270,7 @@ Dim Shared vt_internal As vt_internal_state
 #include once "vt_core.bas"
 #include once "vt_print.bas"
 #include once "vt_input.bas"
+#include once "vt_mouse.bas"
 
 ' --- undef internals so nothing leaks into user sources ---
 '#undef vt_internal <-- we cannot undef this one as the destructor needs it live

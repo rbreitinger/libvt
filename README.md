@@ -63,7 +63,7 @@ Mode constants match the original QBasic `SCREEN` numbers where applicable.
 - `vt_view_print` scroll regions -- fixed status bars, split screen layouts
 - `VT_NEWLINE` constant for readable line breaks in print chains
 - `vt_input` blocking line editor
-- Mouse support *(coming soon)*
+- Mouse support
 - BLOAD / BSAVE equivalents (*.vts) *(coming soon)*
 - Screen Pages -- PCOPY equivalent *(coming soon)*
 
