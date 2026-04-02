@@ -1,6 +1,7 @@
 #include once "vt/vt.bi"
 
-''  custom palette entries
+'' custom palette entries (by by Arne Niklas Jansson)
+'' https://androidarts.com/palette/16pal.htm
 Dim arne_v20_palette(47) As UByte = { _
   0, 0, 0, _
   157, 157, 157, _
