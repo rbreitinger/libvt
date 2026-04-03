@@ -1,7 +1,7 @@
 ' vt_font_8x8.bi IBM VGA 8x8 CP437 font data
 ' 2048 bytes : 256 glyphs x 8 bytes each
 ' Source: IBM VGA ROM font, public domain
-Dim Shared vt_font_data_8x8(2047) As UByte => { _
+Static Shared vt_font_data_8x8(2047) As UByte => { _
     &h00, &h00, &h00, &h00, &h00, &h00, &h00, &h00, _
     &h7E, &h81, &hA5, &h81, &hBD, &h99, &h81, &h7E, _
     &h7E, &hFF, &hDB, &hFF, &hC3, &hE7, &hFF, &h7E, _
