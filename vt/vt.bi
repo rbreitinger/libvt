@@ -277,6 +277,7 @@ Dim Shared vt_internal As vt_internal_state
 #include once "vt_print.bas"
 #include once "vt_input.bas"
 #include once "vt_mouse.bas"
+#include once "vt_bsave.bas"
 
 ' --- undef internals so nothing leaks into user sources ---
 '#undef vt_internal <-- we cannot undef this one as the destructor needs it live
@@ -284,6 +285,9 @@ Dim Shared vt_internal As vt_internal_state
 #undef vt_font_data_8x8
 #undef vt_font_data_8x14
 #undef vt_font_data_8x16
+
+' --- neutralize clashing Win32 type aliases pulled in via SDL headers ---
+#undef MSG
 
 ' vt_core.bas
 #undef vt_internal_shutdown

@@ -64,8 +64,8 @@ Mode constants match the original QBasic `SCREEN` numbers where applicable.
 - `VT_NEWLINE` constant for readable line breaks in print chains
 - `vt_input` blocking line editor
 - Mouse support
-- BLOAD / BSAVE equivalents (*.vts) *(coming soon)*
-- Screen Pages -- PCOPY equivalent *(coming soon)*
+- BLOAD / BSAVE equivalents (*.vts)
+- Up to 7 working pages and visible Screen Page -- PCOPY equivalent
 
 ---
 
