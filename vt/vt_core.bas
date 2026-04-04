@@ -24,9 +24,13 @@ Declare Sub      vt_pcopy(src As Long, dst As Long)
 
 ' Auto-cleanup destructor -- runs automatically on program exit (End or fall-through).
 ' SDL_QUIT calls End, which triggers this. No explicit vt_shutdown needed.
-Sub vt_auto_cleanup() Destructor
-    vt_internal_shutdown()
-End Sub
+
+' NOTE: seems not good, SDL seem to have its own destructor.
+' closing a freebasic console window hangs, while closing the graphical window works
+
+'Sub vt_auto_cleanup() Destructor
+'    vt_internal_shutdown()
+'End Sub
 
 ' -----------------------------------------------------------------------------
 ' Internal: push one key event into the circular buffer
@@ -164,6 +168,7 @@ Sub vt_pump()
             Case SDL_QUIT_
                 ' Window closed -- terminate immediately.
                 ' The vt_auto_cleanup destructor fires on End and frees SDL.
+                vt_internal_shutdown()
                 End
 
             Case SDL_KEYDOWN

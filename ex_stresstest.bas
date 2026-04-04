@@ -66,3 +66,4 @@ vt_locate 15, 22  : vt_print " =============================== "
 vt_locate , , 0
 
 vt_sleep
+vt_shutdown

@@ -43,3 +43,5 @@ Do
     If VT_SCAN(k) = VT_KEY_UP   Then vt_scroll 1
     If VT_SCAN(k) = VT_KEY_DOWN Then vt_scroll -1
 Loop
+
+vt_shutdown

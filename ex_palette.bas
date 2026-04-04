@@ -43,3 +43,4 @@ vt_palette '' vt_palette without arguments restores the default palette
 vt_print_center 23 , " any key to end the demo "
 
 vt_sleep
+vt_shutdown

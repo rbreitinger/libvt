@@ -32,3 +32,4 @@ Do
     
     vt_sleep 16
 Loop 
+vt_shutdown

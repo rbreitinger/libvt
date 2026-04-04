@@ -116,10 +116,10 @@ Do
     vt_print("frame " & Str(frame_num) & "   ESC = quit")
 
     ' -----------------------------------------------------------------------
-    ' flip -- three lines, always in this order
+    ' flip 
     ' -----------------------------------------------------------------------
     vt_pcopy(1, VT_VIDEO)   ' copy finished work page -> display page
-    vt_present()             ' show the display page on screen
+    vt_present()            ' show the display page on screen
 
     frame_num += 1
 
@@ -129,3 +129,5 @@ Do
 
     vt_sleep(16)   ' ~60 fps cap
 Loop
+
+vt_shutdown

@@ -21,3 +21,4 @@ else
 end if
 
 vt_sleep  
+vt_shutdown

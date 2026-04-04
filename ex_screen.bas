@@ -33,3 +33,5 @@ for mode_idx = 0 to 15
   
   vt_sleep                                   ' waits until a key is pressed, vt_sleep already calls vt_present
 next 
+
+vt_shutdown

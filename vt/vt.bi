@@ -279,7 +279,7 @@ Dim Shared vt_internal As vt_internal_state
 #include once "vt_mouse.bas"
 #include once "vt_bsave.bas"
 
-' --- undef internals so nothing leaks into user sources ---
+'--- undef internals so nothing leaks into user sources ---
 '#undef vt_internal <-- we cannot undef this one as the destructor needs it live
 #undef vt_default_palette
 #undef vt_font_data_8x8

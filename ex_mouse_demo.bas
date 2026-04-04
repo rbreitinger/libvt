@@ -121,4 +121,4 @@ Do
     vt_sleep 1
 Loop
 
-vt_mouse(0)
+vt_shutdown

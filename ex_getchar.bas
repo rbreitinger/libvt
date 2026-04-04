@@ -46,3 +46,4 @@ End Select
 vt_locate 15, 4 : vt_print "Press any key to quit..."
 
 vt_sleep 
+vt_shutdown

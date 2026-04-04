@@ -123,3 +123,4 @@ vt_print "Press any key to quit..."
 vt_locate 25, 1
 
 vt_sleep 
+vt_shutdown

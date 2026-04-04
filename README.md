@@ -15,9 +15,10 @@ vt_screen VT_SCREEN_0
 vt_color VT_YELLOW, VT_BLUE
 vt_print_center 12, "Hello, World!"
 vt_sleep
+vt_shutdown
 ```
 
-No shutdown call needed. The window cleans up automatically on exit.
+window closing handles shutdown. 
 
 ---
 
@@ -69,7 +70,7 @@ Mode constants match the original QBasic `SCREEN` numbers where applicable.
 
 ---
 
-## Init and Teardown
+## Init
 
 ```freebasic
 vt_title("Window Title")   ' optional, call before vt_screen
@@ -78,10 +79,6 @@ vt_scrollback(200)         ' optional, call after vt_screen
 ```
 
 To change mode mid-program, call `vt_screen` again -- it closes and reopens cleanly.
-
-The screen closes and SDL shuts down automatically when the program exits or the
-window is closed. `vt_shutdown` exists for the rare case you want to close the
-window explicitly mid-program.
 
 ---
 
