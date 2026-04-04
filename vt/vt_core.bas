@@ -7,11 +7,14 @@
 Declare Sub      vt_present()
 Declare Sub      vt_shutdown()
 Declare Sub      vt_internal_shutdown()
-Declare Function vt_screen(mode As Long = VT_SCREEN_0, flags As Long = VT_WINDOWED) As Long
+Declare Function vt_screen(mode As Long = VT_SCREEN_0, flags As Long = VT_WINDOWED, _
+                            pages As Long = 1) As Long
 Declare Function vt_scroll(amount As Long) As Byte
 Declare Sub      vt_internal_pixel_to_cell(px As Long, py As Long, _
                                            col_out As Long Ptr, row_out As Long Ptr)
-                                           
+Declare Sub      vt_page(work As Long, vis As Long)
+Declare Sub      vt_pcopy(src As Long, dst As Long)
+
 ' -----------------------------------------------------------------------------
 ' Auto-cleanup type -- destructor fires on program exit (via End or fall-through).
 ' SDL_QUIT calls End, which triggers this. No explicit vt_shutdown needed.
@@ -120,7 +123,7 @@ End Sub
 ' -----------------------------------------------------------------------------
 Sub vt_pump()
     If vt_internal.ready = 0 Then Exit Sub
-    
+
     Static pump_active As Byte
     If pump_active Then Exit Sub
     pump_active = 1
@@ -172,22 +175,20 @@ Sub vt_pump()
                 vtscan = vt_internal_sdl_to_vtscan(evt.key.keysym.scancode)
 
                 ' scrollback
-                If ct = 0 then
-                  If (sh) AndAlso (vtscan = VT_KEY_PGUP) Then
-                      vt_scroll(1)
-                  ElseIf (sh) AndAlso (vtscan = VT_KEY_PGDN) Then
-                      vt_scroll(-1)
-                  End If
-                    
+                If ct = 0 Then
+                    If (sh) AndAlso (vtscan = VT_KEY_PGUP) Then
+                        vt_scroll(1)
+                    ElseIf (sh) AndAlso (vtscan = VT_KEY_PGDN) Then
+                        vt_scroll(-1)
+                    End If
                 Else
-                  
-                    If(sh) AndAlso (vtscan = VT_KEY_PGUP) Then
+                    If (sh) AndAlso (vtscan = VT_KEY_PGUP) Then
                         vt_scroll(vt_internal.scr_rows \ 2)
                     ElseIf (sh) AndAlso (vtscan = VT_KEY_PGDN) Then
                         vt_scroll(-(vt_internal.scr_rows \ 2))
                     End If
                 End If
-                
+
                 ascii_ch = 0
                 If ct Then
                     Dim sym As Long = evt.key.keysym.sym
@@ -206,7 +207,7 @@ Sub vt_pump()
                 vt_internal.rep_scan = vtscan
                 vt_internal.rep_tick = tick
                 vt_internal.rep_last = 0
-                
+
             Case SDL_KEYUP
                 If vt_internal_sdl_to_vtscan(evt.key.keysym.scancode) = vt_internal.rep_scan Then
                     vt_internal.rep_scan = 0
@@ -281,7 +282,7 @@ Sub vt_pump()
 
         End Select
     Wend
-    
+
     pump_active = 0
 End Sub
 
@@ -307,14 +308,15 @@ Sub vt_internal_shutdown()
     If vt_internal.ready = 0 Then Exit Sub
     vt_internal.ready = 0
 
-    For sl As Long = 0 To VT_PAGE_SLOTS - 1
-        If vt_internal.page_slot(sl) <> 0 Then
-            DeAllocate vt_internal.page_slot(sl)
-            vt_internal.page_slot(sl) = 0
+    Dim sl As Long
+    For sl = 0 To VT_PAGE_SLOTS - 1
+        If vt_internal.page_buf(sl) <> 0 Then
+            DeAllocate vt_internal.page_buf(sl)
+            vt_internal.page_buf(sl) = 0
         End If
     Next sl
+    vt_internal.cells = 0
 
-    If vt_internal.cells    <> 0 Then DeAllocate vt_internal.cells    : vt_internal.cells    = 0
     If vt_internal.sb_cells <> 0 Then DeAllocate vt_internal.sb_cells : vt_internal.sb_cells = 0
 
     If vt_internal.sdl_texture  <> 0 Then SDL_DestroyTexture(vt_internal.sdl_texture)  : vt_internal.sdl_texture  = 0
@@ -328,7 +330,8 @@ End Sub
 ' Internal: core init -- called by vt_screen
 ' -----------------------------------------------------------------------------
 Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Long, _
-                      fptr As UByte Ptr, fsrc_h As Long, flags As Long) As Long
+                      fptr As UByte Ptr, fsrc_h As Long, flags As Long, _
+                      pages As Long) As Long
 
     If vt_internal.ready Then vt_internal_shutdown()  ' re-init: clean up first
 
@@ -441,20 +444,28 @@ Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Lo
     vt_internal.font_ptr   = fptr
     vt_internal.font_src_h = fsrc_h
 
-    ' --- cell buffer ---
-    vt_internal.cells = CAllocate(cols * rows, SizeOf(vt_cell))
-    If vt_internal.cells = 0 Then Return -6
+    ' --- pages ---
+    ' Clamp requested page count, allocate each buffer, wire cells to page 0.
+    Dim pg As Long
+    If pages < 1 Then pages = 1
+    If pages > VT_PAGE_SLOTS Then pages = VT_PAGE_SLOTS
+    For pg = 0 To VT_PAGE_SLOTS - 1
+        vt_internal.page_buf(pg) = 0
+    Next pg
+    For pg = 0 To pages - 1
+        vt_internal.page_buf(pg) = CAllocate(cols * rows, SizeOf(vt_cell))
+        If vt_internal.page_buf(pg) = 0 Then Return -6
+    Next pg
+    vt_internal.num_pages = pages
+    vt_internal.work_page = 0
+    vt_internal.vis_page  = 0
+    vt_internal.cells     = vt_internal.page_buf(0)
 
     ' --- scrollback not allocated here -- call vt_scrollback() after vt_screen() ---
     vt_internal.sb_lines  = 0
     vt_internal.sb_used   = 0
     vt_internal.sb_offset = 0
     vt_internal.sb_cells  = 0
-
-    ' --- page slots ---
-    For sl As Long = 0 To VT_PAGE_SLOTS - 1
-        vt_internal.page_slot(sl) = 0
-    Next sl
 
     ' --- cursor ---
     vt_internal.cur_col     = 1
@@ -490,8 +501,8 @@ Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Lo
     vt_internal.mouse_btns  = 0
     vt_internal.mouse_vis   = 1
     vt_internal.mouse_wheel = 0
-    
-     ' auto-lock in fullscreen, user can override with vt_mouselock()
+
+    ' auto-lock in fullscreen, user can override with vt_mouselock()
     If flags And (VT_FULLSCREEN_ASPECT Or VT_FULLSCREEN_STRETCH) Then
         vt_internal.mouse_lock = 1
     Else
@@ -499,10 +510,11 @@ Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Lo
     End If
 
     ' --- palette ---
-    For pi As Long = 0 To 47
+    Dim pi As Long
+    For pi = 0 To 47
         vt_internal.palette(pi) = vt_default_palette(pi)
     Next pi
-    
+
     ' --- init flags ---
     vt_internal.init_flags = flags
 
@@ -516,11 +528,14 @@ End Function
 ' vt_screen - open the virtual text screen
 ' mode  : VT_SCREEN_0 .. VT_SCREEN_TILES
 ' flags : VT_WINDOWED, VT_FULLSCREEN_ASPECT, VT_NO_RESIZE, VT_VSYNC, ...
+' pages : number of cell buffers to allocate (1..VT_PAGE_SLOTS, default 1)
+'         page 0 = VT_VIDEO (always the display page at startup)
+'         extra pages used as work pages via vt_page() and vt_pcopy()
 ' Call vt_title() before to set the window title.
 ' Call vt_scrollback() after to enable the scrollback buffer.
 ' Calling vt_screen() again closes and re-opens with the new mode.
 ' -----------------------------------------------------------------------------
-Function vt_screen(mode As Long, flags As Long) As Long
+Function vt_screen(mode As Long, flags As Long, pages As Long) As Long
     Dim cols   As Long
     Dim rows   As Long
     Dim gw     As Long
@@ -558,11 +573,12 @@ Function vt_screen(mode As Long, flags As Long) As Long
             fptr = @vt_font_data_8x16(0) : fsrc_h = 16
     End Select
 
-    Return vt_init_impl(cols, rows, gw, gh, fptr, fsrc_h, flags)
+    Return vt_init_impl(cols, rows, gw, gh, fptr, fsrc_h, flags, pages)
 End Function
 
 ' -----------------------------------------------------------------------------
 ' vt_present - composite and flip the cell buffer to the screen
+' Always renders from vis_page -- independent of the active work_page.
 ' -----------------------------------------------------------------------------
 Sub vt_present()
     If vt_internal.ready = 0 Then Exit Sub
@@ -597,13 +613,15 @@ Sub vt_present()
     Dim scroll_pos  As Long
     Dim logical_row As Long
     Dim live_row    As Long
+    Dim vis_buf     As vt_cell Ptr
 
     vt_internal_blink_update()
 
-    gw   = vt_internal.glyph_w
-    gh   = vt_internal.glyph_h
-    cols = vt_internal.scr_cols
-    rows = vt_internal.scr_rows
+    gw      = vt_internal.glyph_w
+    gh      = vt_internal.glyph_h
+    cols    = vt_internal.scr_cols
+    rows    = vt_internal.scr_rows
+    vis_buf = vt_internal.page_buf(vt_internal.vis_page)
 
     SDL_SetRenderDrawColor(vt_internal.sdl_renderer, _
         vt_internal.border_r, vt_internal.border_g, vt_internal.border_b, 255)
@@ -632,10 +650,10 @@ Sub vt_present()
                 cellptr = vt_internal.sb_cells + (logical_row * cols)
             Else
                 live_row = logical_row - vt_internal.sb_used + (vt_internal.view_top - 1)
-                cellptr  = vt_internal.cells + (live_row * cols)
+                cellptr  = vis_buf + (live_row * cols)
             End If
         Else
-            cellptr = vt_internal.cells + (row_idx * cols)
+            cellptr = vis_buf + (row_idx * cols)
         End If
 
         For col_idx = 0 To cols - 1
@@ -693,6 +711,7 @@ Sub vt_present()
     ' Always fully opaque -- readable on any background, no blending needed.
     ' Drawn last so it sits on top of text cursor and all cell content.
     ' Hidden during scrollback (sb_offset > 0).
+    ' Reads from vis_buf so it reflects what is actually on screen.
     If vt_internal.mouse_on AndAlso vt_internal.mouse_vis AndAlso _
        vt_internal.sb_offset = 0 Then
         Dim mc_col     As Long
@@ -711,7 +730,7 @@ Sub vt_present()
         mc_col = vt_internal.mouse_col - 1
         mc_row = vt_internal.mouse_row - 1
 
-        mc_cellptr = vt_internal.cells + (mc_row * cols + mc_col)
+        mc_cellptr = vis_buf + (mc_row * cols + mc_col)
         mc_ch  = mc_cellptr->ch
         mc_cfg = mc_cellptr->fg And 15   ' strip blink bit before palette lookup
         mc_cbg = mc_cellptr->bg And 15
@@ -739,7 +758,7 @@ Sub vt_present()
         SDL_SetTextureColorMod(vt_internal.sdl_texture, inv_fg_r, inv_fg_g, inv_fg_b)
         SDL_RenderCopy(vt_internal.sdl_renderer, vt_internal.sdl_texture, @src_rect, @dst_rect)
     End If
-    
+
     vt_internal.dirty = 0
     SDL_RenderPresent(vt_internal.sdl_renderer)
 End Sub
@@ -810,16 +829,54 @@ Sub vt_scrollback(lines As Long)
 End Sub
 
 ' -----------------------------------------------------------------------------
+' vt_page - set the active drawing page and the visible display page
+' work : page index written to by all drawing commands (0..num_pages-1)
+' vis  : page index rendered to screen by vt_present (0..num_pages-1)
+' Default after vt_screen: both 0 -- identical to single-page behaviour.
+' Classic double-buffer setup: vt_page(1, 0)
+'   draw freely on page 1, page 0 stays clean until vt_pcopy(1, VT_VIDEO).
+' Swapping back: vt_page(0, 0)
+' Invalid indices are silently ignored.
+' -----------------------------------------------------------------------------
+Sub vt_page(work As Long, vis As Long)
+    If vt_internal.ready = 0 Then Exit Sub
+    If work < 0 Or work >= vt_internal.num_pages Then Exit Sub
+    If vis  < 0 Or vis  >= vt_internal.num_pages Then Exit Sub
+    vt_internal.work_page = work
+    vt_internal.vis_page  = vis
+    vt_internal.cells     = vt_internal.page_buf(work)
+    vt_internal.dirty     = 1
+End Sub
+
+' -----------------------------------------------------------------------------
+' vt_pcopy - copy one page buffer to another
+' Equivalent to QBasic PCOPY. Marks display dirty but does not call vt_present.
+' src = dst is a no-op. Invalid indices are silently ignored.
+' Typical use: vt_pcopy(1, VT_VIDEO) : vt_present()
+' -----------------------------------------------------------------------------
+Sub vt_pcopy(src As Long, dst As Long)
+    If vt_internal.ready = 0 Then Exit Sub
+    If src < 0 Or src >= vt_internal.num_pages Then Exit Sub
+    If dst < 0 Or dst >= vt_internal.num_pages Then Exit Sub
+    If src = dst Then Exit Sub
+    Dim buf_sz As Long = vt_internal.scr_cols * vt_internal.scr_rows * SizeOf(vt_cell)
+    CopyMemory(vt_internal.page_buf(dst), vt_internal.page_buf(src), buf_sz)
+    vt_internal.dirty = 1
+End Sub
+
+' -----------------------------------------------------------------------------
 ' Palette API
 ' -----------------------------------------------------------------------------
 Sub vt_palette_set(pal() As UByte)
-    For pi As Long = 0 To 47
+    Dim pi As Long
+    For pi = 0 To 47
         vt_internal.palette(pi) = pal(pi)
     Next pi
 End Sub
 
 Sub vt_palette_get(pal() As UByte)
-    For pi As Long = 0 To 47
+    Dim pi As Long
+    For pi = 0 To 47
         pal(pi) = vt_internal.palette(pi)
     Next pi
 End Sub
@@ -861,6 +918,7 @@ Function vt_rows()   As Long : Return vt_internal.scr_rows : End Function
 
 ' -----------------------------------------------------------------------------
 ' vt_get_cell / vt_set_cell
+' Both operate on the active work page (via vt_internal.cells).
 ' -----------------------------------------------------------------------------
 Sub vt_get_cell(col As Long, row As Long, ByRef ch As UByte, ByRef fg As UByte, ByRef bg As UByte)
     If vt_internal.ready = 0 Then Exit Sub
@@ -989,7 +1047,7 @@ Sub vt_sleep(ms As Long = 0)
             t_now = SDL_GetTicks()
             If t_now - t_start >= CULng(ms) Then Exit Do
             Sleep 1, 1
-        End If 
+        End If
     Loop
 End Sub
 

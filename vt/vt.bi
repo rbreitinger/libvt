@@ -30,6 +30,11 @@ Const VT_SCREEN_VGA50 = 50   ' 80x50  8x8   640x400  -- VGA 50-line
 Const VT_SCREEN_TILES = 100  ' 40x25  16x16 640x400  -- square tiles, game-friendly
 
 ' -----------------------------------------------------------------------------
+' Page constants
+' -----------------------------------------------------------------------------
+Const VT_VIDEO = 0   ' the visible display page -- always page 0
+
+' -----------------------------------------------------------------------------
 ' Colour constants
 ' -----------------------------------------------------------------------------
 Enum VT_COLOR_IDX
@@ -117,7 +122,7 @@ Const VT_KEY_RWIN   = 220
 ' -----------------------------------------------------------------------------
 ' Default CGA / DOS palette  - 16 colours, 3 bytes each (R, G, B)
 ' -----------------------------------------------------------------------------
-Dim Shared vt_default_palette(47) As UByte = { _
+Static Shared vt_default_palette(47) As UByte = { _
     0,   0,   0,  _ '  0 Black
     0,   0, 170,  _ '  1 Blue
     0, 170,   0,  _ '  2 Green
@@ -141,7 +146,7 @@ Dim Shared vt_default_palette(47) As UByte = { _
 ' -----------------------------------------------------------------------------
 Const VT_KEY_BUFFER_SIZE    = 64
 Const VT_BLINK_MS           = 533
-Const VT_PAGE_SLOTS         = 4
+Const VT_PAGE_SLOTS         = 8    ' max allocatable pages (0=VT_VIDEO, 1..7 work pages)
 Const VT_KEY_REPEAT_INITIAL = 400
 Const VT_KEY_REPEAT_RATE    = 30
 
@@ -183,6 +188,9 @@ Type vt_internal_state
     font_src_h  As Long        ' source glyph height: 8, 14, or 16
 
     ' --- cell buffer ---
+    ' cells always points to page_buf(work_page).
+    ' All drawing commands write here. vt_page() updates this pointer.
+    ' vt_present() reads from page_buf(vis_page) directly, not from cells.
     cells       As vt_cell Ptr
 
     ' --- cursor ---
@@ -231,9 +239,15 @@ Type vt_internal_state
     mouse_vis   As Byte    ' 1 = cursor drawn on screen, 0 = hidden
     mouse_wheel As Long    ' accumulated wheel delta, reset on vt_getmouse read
     mouse_lock  As Byte    ' 1 = SDL window grab active
-    
-    ' --- page save slots ---
-    page_slot(VT_PAGE_SLOTS - 1) As vt_cell Ptr
+
+    ' --- pages ---
+    ' page_buf holds all allocated cell buffers. Only 0..num_pages-1 are valid.
+    ' cells = page_buf(work_page) at all times.
+    ' vt_present reads page_buf(vis_page).
+    page_buf(VT_PAGE_SLOTS - 1) As vt_cell Ptr
+    num_pages   As Long   ' how many pages were allocated at vt_screen() time
+    work_page   As Long   ' active drawing page index
+    vis_page    As Long   ' visible page index shown by vt_present
 
     ' --- palette ---
     palette(47) As UByte

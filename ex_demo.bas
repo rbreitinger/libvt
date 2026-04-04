@@ -1,3 +1,4 @@
+#cmdline "-s gui"
 #include once "vt/vt.bi"
 ' -----------------------------------------------------------------------------
 ' Draw a single-line box using CP437 box characters
