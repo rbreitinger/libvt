@@ -10,6 +10,9 @@
 ' allowed  : if non-empty, only characters in this string are accepted.
 ' cancelled: optional Byte Ptr. Set to 1 on ESC, 0 on Enter. Pass 0 to ignore.
 ' Uses current vt_color fg/bg throughout. Does not call vt_present directly.
+' Paste (cp_paste_pend) is checked in the inner wait loop so it unblocks
+' without requiring an additional keypress, regardless of whether it came
+' from Shift+INS (keyboard) or MMB (mouse).
 ' -----------------------------------------------------------------------------
 Function vt_input(max_len As Long = -1, initial As String = "", _
                   allowed As String = "", cancelled As Byte Ptr = 0) As String
@@ -20,13 +23,17 @@ Function vt_input(max_len As Long = -1, initial As String = "", _
     Dim eff_max   As Long
     Dim avail     As Long
     Dim buf       As String
-    Dim epos      As Long    ' edit cursor, 0-based index into buf
+    Dim epos      As Long      ' edit cursor, 0-based index into buf
     Dim k         As ULong
     Dim sc        As Long
     Dim ch        As UByte
     Dim ci        As Long
     Dim cell_ch   As UByte
     Dim blen      As Long
+    Dim clip_ptr  As ZString Ptr
+    Dim clip_str  As String
+    Dim pi        As Long
+    Dim pch       As UByte
 
     start_col = vt_internal.cur_col
     start_row = vt_internal.cur_row
@@ -54,8 +61,39 @@ Function vt_input(max_len As Long = -1, initial As String = "", _
         Next ci
         vt_locate(start_row, start_col + epos)
 
-        ' --- wait for next key ---
-        k  = vt_getkey()
+        ' --- wait for key or paste ---
+        ' cp_paste_pend is set by vt_pump (Shift+INS or MMB) and unblocks
+        ' this loop without needing an actual key in the buffer.
+        Do
+            k = vt_inkey()
+            If k <> 0 Then Exit Do
+            If vt_internal.cp_paste_pend Then Exit Do
+            Sleep 10, 1
+        Loop
+
+        ' --- paste injection ---
+        If vt_internal.cp_paste_pend Then
+            vt_internal.cp_paste_pend = 0
+            clip_ptr = SDL_GetClipboardText()
+            If clip_ptr <> 0 Then
+                clip_str = *clip_ptr
+                SDL_free(clip_ptr)
+                For pi = 0 To Len(clip_str) - 1
+                    pch = clip_str[pi]
+                    ' accept printable ASCII only -- CR/LF and high bytes silently dropped
+                    If pch >= 32 AndAlso pch <= 126 Then
+                        If Len(buf) < eff_max Then
+                            If allowed = "" OrElse InStr(allowed, Chr(pch)) > 0 Then
+                                buf  = Left(buf, epos) & Chr(pch) & Mid(buf, epos + 1)
+                                epos += 1
+                            End If
+                        End If
+                    End If
+                Next pi
+            End If
+            Continue Do   ' redraw with pasted content before waiting for next key
+        End If
+
         sc = VT_SCAN(k)
         ch = VT_CHAR(k)
 

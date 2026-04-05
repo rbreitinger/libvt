@@ -67,6 +67,7 @@ Mode constants match the original QBasic `SCREEN` numbers where applicable.
 - Mouse support
 - BLOAD / BSAVE equivalents (*.vts)
 - Up to 7 working pages and visible Screen Page -- PCOPY equivalent
+- copy/paste enabled/disabled/ by mouse and/or keyboard
 
 ---
 

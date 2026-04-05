@@ -3,11 +3,13 @@
 vt_title "vt_input Demo"
 vt_screen
 
+vt_copypaste ( VT_CP_MOUSE Or VT_CP_KBD )
+
 vt_color VT_WHITE, VT_BLUE
 vt_locate 12, 20
 
 Dim was_cancelled As Byte
-Dim result As String = vt_input( 30, "default", "", @was_cancelled )
+Dim result As String = vt_input( 30, "default", "abcdefg", @was_cancelled )
 
 
 If was_cancelled Then   

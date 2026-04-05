@@ -158,6 +158,13 @@ Const VT_MOUSE_BTN_RIGHT  = 2   ' bit 1
 Const VT_MOUSE_BTN_MIDDLE = 4   ' bit 2
 
 ' -----------------------------------------------------------------------------
+' Copy/paste mode flags  (combinable with Or)
+' -----------------------------------------------------------------------------
+Const VT_CP_DISABLED = 0   ' default -- no keys reserved, no mouse events captured
+Const VT_CP_MOUSE    = 1   ' LMB drag selects, RMB copies, MMB pastes (vt_input only)
+Const VT_CP_KBD      = 2   ' Shift+arrows select, Ctrl+INS copies, Shift+INS pastes
+
+' -----------------------------------------------------------------------------
 ' vt_cell - one character cell on the virtual screen
 ' -----------------------------------------------------------------------------
 Type vt_cell
@@ -264,7 +271,20 @@ Type vt_internal_state
     dirty       As Byte
     ready       As Byte   ' 1 = running, 0 = not init
     init_flags  As Long   ' flags passed to vt_screen (fullscreen mode, grab, etc.)
-
+    
+    ' --- copy/paste ---
+    ' cp_flags gates all interception. sel_active = 0 means nothing selected.
+    ' Anchor is where the selection started; end moves as user extends it.
+    ' sel_dragging tracks LMB held for mouse drag -- independent of mouse_btns.
+    ' cp_paste_pend is set by vt_pump and drained by vt_input.
+    cp_flags       As Long
+    sel_active     As Byte
+    sel_anchor_col As Long
+    sel_anchor_row As Long
+    sel_end_col    As Long
+    sel_end_row    As Long
+    sel_dragging   As Byte
+    cp_paste_pend  As Byte
 End Type
 
 Dim Shared vt_internal As vt_internal_state
@@ -278,6 +298,7 @@ Dim Shared vt_internal As vt_internal_state
 #include once "vt_input.bas"
 #include once "vt_mouse.bas"
 #include once "vt_bsave.bas"
+#include once "vt_copypaste.bas"
 
 '--- undef internals so nothing leaks into user sources ---
 '#undef vt_internal <-- we cannot undef this one as the destructor needs it live
@@ -301,3 +322,6 @@ Dim Shared vt_internal As vt_internal_state
 ' vt_print.bas
 #undef vt_internal_scroll_up
 #undef vt_internal_putch
+
+' vt_copypaste.bas
+#undef vt_internal_cp_build_text

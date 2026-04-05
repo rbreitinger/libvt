@@ -10,8 +10,9 @@ Dim ln As String
 
 ' --- init videomode in fullscren with 1024 lines of scrollback buffer ---
 vt_title "vt_scrollback + vt_view_print Demo"
-vt_screen 0, VT_FULLSCREEN_ASPECT
+vt_screen 0', VT_FULLSCREEN_ASPECT
 vt_scrollback 1024
+vt_copypaste ( VT_CP_MOUSE Or VT_CP_KBD )
 
 vt_mouse 1
 
@@ -37,11 +38,18 @@ While Not EOF(f)
 Wend
 Close #f
 
+Dim As Long mx, my, mb, mw, oldmw, wheelaccum
 Do
-    k = vt_getkey
+    oldmw = mw
+    vt_getmouse(@mx, @my, @mb, @mw)
+    wheelaccum += mw
+    
+    if (mb and VT_MOUSE_BTN_LEFT) andalso my < 25 then vt_locate(my, mx)
+    k = vt_inkey()
     If VT_SCAN(k) = VT_KEY_ESC  Then Exit Do
-    If VT_SCAN(k) = VT_KEY_UP   Then vt_scroll 1
-    If VT_SCAN(k) = VT_KEY_DOWN Then vt_scroll -1
+    If VT_SCAN(k) = VT_KEY_UP   orelse oldmw < mw Then vt_scroll wheelaccum : wheelaccum = 0
+    If VT_SCAN(k) = VT_KEY_DOWN orelse oldmw > mw Then vt_scroll wheelaccum: wheelaccum = 0
+    vt_sleep 10
 Loop
 
 vt_shutdown

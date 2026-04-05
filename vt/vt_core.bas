@@ -7,13 +7,12 @@
 Declare Sub      vt_present()
 Declare Sub      vt_shutdown()
 Declare Sub      vt_internal_shutdown()
-Declare Function vt_screen(mode As Long = VT_SCREEN_0, flags As Long = VT_WINDOWED, _
-                            pages As Long = 1) As Long
+Declare Function vt_screen(mode As Long = VT_SCREEN_0, flags As Long = VT_WINDOWED, pages As Long = 1) As Long
 Declare Function vt_scroll(amount As Long) As Byte
-Declare Sub      vt_internal_pixel_to_cell(px As Long, py As Long, _
-                                           col_out As Long Ptr, row_out As Long Ptr)
+Declare Sub      vt_internal_pixel_to_cell(px As Long, py As Long, col_out As Long Ptr, row_out As Long Ptr)
 Declare Sub      vt_page(work As Long, vis As Long)
 Declare Sub      vt_pcopy(src As Long, dst As Long)
+Declare Sub vt_internal_cp_build_text()
 
 ' -----------------------------------------------------------------------------
 ' Auto-cleanup type -- destructor fires on program exit (via End or fall-through).
@@ -138,6 +137,12 @@ Sub vt_pump()
     Dim keyrec    As ULong
     Dim tick      As ULong
     Dim ascii_ch  As UByte
+    
+    Dim consumed  As Byte
+    Dim new_col   As Long
+    Dim new_row   As Long
+    Dim click_col As Long
+    Dim click_row As Long
 
     ' --- key repeat ---
     tick = SDL_GetTicks()
@@ -179,7 +184,7 @@ Sub vt_pump()
 
                 vtscan = vt_internal_sdl_to_vtscan(evt.key.keysym.scancode)
 
-                ' scrollback
+                ' scrollback (unchanged)
                 If ct = 0 Then
                     If (sh) AndAlso (vtscan = VT_KEY_PGUP) Then
                         vt_scroll(1)
@@ -194,6 +199,94 @@ Sub vt_pump()
                     End If
                 End If
 
+                ' --- copy/paste key interception ---
+                ' Only active when VT_CP_KBD is set and not in scrollback view.
+                ' consumed = 1 means the key is swallowed -- not pushed to key_buf.
+                consumed = 0
+                If (vt_internal.cp_flags And VT_CP_KBD) AndAlso vt_internal.sb_offset = 0 Then
+
+                    ' Shift+arrow/Home/End: start or extend keyboard selection
+                    If sh AndAlso ct = 0 AndAlso al = 0 Then
+                        Select Case vtscan
+                            Case VT_KEY_LEFT, VT_KEY_RIGHT, VT_KEY_UP, VT_KEY_DOWN, _
+                                 VT_KEY_HOME, VT_KEY_END
+                                ' anchor at cursor position on first key of a new selection
+                                If vt_internal.sel_active = 0 Then
+                                    vt_internal.sel_active     = 1
+                                    vt_internal.sel_anchor_col = vt_internal.cur_col
+                                    vt_internal.sel_anchor_row = vt_internal.cur_row
+                                    vt_internal.sel_end_col    = vt_internal.cur_col
+                                    vt_internal.sel_end_row    = vt_internal.cur_row
+                                End If
+                                ' move the end point
+                                Select Case vtscan
+                                    Case VT_KEY_LEFT
+                                        vt_internal.sel_end_col -= 1
+                                        If vt_internal.sel_end_col < 1 Then
+                                            If vt_internal.sel_end_row > 1 Then
+                                                vt_internal.sel_end_row -= 1
+                                                vt_internal.sel_end_col  = vt_internal.scr_cols
+                                            Else
+                                                vt_internal.sel_end_col = 1
+                                            End If
+                                        End If
+                                    Case VT_KEY_RIGHT
+                                        vt_internal.sel_end_col += 1
+                                        If vt_internal.sel_end_col > vt_internal.scr_cols Then
+                                            If vt_internal.sel_end_row < vt_internal.scr_rows Then
+                                                vt_internal.sel_end_row += 1
+                                                vt_internal.sel_end_col  = 1
+                                            Else
+                                                vt_internal.sel_end_col = vt_internal.scr_cols
+                                            End If
+                                        End If
+                                    Case VT_KEY_UP
+                                        If vt_internal.sel_end_row > 1 Then
+                                            vt_internal.sel_end_row -= 1
+                                        End If
+                                    Case VT_KEY_DOWN
+                                        If vt_internal.sel_end_row < vt_internal.scr_rows Then
+                                            vt_internal.sel_end_row += 1
+                                        End If
+                                    Case VT_KEY_HOME
+                                        vt_internal.sel_end_col = 1
+                                    Case VT_KEY_END
+                                        vt_internal.sel_end_col = vt_internal.scr_cols
+                                End Select
+                                vt_internal.dirty = 1
+                                consumed = 1
+                        End Select
+                    End If
+
+                    ' Ctrl+INS: copy selection to clipboard, clear selection
+                    If ct AndAlso sh = 0 AndAlso al = 0 AndAlso vtscan = VT_KEY_INS Then
+                        vt_internal_cp_build_text()
+                        vt_internal.sel_active = 0
+                        vt_internal.dirty      = 1
+                        consumed = 1
+                    End If
+
+                    ' Shift+INS: request paste -- vt_input drains cp_paste_pend
+                    If sh AndAlso ct = 0 AndAlso al = 0 AndAlso vtscan = VT_KEY_INS Then
+                        vt_internal.cp_paste_pend = 1
+                        consumed = 1
+                    End If
+
+                End If
+
+                ' Any non-intercepted, non-modifier key clears an active selection.
+                ' The key itself still goes to key_buf -- we only clear the highlight.
+                If vt_internal.sel_active AndAlso consumed = 0 Then
+                    Select Case vtscan
+                        Case VT_KEY_LSHIFT, VT_KEY_RSHIFT, VT_KEY_LCTRL, VT_KEY_RCTRL, _
+                             VT_KEY_LALT,   VT_KEY_RALT,   VT_KEY_LWIN,  VT_KEY_RWIN
+                            ' pure modifier -- leave selection alive
+                        Case Else
+                            vt_internal.sel_active = 0
+                            vt_internal.dirty      = 1
+                    End Select
+                End If
+
                 ascii_ch = 0
                 If ct Then
                     Dim sym As Long = evt.key.keysym.sym
@@ -202,16 +295,18 @@ Sub vt_pump()
                     End If
                 End If
 
-                keyrec = CULng(ascii_ch)        Or _
-                         (CULng(vtscan) Shl 16) Or _
-                         (sh Shl 29)            Or _
-                         (ct Shl 30)            Or _
-                         (al Shl 31)
-
-                vt_internal_key_push(keyrec)
-                vt_internal.rep_scan = vtscan
-                vt_internal.rep_tick = tick
-                vt_internal.rep_last = 0
+                ' only push key and arm repeat when the key was not consumed
+                If consumed = 0 Then
+                    keyrec = CULng(ascii_ch)        Or _
+                             (CULng(vtscan) Shl 16) Or _
+                             (sh Shl 29)            Or _
+                             (ct Shl 30)            Or _
+                             (al Shl 31)
+                    vt_internal_key_push(keyrec)
+                    vt_internal.rep_scan = vtscan
+                    vt_internal.rep_tick = tick
+                    vt_internal.rep_last = 0
+                End If
 
             Case SDL_KEYUP
                 If vt_internal_sdl_to_vtscan(evt.key.keysym.scancode) = vt_internal.rep_scan Then
@@ -241,24 +336,31 @@ Sub vt_pump()
                 End If
 
             Case SDL_MOUSEMOTION
+                ' Coordinate computation hoisted so both mouse cursor and drag
+                ' selection can share it without duplicating the clamping logic.
+                new_col = evt.motion.x \ vt_internal.glyph_w + 1
+                new_row = evt.motion.y \ vt_internal.glyph_h + 1
+                If new_col < 1 Then new_col = 1
+                If new_col > vt_internal.scr_cols Then new_col = vt_internal.scr_cols
+                If new_row < 1 Then new_row = 1
+                If new_row > vt_internal.scr_rows Then new_row = vt_internal.scr_rows
+
                 If vt_internal.mouse_on Then
-                    Dim new_col As Long
-                    Dim new_row As Long
-                    ' SDL_RenderSetLogicalSize registers an internal event filter that
-                    ' pre-transforms motion coordinates from window pixels to logical
-                    ' pixels before we ever see them. Do NOT apply scale/offset again.
-                    ' Just divide by glyph size -- SDL already did everything else.
-                    new_col = evt.motion.x \ vt_internal.glyph_w + 1
-                    new_row = evt.motion.y \ vt_internal.glyph_h + 1
-                    If new_col < 1 Then new_col = 1
-                    If new_col > vt_internal.scr_cols Then new_col = vt_internal.scr_cols
-                    If new_row < 1 Then new_row = 1
-                    If new_row > vt_internal.scr_rows Then new_row = vt_internal.scr_rows
                     If new_col <> vt_internal.mouse_col OrElse _
                        new_row <> vt_internal.mouse_row Then
                         vt_internal.mouse_col = new_col
                         vt_internal.mouse_row = new_row
                         vt_internal.dirty = 1
+                    End If
+                End If
+
+                ' selection drag -- independent of mouse_on / cursor visibility
+                If (vt_internal.cp_flags And VT_CP_MOUSE) AndAlso vt_internal.sel_dragging Then
+                    If new_col <> vt_internal.sel_end_col OrElse _
+                       new_row <> vt_internal.sel_end_row Then
+                        vt_internal.sel_end_col = new_col
+                        vt_internal.sel_end_row = new_row
+                        vt_internal.dirty       = 1
                     End If
                 End If
 
@@ -271,6 +373,34 @@ Sub vt_pump()
                     End Select
                 End If
 
+                ' copy/paste mouse -- independent of mouse_on
+                If (vt_internal.cp_flags And VT_CP_MOUSE) Then
+                    click_col = evt.button.x \ vt_internal.glyph_w + 1
+                    click_row = evt.button.y \ vt_internal.glyph_h + 1
+                    If click_col < 1 Then click_col = 1
+                    If click_col > vt_internal.scr_cols Then click_col = vt_internal.scr_cols
+                    If click_row < 1 Then click_row = 1
+                    If click_row > vt_internal.scr_rows Then click_row = vt_internal.scr_rows
+                    Select Case evt.button.button
+                        Case SDL_BUTTON_LEFT
+                            ' start a fresh selection at the click cell
+                            vt_internal.sel_active     = 1
+                            vt_internal.sel_anchor_col = click_col
+                            vt_internal.sel_anchor_row = click_row
+                            vt_internal.sel_end_col    = click_col
+                            vt_internal.sel_end_row    = click_row
+                            vt_internal.sel_dragging   = 1
+                            vt_internal.dirty          = 1
+                        Case SDL_BUTTON_RIGHT
+                            ' copy whatever is selected (no-op if sel_active = 0)
+                            vt_internal_cp_build_text()
+                            vt_internal.dirty = 1
+                        Case SDL_BUTTON_MIDDLE
+                            ' request paste -- vt_input drains this
+                            vt_internal.cp_paste_pend = 1
+                    End Select
+                End If
+
             Case SDL_MOUSEBUTTONUP
                 If vt_internal.mouse_on Then
                     Select Case evt.button.button
@@ -278,6 +408,12 @@ Sub vt_pump()
                         Case SDL_BUTTON_RIGHT  : vt_internal.mouse_btns And= Not VT_MOUSE_BTN_RIGHT
                         Case SDL_BUTTON_MIDDLE : vt_internal.mouse_btns And= Not VT_MOUSE_BTN_MIDDLE
                     End Select
+                End If
+                ' finalize drag -- selection stays visible until overwritten
+                If (vt_internal.cp_flags And VT_CP_MOUSE) Then
+                    If evt.button.button = SDL_BUTTON_LEFT Then
+                        vt_internal.sel_dragging = 0
+                    End If
                 End If
 
             Case SDL_MOUSEWHEEL
@@ -506,6 +642,16 @@ Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Lo
     vt_internal.mouse_btns  = 0
     vt_internal.mouse_vis   = 1
     vt_internal.mouse_wheel = 0
+    
+    ' --- copy/paste ---
+    vt_internal.cp_flags       = 0
+    vt_internal.sel_active     = 0
+    vt_internal.sel_anchor_col = 1
+    vt_internal.sel_anchor_row = 1
+    vt_internal.sel_end_col    = 1
+    vt_internal.sel_end_row    = 1
+    vt_internal.sel_dragging   = 0
+    vt_internal.cp_paste_pend  = 0
 
     ' auto-lock in fullscreen, user can override with vt_mouselock()
     If flags And (VT_FULLSCREEN_ASPECT Or VT_FULLSCREEN_STRETCH) Then
@@ -694,6 +840,64 @@ Sub vt_present()
 
         Next col_idx
     Next row_idx
+    
+    ' --- selection highlight: inverted cell colours ---
+    ' Same two-pass invert technique as the mouse cursor.
+    ' Rendered after cells, before text cursor and mouse cursor.
+    ' Hidden during scrollback, same as the mouse cursor.
+    If vt_internal.sel_active AndAlso vt_internal.sb_offset = 0 Then
+        Dim flat1      As Long
+        Dim flat2      As Long
+        Dim flat_cur   As Long
+        Dim sl_row     As Long
+        Dim sl_col     As Long
+        Dim sl_cellptr As vt_cell Ptr
+        Dim sl_ch      As UByte
+        Dim sl_cfg     As UByte
+        Dim sl_cbg     As UByte
+        Dim si_bg_r    As UByte
+        Dim si_bg_g    As UByte
+        Dim si_bg_b    As UByte
+        Dim si_fg_r    As UByte
+        Dim si_fg_g    As UByte
+        Dim si_fg_b    As UByte
+
+        flat1 = (vt_internal.sel_anchor_row - 1) * cols + (vt_internal.sel_anchor_col - 1)
+        flat2 = (vt_internal.sel_end_row    - 1) * cols + (vt_internal.sel_end_col    - 1)
+        If flat1 > flat2 Then Swap flat1, flat2
+
+        For flat_cur = flat1 To flat2
+            sl_row = flat_cur \ cols
+            sl_col = flat_cur Mod cols
+
+            sl_cellptr = vis_buf + flat_cur
+            sl_ch  = sl_cellptr->ch
+            sl_cfg = sl_cellptr->fg And 15
+            sl_cbg = sl_cellptr->bg And 15
+
+            si_bg_r = 255 - vt_internal.palette(sl_cbg * 3)
+            si_bg_g = 255 - vt_internal.palette(sl_cbg * 3 + 1)
+            si_bg_b = 255 - vt_internal.palette(sl_cbg * 3 + 2)
+            si_fg_r = 255 - vt_internal.palette(sl_cfg * 3)
+            si_fg_g = 255 - vt_internal.palette(sl_cfg * 3 + 1)
+            si_fg_b = 255 - vt_internal.palette(sl_cfg * 3 + 2)
+
+            dst_rect.x = sl_col * gw
+            dst_rect.y = sl_row * gh
+
+            ' pass 1: solid block in inverted background colour
+            src_rect.x = (219 Mod 16) * gw
+            src_rect.y = (219 \ 16)   * gh
+            SDL_SetTextureColorMod(vt_internal.sdl_texture, si_bg_r, si_bg_g, si_bg_b)
+            SDL_RenderCopy(vt_internal.sdl_renderer, vt_internal.sdl_texture, @src_rect, @dst_rect)
+
+            ' pass 2: original glyph in inverted foreground colour
+            src_rect.x = (sl_ch Mod 16) * gw
+            src_rect.y = (sl_ch \ 16)   * gh
+            SDL_SetTextureColorMod(vt_internal.sdl_texture, si_fg_r, si_fg_g, si_fg_b)
+            SDL_RenderCopy(vt_internal.sdl_renderer, vt_internal.sdl_texture, @src_rect, @dst_rect)
+        Next flat_cur
+    End If
 
     ' --- cursor ---
     If vt_internal.sb_offset = 0 AndAlso vt_internal.cur_visible AndAlso _

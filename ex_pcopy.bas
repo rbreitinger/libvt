@@ -119,8 +119,7 @@ Do
     ' flip 
     ' -----------------------------------------------------------------------
     vt_pcopy(1, VT_VIDEO)   ' copy finished work page -> display page
-    vt_present()            ' show the display page on screen
-
+    
     frame_num += 1
 
     ' --- input ---
