@@ -120,7 +120,7 @@ End Sub
 ' vt_color - set active foreground and/or background colour
 ' -----------------------------------------------------------------------------
 Sub vt_color(fg As Long = -1, bg As Long = -1)
-    if fg >= 0 then vt_internal.clr_fg = fg And 31
+    If fg >= 0 Then vt_internal.clr_fg = fg And 31
     If bg >= 0 Then vt_internal.clr_bg = bg And 15
 End Sub
 
@@ -132,13 +132,14 @@ Sub vt_locate(row As Long = -1, col As Long = -1, vis As Long = -1, cursor_ch As
     If row >= 1 AndAlso row <= vt_internal.scr_rows Then vt_internal.cur_row = row
     If col >= 1 AndAlso col <= vt_internal.scr_cols Then vt_internal.cur_col = col
     If vis >= 0 Then vt_internal.cur_visible = vis
-    If cursor_ch > 0 Then vt_internal.cur_ch = cursor_ch
+    If cursor_ch >= 0 Then vt_internal.cur_ch = cursor_ch And 255
 End Sub
 
 ' -----------------------------------------------------------------------------
 ' vt_scroll_enable - enable or disable automatic scrolling (default: on)
 ' -----------------------------------------------------------------------------
 Sub vt_scroll_enable(state As Byte)
+    If vt_internal.ready = 0 Then Exit Sub
     vt_internal.scroll_on = state
 End Sub
 
@@ -147,14 +148,14 @@ End Sub
 ' omit arguments resets the viewport
 ' -----------------------------------------------------------------------------
 Sub vt_view_print(top_row As Long = -1, bot_row As Long = -1)
-    if top_row = -1 AndAlso bot_row = -1 Then
+    If vt_internal.ready = 0 Then Exit Sub
+    If top_row = -1 AndAlso bot_row = -1 Then
         vt_internal.view_top = 1
         vt_internal.view_bot = vt_internal.scr_rows
         Exit Sub
-    end if
-      
+    End If
     If top_row >= 1 AndAlso top_row <= vt_internal.scr_rows Then vt_internal.view_top = top_row
-    If bot_row >= top_row AndAlso bot_row <= vt_internal.scr_rows Then vt_internal.view_bot = bot_row
+    If bot_row >= vt_internal.view_top AndAlso bot_row <= vt_internal.scr_rows Then vt_internal.view_bot = bot_row
 End Sub
 
 ' -----------------------------------------------------------------------------

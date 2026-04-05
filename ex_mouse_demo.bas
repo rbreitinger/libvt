@@ -12,7 +12,7 @@
 vt_title "VT Mouse Test"
 vt_screen VT_SCREEN_0
 
-vt_mouselock 1
+vt_mouselock 0
 
 ' restrict scroll region, row 25 is the status bar
 vt_view_print(1, 24)

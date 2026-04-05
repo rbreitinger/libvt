@@ -15,18 +15,10 @@ Declare Sub      vt_pcopy(src As Long, dst As Long)
 Declare Sub      vt_internal_cp_build_text()
 Declare Function vt_internal_display_cellptr(col As Long, row_0 As Long, vis_buf As vt_cell Ptr) As vt_cell Ptr
 
-' -----------------------------------------------------------------------------
-' Auto-cleanup type -- destructor fires on program exit (via End or fall-through).
-' SDL_QUIT calls End, which triggers this. No explicit vt_shutdown needed.
-' User types declared AFTER #include "vt/vt.bi" get their destructors first
-' (LIFO order), so they can still use VT functions during their own cleanup.
-' -----------------------------------------------------------------------------
-
-' Auto-cleanup destructor -- runs automatically on program exit (End or fall-through).
-' SDL_QUIT calls End, which triggers this. No explicit vt_shutdown needed.
-
-' NOTE: seems not good, SDL seem to have its own destructor.
-' closing a freebasic console window hangs, while closing the graphical window works
+' Auto-cleanup destructor -- disabled. See Known Issues in vt_status.md.
+' SDL appears to have its own cleanup destructor; combining them causes a hang
+' when the FreeBASIC console window is closed (graphical window close works fine).
+' Call vt_shutdown() explicitly if you need to tear down mid-program.
 
 'Sub vt_auto_cleanup() Destructor
 '    vt_internal_shutdown()
@@ -172,8 +164,8 @@ Sub vt_pump()
     While SDL_PollEvent(@evt)
         Select Case evt.type
             Case SDL_QUIT_
-                ' Window closed -- terminate immediately.
-                ' The vt_auto_cleanup destructor fires on End and frees SDL.
+                ' Window closed -- shut down and terminate.
+                ' vt_internal_shutdown() frees SDL before End is called.
                 vt_internal_shutdown()
                 End
 
@@ -573,7 +565,6 @@ Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Lo
 
     vt_internal.sdl_texture = SDL_CreateTextureFromSurface(vt_internal.sdl_renderer, font_surf)
     SDL_FreeSurface(font_surf)
-    vt_internal.sdl_font = 0
 
     If vt_internal.sdl_texture = 0 Then
         SDL_DestroyRenderer(vt_internal.sdl_renderer)
@@ -602,7 +593,14 @@ Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Lo
     Next pg
     For pg = 0 To pages - 1
         vt_internal.page_buf(pg) = CAllocate(cols * rows, SizeOf(vt_cell))
-        If vt_internal.page_buf(pg) = 0 Then Return -6
+        If vt_internal.page_buf(pg) = 0 Then
+            Dim fc As Long
+            For fc = 0 To pg - 1
+                DeAllocate vt_internal.page_buf(fc)
+                vt_internal.page_buf(fc) = 0
+            Next fc
+            Return -6
+        End If
     Next pg
     vt_internal.num_pages = pages
     vt_internal.work_page = 0
@@ -1176,6 +1174,15 @@ Sub vt_palette_get(pal() As UByte)
     Next pi
 End Sub
 
+' -----------------------------------------------------------------------------
+' Palette API
+' -----------------------------------------------------------------------------
+' vt_palette: idx = -1 resets all 16 colours to CGA defaults.
+'             idx = 0..15 sets one colour. r, g, b must be provided (0..255).
+'             NOTE: r/g/b default to -1 purely to allow omitting them in the
+'             reset case (idx = -1). When idx >= 0, always pass all three
+'             channels explicitly -- omitting them produces 255 (white) because
+'             -1 And 255 = 255.
 Sub vt_palette(idx As Long = -1, r As Long = -1, g As Long = -1, b As Long = -1)
     If idx < 0 Or idx > 15 Then
         vt_palette_set(vt_default_palette())

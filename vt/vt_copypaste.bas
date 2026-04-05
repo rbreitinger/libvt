@@ -85,6 +85,7 @@ End Sub
 ' When VT_CP_DISABLED: no keys reserved, no mouse events captured by VT.
 ' -----------------------------------------------------------------------------
 Sub vt_copypaste(flags As Long)
+    If vt_internal.ready = 0 Then Exit Sub
     vt_internal.cp_flags      = flags
     vt_internal.sel_active    = 0
     vt_internal.sel_dragging  = 0

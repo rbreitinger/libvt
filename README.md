@@ -55,6 +55,7 @@ Mode constants match the original QBasic `SCREEN` numbers where applicable.
 - Authentic IBM VGA CP437 fonts -- 8x8, 8x14 and 8x16, all embedded
 - Authentic CGA/DOS palette -- not the washed-out modern CMD colours
 - Palette manipulation in all screen modes
+- Custom Bitmapped Font loading
 - All 256 CP437 glyphs -- box drawing, shade blocks, symbols
 - Blinking text via `VT_BLINK` attribute
 - Scrollback buffer with Shift+PgUp / Shift+PgDn (call `vt_scrollback(n)` after `vt_screen`)

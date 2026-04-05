@@ -24,10 +24,16 @@ vt_print_center(11, "Custom Bitmapped Font Loading Demo" & VT_NEWLINE)
 vt_color 10
 vt_print_center(13, "GuybrushASCII_curses_square_16x16.bmp" & VT_NEWLINE)
 vt_color 11
-vt_print_center(15, "- Any key to quit -"& VT_NEWLINE)
+vt_print_center(15, "- Any key to continue -"& VT_NEWLINE)
 
 vt_color 15
 vt_print_center(17, chr(1) &chr(32) & chr(2) & VT_NEWLINE)
+
+vt_sleep
+
+vt_font_reset
+vt_print_center(19, "Internal font restored."& VT_NEWLINE)
+vt_print_center(20, "- Any key to quit -"& VT_NEWLINE)
 
 vt_sleep
 

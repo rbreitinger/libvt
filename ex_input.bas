@@ -9,7 +9,7 @@ vt_color VT_WHITE, VT_BLUE
 vt_locate 12, 20
 
 Dim was_cancelled As Byte
-Dim result As String = vt_input( 30, "default", "abcdefg", @was_cancelled )
+Dim result As String = vt_input( 30, "default", "", @was_cancelled )
 
 
 If was_cancelled Then   

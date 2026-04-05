@@ -162,7 +162,7 @@ Const VT_MOUSE_BTN_MIDDLE = 4   ' bit 2
 ' Copy/paste mode flags  (combinable with Or)
 ' -----------------------------------------------------------------------------
 Const VT_CP_DISABLED = 0   ' default -- no keys reserved, no mouse events captured
-Const VT_CP_MOUSE    = 1   ' LMB drag selects, RMB copies, MMB pastes (vt_input only)
+Const VT_CP_MOUSE    = 1   ' LMB drag selects, RMB copies, MMB pastes (paste: vt_input only)
 Const VT_CP_KBD      = 2   ' Shift+arrows select, Ctrl+INS copies, Shift+INS pastes
 
 ' -----------------------------------------------------------------------------
@@ -183,7 +183,6 @@ Type vt_internal_state
     sdl_window   As SDL_Window Ptr
     sdl_renderer As SDL_Renderer Ptr
     sdl_texture  As SDL_Texture Ptr
-    sdl_font     As SDL_Surface Ptr    ' always 0 after init
 
     ' --- screen geometry ---
     scr_cols    As Long
