@@ -44,11 +44,14 @@ Do
     vt_getmouse(@mx, @my, @mb, @mw)
     wheelaccum += mw
     
-    if (mb and VT_MOUSE_BTN_LEFT) andalso my < 25 then vt_locate(my, mx)
+    If (mb And VT_MOUSE_BTN_LEFT) AndAlso my < 25 Then
+        If vt_internal.sb_offset = 0 Then vt_locate my, mx
+    End If
+    
     k = vt_inkey()
     If VT_SCAN(k) = VT_KEY_ESC  Then Exit Do
     If VT_SCAN(k) = VT_KEY_UP   orelse oldmw < mw Then vt_scroll wheelaccum : wheelaccum = 0
-    If VT_SCAN(k) = VT_KEY_DOWN orelse oldmw > mw Then vt_scroll wheelaccum: wheelaccum = 0
+    If VT_SCAN(k) = VT_KEY_DOWN orelse oldmw > mw Then vt_scroll wheelaccum : wheelaccum = 0
     vt_sleep 10
 Loop
 

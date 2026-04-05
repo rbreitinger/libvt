@@ -318,6 +318,7 @@ Dim Shared vt_internal As vt_internal_state
 #undef vt_init_impl
 #undef vt_internal_present_if_dirty
 #undef vt_internal_pixel_to_cell
+#undef vt_internal_display_cellptr
 
 ' vt_print.bas
 #undef vt_internal_scroll_up

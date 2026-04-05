@@ -8,10 +8,12 @@
 
 ' -----------------------------------------------------------------------------
 ' vt_internal_cp_build_text
-' Walk the active selection on vis_page, build a plain-text string,
-' trim trailing spaces per row, join rows with CR+LF, push to SDL clipboard.
+' Walk the active selection, build a plain-text string, trim trailing spaces
+' per row, join rows with CR+LF, push to SDL clipboard.
 ' Called from vt_pump on Ctrl+INS (kbd) or RMB (mouse).
 ' Safe no-op when sel_active = 0.
+' Reads from vt_internal_display_cellptr so it works during scrollback --
+' cells come from sb_cells or vis_buf depending on sb_offset, same as render.
 ' -----------------------------------------------------------------------------
 Sub vt_internal_cp_build_text()
     Dim cols     As Long
@@ -55,7 +57,7 @@ Sub vt_internal_cp_build_text()
 
         row_str = ""
         For col_idx = col_from To col_to
-            cellptr = vis_buf + ((row_idx - 1) * cols + (col_idx - 1))
+            cellptr = vt_internal_display_cellptr(col_idx - 1, row_idx - 1, vis_buf)
             row_str = row_str & Chr(cellptr->ch)
         Next col_idx
 

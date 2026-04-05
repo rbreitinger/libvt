@@ -12,7 +12,8 @@ Declare Function vt_scroll(amount As Long) As Byte
 Declare Sub      vt_internal_pixel_to_cell(px As Long, py As Long, col_out As Long Ptr, row_out As Long Ptr)
 Declare Sub      vt_page(work As Long, vis As Long)
 Declare Sub      vt_pcopy(src As Long, dst As Long)
-Declare Sub vt_internal_cp_build_text()
+Declare Sub      vt_internal_cp_build_text()
+Declare Function vt_internal_display_cellptr(col As Long, row_0 As Long, vis_buf As vt_cell Ptr) As vt_cell Ptr
 
 ' -----------------------------------------------------------------------------
 ' Auto-cleanup type -- destructor fires on program exit (via End or fall-through).
@@ -200,65 +201,12 @@ Sub vt_pump()
                 End If
 
                 ' --- copy/paste key interception ---
-                ' Only active when VT_CP_KBD is set and not in scrollback view.
-                ' consumed = 1 means the key is swallowed -- not pushed to key_buf.
+                ' Selection extension and paste only make sense at live view (sb_offset=0).
+                ' Ctrl+INS copy is allowed during scrollback -- selection may span history.
                 consumed = 0
-                If (vt_internal.cp_flags And VT_CP_KBD) AndAlso vt_internal.sb_offset = 0 Then
+                If (vt_internal.cp_flags And VT_CP_KBD) Then
 
-                    ' Shift+arrow/Home/End: start or extend keyboard selection
-                    If sh AndAlso ct = 0 AndAlso al = 0 Then
-                        Select Case vtscan
-                            Case VT_KEY_LEFT, VT_KEY_RIGHT, VT_KEY_UP, VT_KEY_DOWN, _
-                                 VT_KEY_HOME, VT_KEY_END
-                                ' anchor at cursor position on first key of a new selection
-                                If vt_internal.sel_active = 0 Then
-                                    vt_internal.sel_active     = 1
-                                    vt_internal.sel_anchor_col = vt_internal.cur_col
-                                    vt_internal.sel_anchor_row = vt_internal.cur_row
-                                    vt_internal.sel_end_col    = vt_internal.cur_col
-                                    vt_internal.sel_end_row    = vt_internal.cur_row
-                                End If
-                                ' move the end point
-                                Select Case vtscan
-                                    Case VT_KEY_LEFT
-                                        vt_internal.sel_end_col -= 1
-                                        If vt_internal.sel_end_col < 1 Then
-                                            If vt_internal.sel_end_row > 1 Then
-                                                vt_internal.sel_end_row -= 1
-                                                vt_internal.sel_end_col  = vt_internal.scr_cols
-                                            Else
-                                                vt_internal.sel_end_col = 1
-                                            End If
-                                        End If
-                                    Case VT_KEY_RIGHT
-                                        vt_internal.sel_end_col += 1
-                                        If vt_internal.sel_end_col > vt_internal.scr_cols Then
-                                            If vt_internal.sel_end_row < vt_internal.scr_rows Then
-                                                vt_internal.sel_end_row += 1
-                                                vt_internal.sel_end_col  = 1
-                                            Else
-                                                vt_internal.sel_end_col = vt_internal.scr_cols
-                                            End If
-                                        End If
-                                    Case VT_KEY_UP
-                                        If vt_internal.sel_end_row > 1 Then
-                                            vt_internal.sel_end_row -= 1
-                                        End If
-                                    Case VT_KEY_DOWN
-                                        If vt_internal.sel_end_row < vt_internal.scr_rows Then
-                                            vt_internal.sel_end_row += 1
-                                        End If
-                                    Case VT_KEY_HOME
-                                        vt_internal.sel_end_col = 1
-                                    Case VT_KEY_END
-                                        vt_internal.sel_end_col = vt_internal.scr_cols
-                                End Select
-                                vt_internal.dirty = 1
-                                consumed = 1
-                        End Select
-                    End If
-
-                    ' Ctrl+INS: copy selection to clipboard, clear selection
+                    ' Ctrl+INS: copy selection to clipboard -- works during scrollback too
                     If ct AndAlso sh = 0 AndAlso al = 0 AndAlso vtscan = VT_KEY_INS Then
                         vt_internal_cp_build_text()
                         vt_internal.sel_active = 0
@@ -266,11 +214,68 @@ Sub vt_pump()
                         consumed = 1
                     End If
 
-                    ' Shift+INS: request paste -- vt_input drains cp_paste_pend
-                    If sh AndAlso ct = 0 AndAlso al = 0 AndAlso vtscan = VT_KEY_INS Then
-                        vt_internal.cp_paste_pend = 1
-                        consumed = 1
-                    End If
+                    If vt_internal.sb_offset = 0 Then
+
+                        ' Shift+arrow/Home/End: start or extend keyboard selection
+                        If sh AndAlso ct = 0 AndAlso al = 0 Then
+                            Select Case vtscan
+                                Case VT_KEY_LEFT, VT_KEY_RIGHT, VT_KEY_UP, VT_KEY_DOWN, _
+                                     VT_KEY_HOME, VT_KEY_END
+                                    ' anchor at cursor position on first key of a new selection
+                                    If vt_internal.sel_active = 0 Then
+                                        vt_internal.sel_active     = 1
+                                        vt_internal.sel_anchor_col = vt_internal.cur_col
+                                        vt_internal.sel_anchor_row = vt_internal.cur_row
+                                        vt_internal.sel_end_col    = vt_internal.cur_col
+                                        vt_internal.sel_end_row    = vt_internal.cur_row
+                                    End If
+                                    ' move the end point
+                                    Select Case vtscan
+                                        Case VT_KEY_LEFT
+                                            vt_internal.sel_end_col -= 1
+                                            If vt_internal.sel_end_col < 1 Then
+                                                If vt_internal.sel_end_row > 1 Then
+                                                    vt_internal.sel_end_row -= 1
+                                                    vt_internal.sel_end_col  = vt_internal.scr_cols
+                                                Else
+                                                    vt_internal.sel_end_col = 1
+                                                End If
+                                            End If
+                                        Case VT_KEY_RIGHT
+                                            vt_internal.sel_end_col += 1
+                                            If vt_internal.sel_end_col > vt_internal.scr_cols Then
+                                                If vt_internal.sel_end_row < vt_internal.scr_rows Then
+                                                    vt_internal.sel_end_row += 1
+                                                    vt_internal.sel_end_col  = 1
+                                                Else
+                                                    vt_internal.sel_end_col = vt_internal.scr_cols
+                                                End If
+                                            End If
+                                        Case VT_KEY_UP
+                                            If vt_internal.sel_end_row > 1 Then
+                                                vt_internal.sel_end_row -= 1
+                                            End If
+                                        Case VT_KEY_DOWN
+                                            If vt_internal.sel_end_row < vt_internal.scr_rows Then
+                                                vt_internal.sel_end_row += 1
+                                            End If
+                                        Case VT_KEY_HOME
+                                            vt_internal.sel_end_col = 1
+                                        Case VT_KEY_END
+                                            vt_internal.sel_end_col = vt_internal.scr_cols
+                                    End Select
+                                    vt_internal.dirty = 1
+                                    consumed = 1
+                            End Select
+                        End If
+
+                        ' Shift+INS: request paste -- vt_input drains cp_paste_pend
+                        If sh AndAlso ct = 0 AndAlso al = 0 AndAlso vtscan = VT_KEY_INS Then
+                            vt_internal.cp_paste_pend = 1
+                            consumed = 1
+                        End If
+
+                    End If  ' sb_offset = 0
 
                 End If
 
@@ -728,6 +733,37 @@ Function vt_screen(mode As Long, flags As Long, pages As Long) As Long
 End Function
 
 ' -----------------------------------------------------------------------------
+' Internal: resolve a 0-based (col, row) screen coordinate to the correct
+' vt_cell pointer, reading from sb_cells or vis_buf as appropriate.
+' Mirrors the row-source decision in the vt_present cell loop exactly.
+' Used by: mouse cursor render, selection render, vt_internal_cp_build_text.
+' vis_buf must be page_buf(vis_page) -- pass it in to avoid re-fetching.
+' -----------------------------------------------------------------------------
+Function vt_internal_display_cellptr(col As Long, row_0 As Long, _
+                                     vis_buf As vt_cell Ptr) As vt_cell Ptr
+    Dim cols        As Long = vt_internal.scr_cols
+    Dim scroll_pos  As Long
+    Dim logical_row As Long
+    Dim live_row    As Long
+
+    If vt_internal.sb_offset > 0 AndAlso _
+       row_0 >= vt_internal.view_top - 1 AndAlso _
+       row_0 <= vt_internal.view_bot - 1 Then
+        scroll_pos  = row_0 - (vt_internal.view_top - 1)
+        logical_row = (vt_internal.sb_used - vt_internal.sb_offset) + scroll_pos
+        If logical_row < 0 Then logical_row = 0
+        If logical_row < vt_internal.sb_used Then
+            Return vt_internal.sb_cells + (logical_row * cols + col)
+        Else
+            live_row = logical_row - vt_internal.sb_used + (vt_internal.view_top - 1)
+            Return vis_buf + (live_row * cols + col)
+        End If
+    Else
+        Return vis_buf + (row_0 * cols + col)
+    End If
+End Function
+
+' -----------------------------------------------------------------------------
 ' vt_present - composite and flip the cell buffer to the screen
 ' Always renders from vis_page -- independent of the active work_page.
 ' -----------------------------------------------------------------------------
@@ -844,8 +880,9 @@ Sub vt_present()
     ' --- selection highlight: inverted cell colours ---
     ' Same two-pass invert technique as the mouse cursor.
     ' Rendered after cells, before text cursor and mouse cursor.
-    ' Hidden during scrollback, same as the mouse cursor.
-    If vt_internal.sel_active AndAlso vt_internal.sb_offset = 0 Then
+    ' Visible during scrollback -- vt_internal_display_cellptr reads the correct
+    ' buffer (sb_cells or vis_buf) for each cell, same as the main cell loop.
+    If vt_internal.sel_active Then
         Dim flat1      As Long
         Dim flat2      As Long
         Dim flat_cur   As Long
@@ -870,7 +907,7 @@ Sub vt_present()
             sl_row = flat_cur \ cols
             sl_col = flat_cur Mod cols
 
-            sl_cellptr = vis_buf + flat_cur
+            sl_cellptr = vt_internal_display_cellptr(sl_col, sl_row, vis_buf)
             sl_ch  = sl_cellptr->ch
             sl_cfg = sl_cellptr->fg And 15
             sl_cbg = sl_cellptr->bg And 15
@@ -919,27 +956,26 @@ Sub vt_present()
     ' Chr(219) filled with inverted bg, original char on top with inverted fg.
     ' Always fully opaque -- readable on any background, no blending needed.
     ' Drawn last so it sits on top of text cursor and all cell content.
-    ' Hidden during scrollback (sb_offset > 0).
-    ' Reads from vis_buf so it reflects what is actually on screen.
-    If vt_internal.mouse_on AndAlso vt_internal.mouse_vis AndAlso _
-       vt_internal.sb_offset = 0 Then
-        Dim mc_col     As Long
-        Dim mc_row     As Long
+    ' vt_internal_display_cellptr reads from sb_cells or vis_buf as appropriate
+    ' so the cursor stays visible and color-correct during scrollback.
+    If vt_internal.mouse_on AndAlso vt_internal.mouse_vis Then
+        Dim mc_col   As Long
+        Dim mc_row   As Long
         Dim mc_cellptr As vt_cell Ptr
-        Dim mc_ch      As UByte
-        Dim mc_cfg     As UByte
-        Dim mc_cbg     As UByte
-        Dim inv_bg_r   As UByte
-        Dim inv_bg_g   As UByte
-        Dim inv_bg_b   As UByte
-        Dim inv_fg_r   As UByte
-        Dim inv_fg_g   As UByte
-        Dim inv_fg_b   As UByte
+        Dim mc_ch    As UByte
+        Dim mc_cfg   As UByte
+        Dim mc_cbg   As UByte
+        Dim inv_bg_r As UByte
+        Dim inv_bg_g As UByte
+        Dim inv_bg_b As UByte
+        Dim inv_fg_r As UByte
+        Dim inv_fg_g As UByte
+        Dim inv_fg_b As UByte
 
         mc_col = vt_internal.mouse_col - 1
         mc_row = vt_internal.mouse_row - 1
 
-        mc_cellptr = vis_buf + (mc_row * cols + mc_col)
+        mc_cellptr = vt_internal_display_cellptr(mc_col, mc_row, vis_buf)
         mc_ch  = mc_cellptr->ch
         mc_cfg = mc_cellptr->fg And 15   ' strip blink bit before palette lookup
         mc_cbg = mc_cellptr->bg And 15
@@ -1016,6 +1052,54 @@ Function vt_scroll(amount As Long) As Byte
 
     vt_internal.dirty = 1
     Return 1
+End Function
+
+' -----------------------------------------------------------------------------
+' vt_screen_to_live_row - translate a screen row to the live vis_buf row,
+' accounting for any active scrollback offset.
+'
+' During scrollback the scroll region rows no longer map 1:1 to vis_buf.
+' Call this BEFORE snapping back with vt_scroll, while sb_offset is still set.
+'
+' Returns the 1-based vis_buf row that corresponds to screen_row, or 0 if that
+' screen position is showing pure scrollback history with no live equivalent.
+'
+' Fixed rows outside view_top..view_bot are not affected by scrollback and are
+' returned as-is. When sb_offset = 0 the function is a trivial pass-through.
+'
+' Typical click-to-locate pattern:
+'   Dim lr As Long = vt_screen_to_live_row(my)
+'   If lr > 0 Then
+'       vt_scroll -99999
+'       vt_locate lr, mx
+'   End If
+' -----------------------------------------------------------------------------
+Function vt_screen_to_live_row(screen_row As Long) As Long
+    Dim scroll_pos  As Long
+    Dim logical_row As Long
+    Dim live_r      As Long
+
+    ' Pass-through: no scrollback active, or row is a fixed row outside the
+    ' scroll region -- screen row equals live row in both cases.
+    If vt_internal.sb_offset = 0 OrElse _
+       screen_row < vt_internal.view_top OrElse _
+       screen_row > vt_internal.view_bot Then
+        Return screen_row
+    End If
+
+    ' Mirror the exact arithmetic used by the vt_present cell loop.
+    scroll_pos  = (screen_row - 1) - (vt_internal.view_top - 1)
+    logical_row = (vt_internal.sb_used - vt_internal.sb_offset) + scroll_pos
+    If logical_row < 0 Then logical_row = 0
+
+    If logical_row < vt_internal.sb_used Then
+        ' Row is pure scrollback history -- no live buffer equivalent.
+        Return 0
+    End If
+
+    ' Row is still within vis_buf. Compute its 1-based live row index.
+    live_r = logical_row - vt_internal.sb_used + vt_internal.view_top
+    Return live_r
 End Function
 
 ' -----------------------------------------------------------------------------
