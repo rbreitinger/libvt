@@ -20,7 +20,7 @@ vt_mouse 1
 vt_scroll_enable 0
 vt_locate 25, 1
 vt_color VT_BLACK, VT_LIGHT_GREY
-vt_print " Press Arrow Up/Down to scroll, ESC to quit" & space(37)
+vt_print " Use Mouse Wheel to scroll, ESC to quit" & space(41)
 vt_scroll_enable 1
 
 ' --- restrict scroll region to rows 1-24 ---
@@ -50,8 +50,8 @@ Do
     
     k = vt_inkey()
     If VT_SCAN(k) = VT_KEY_ESC  Then Exit Do
-    If VT_SCAN(k) = VT_KEY_UP   orelse oldmw < mw Then vt_scroll wheelaccum : wheelaccum = 0
-    If VT_SCAN(k) = VT_KEY_DOWN orelse oldmw > mw Then vt_scroll wheelaccum : wheelaccum = 0
+    If oldmw < mw Then vt_scroll wheelaccum : wheelaccum = 0
+    If oldmw > mw Then vt_scroll wheelaccum : wheelaccum = 0
     vt_sleep 10
 Loop
 

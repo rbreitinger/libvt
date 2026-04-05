@@ -185,7 +185,7 @@ Sub vt_pump()
 
                 vtscan = vt_internal_sdl_to_vtscan(evt.key.keysym.scancode)
 
-                ' scrollback (unchanged)
+                ' scrollback
                 If ct = 0 Then
                     If (sh) AndAlso (vtscan = VT_KEY_PGUP) Then
                         vt_scroll(1)
