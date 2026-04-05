@@ -1,6 +1,6 @@
 #include "vt/vt.bi"
 
-vt_Screen VT_SCREEN_EGA43
+vt_Screen VT_SCREEN_EGA43, VT_WINDOWED_MAX
 
 '' Load a custom bitmapped font (128x128) and use magenta as mask color (255, 0, 255)
 dim as long result = vt_LoadFont("Zaratustra_msx.bmp", 128, 128, 255, 0, 255)
@@ -14,7 +14,7 @@ vt_print_center(15, "- Any key to continue -" & VT_NEWLINE)
 
 vt_sleep
 
-vt_Screen VT_SCREEN_TILES
+vt_Screen VT_SCREEN_TILES, VT_WINDOWED_MAX
 
 '' Load a custom bitmapped font, auto detect size and use magenta as mask color (255, 0, 255)
 result = vt_LoadFont("GuybrushASCII_curses_square_16x16.bmp", , , 255, 0, 255)

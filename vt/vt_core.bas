@@ -505,6 +505,8 @@ Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Lo
         SDL_SetWindowFullscreen(vt_internal.sdl_window, SDL_WINDOW_FULLSCREEN_DESKTOP)
     ElseIf flags And VT_FULLSCREEN_STRETCH Then
         SDL_SetWindowFullscreen(vt_internal.sdl_window, SDL_WINDOW_FULLSCREEN)
+    ElseIf flags And VT_WINDOWED_MAX Then
+        SDL_MaximizeWindow(vt_internal.sdl_window)
     End If
 
     Dim rflags As ULong = SDL_RENDERER_ACCELERATED

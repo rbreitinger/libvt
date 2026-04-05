@@ -15,6 +15,7 @@ Const VT_FULLSCREEN_ASPECT  = 2    ' fullscreen, integer-scaled, black bars
 Const VT_FULLSCREEN_STRETCH = 4    ' fullscreen, fills entire display
 Const VT_NO_RESIZE          = 8    ' prevent manual window resize
 Const VT_VSYNC              = 16   ' vsync, off by default
+Const VT_WINDOWED_MAX       = 32   ' start maximized -- regular window, not fullscreen
 
 ' -----------------------------------------------------------------------------
 ' Screen mode constants
