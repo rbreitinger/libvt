@@ -19,7 +19,8 @@ vt_shutdown
 ## Requirements
 
 - **FreeBASIC 1.10.1** (Windows)
-- **SDL2.dll** — ships with FreeBASIC
+- **SDL2.dll** — get it from the
+  [FreeBASIC library archive](https://github.com/rbreitinger/fb-lib-archive/tree/main/libraries/SDL2/SDL2-2.0.14)
 
 No other dependencies. All CP437 fonts are embedded — no external files needed.
 
