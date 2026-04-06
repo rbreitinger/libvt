@@ -159,14 +159,6 @@ To change mode mid-program, call `vt_screen` again — it closes and reopens cle
 
 ---
 
-## Status
-
-Core rendering, input, pages, scrollback, scroll regions, mouse and copy/paste
-are complete and tested. The API is still evolving — breaking changes are possible
-until a 1.0 tag is made.
-
----
-
 ## License
 
 MIT License — Copyright (c) 2026 Rene Breitinger (yorokobi)
