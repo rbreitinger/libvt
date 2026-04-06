@@ -3,6 +3,8 @@
 A self-contained library that gives you a proper DOS-style text screen in a real
 SDL2 window. One include, no SDL2 knowledge required. Feels like QBasic, works like 2026.
 
+![VT demo screenshot](docs/screenshot1.png)
+
 ```freebasic
 #include once "vt/vt.bi"
 
