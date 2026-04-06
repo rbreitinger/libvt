@@ -1289,15 +1289,15 @@ Sub vt_sleep(ms As Long = 0)
     t_start = SDL_GetTicks()
 
     Do
-        vt_pump()
-        If vt_internal_blink_update() Then vt_internal.dirty = 1
-        vt_internal_present_if_dirty()
-
         If ms = 0 Then
+            ' vt_inkey handles pump + blink + present internally
             k = vt_inkey()
             If k <> 0 Then Exit Do
             Sleep 10, 1
         Else
+            vt_pump()
+            If vt_internal_blink_update() Then vt_internal.dirty = 1
+            vt_internal_present_if_dirty()
             t_now = SDL_GetTicks()
             If t_now - t_start >= CULng(ms) Then Exit Do
             Sleep 1, 1

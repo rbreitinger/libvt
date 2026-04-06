@@ -12,12 +12,17 @@
 ' SDL colormod tinting in vt_present produces the correct fg colour for
 ' every cell, exactly as with the built-in embedded fonts.
 '
-' Return codes shared by vt_loadfont and vt_font_reset:
+' Return codes for vt_loadfont:
 '   0 = success
 '  -1 = vt_screen() not called yet
 '  -2 = BMP load or surface/texture creation failed
-'  -3 = image dimensions do not fit current screen mode glyph size  (loadfont only)
+'  -3 = image dimensions do not fit current screen mode glyph size
 '  -4 = SDL_CreateTextureFromSurface failed
+'
+' Return codes for vt_font_reset:
+'   0 = success
+'  -1 = vt_screen() not called yet
+'  -2 = failed (surface or texture creation)
 ' =============================================================================
 
 ' -----------------------------------------------------------------------------
@@ -96,7 +101,7 @@ Function vt_font_reset() As Long
     If vt_internal.ready = 0 Then Return -1
 
     new_tex = vt_internal_build_embedded_tex()
-    If new_tex = 0 Then Return -4
+    If new_tex = 0 Then Return -2
 
     SDL_SetTextureBlendMode(new_tex, SDL_BLENDMODE_BLEND)
     SDL_DestroyTexture(vt_internal.sdl_texture)
