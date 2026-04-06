@@ -251,6 +251,7 @@ Type vt_internal_state
     ' page_buf holds all allocated cell buffers. Only 0..num_pages-1 are valid.
     ' cells = page_buf(work_page) at all times.
     ' vt_present reads page_buf(vis_page).
+    
     page_buf(VT_PAGE_SLOTS - 1) As vt_cell Ptr
     num_pages   As Long   ' how many pages were allocated at vt_screen() time
     work_page   As Long   ' active drawing page index
@@ -277,6 +278,7 @@ Type vt_internal_state
     ' Anchor is where the selection started; end moves as user extends it.
     ' sel_dragging tracks LMB held for mouse drag -- independent of mouse_btns.
     ' cp_paste_pend is set by vt_pump and drained by vt_input.
+    
     cp_flags       As Long
     sel_active     As Byte
     sel_anchor_col As Long

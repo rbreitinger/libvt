@@ -14,6 +14,7 @@ Declare Sub      vt_page(work As Long, vis As Long)
 Declare Sub      vt_pcopy(src As Long, dst As Long)
 Declare Sub      vt_internal_cp_build_text()
 Declare Function vt_internal_display_cellptr(col As Long, row_0 As Long, vis_buf As vt_cell Ptr) As vt_cell Ptr
+Declare Function vt_internal_build_embedded_tex() As SDL_Texture Ptr
 
 ' Auto-cleanup destructor -- disabled. See Known Issues in vt_status.md.
 ' SDL appears to have its own cleanup destructor; combining them causes a hang
@@ -516,72 +517,23 @@ Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Lo
         SDL_RenderSetIntegerScale(vt_internal.sdl_renderer, SDL_TRUE)
     End If
 
-    ' --- build font texture: 16x16 glyph grid, white on transparent ---
-    Dim font_surf As SDL_Surface Ptr
-    font_surf = SDL_CreateRGBSurface(0, 16 * glyph_w, 16 * glyph_h, 32, _
-        &h00FF0000, &h0000FF00, &h000000FF, &hFF000000)
-
-    If font_surf = 0 Then
-        SDL_DestroyRenderer(vt_internal.sdl_renderer)
-        SDL_DestroyWindow(vt_internal.sdl_window)
-        SDL_Quit()
-        Return -4
-    End If
-
-    SDL_LockSurface(font_surf)
-
-    Dim surf_px    As ULong Ptr = CPtr(ULong Ptr, font_surf->pixels)
-    Dim surf_pitch As Long      = font_surf->pitch \ 4
-    Dim glyph_idx  As Long
-    Dim gx         As Long
-    Dim gy         As Long
-    Dim glyph_row  As Long
-    Dim font_row   As Long
-    Dim font_byte  As UByte
-    Dim bit_idx    As Long
-    Dim font_bit   As Long
-    Dim on_px      As Byte
-
-    For glyph_idx = 0 To 255
-        gx = (glyph_idx Mod 16) * glyph_w
-        gy = (glyph_idx \ 16)   * glyph_h
-
-        For glyph_row = 0 To glyph_h - 1
-            ' scale glyph_row into source font row (handles upscaling for TILES)
-            font_row  = (glyph_row * fsrc_h) \ glyph_h
-            font_byte = fptr[glyph_idx * fsrc_h + font_row]
-
-            For bit_idx = 0 To glyph_w - 1
-                ' scale bit_idx into source bit (handles width-doubling for 40-col)
-                font_bit = (bit_idx * 8) \ glyph_w
-                on_px    = (font_byte Shr (7 - font_bit)) And 1
-                surf_px[(gy + glyph_row) * surf_pitch + gx + bit_idx] = _
-                    IIf(on_px, &hFFFFFFFF, &h00000000)
-            Next bit_idx
-        Next glyph_row
-    Next glyph_idx
-
-    SDL_UnlockSurface(font_surf)
-
-    vt_internal.sdl_texture = SDL_CreateTextureFromSurface(vt_internal.sdl_renderer, font_surf)
-    SDL_FreeSurface(font_surf)
-
-    If vt_internal.sdl_texture = 0 Then
-        SDL_DestroyRenderer(vt_internal.sdl_renderer)
-        SDL_DestroyWindow(vt_internal.sdl_window)
-        SDL_Quit()
-        Return -5
-    End If
-
-    SDL_SetTextureBlendMode(vt_internal.sdl_texture, SDL_BLENDMODE_BLEND)
-
-    ' --- store geometry and font ---
+    ' --- store geometry and font (must precede texture build -- helper reads these) ---
     vt_internal.scr_cols   = cols
     vt_internal.scr_rows   = rows
     vt_internal.glyph_w    = glyph_w
     vt_internal.glyph_h    = glyph_h
     vt_internal.font_ptr   = fptr
     vt_internal.font_src_h = fsrc_h
+
+    ' --- build font texture ---
+    vt_internal.sdl_texture = vt_internal_build_embedded_tex()
+    If vt_internal.sdl_texture = 0 Then
+        SDL_DestroyRenderer(vt_internal.sdl_renderer)
+        SDL_DestroyWindow(vt_internal.sdl_window)
+        SDL_Quit()
+        Return -4
+    End If
+    SDL_SetTextureBlendMode(vt_internal.sdl_texture, SDL_BLENDMODE_BLEND)
 
     ' --- pages ---
     ' Clamp requested page count, allocate each buffer, wire cells to page 0.
