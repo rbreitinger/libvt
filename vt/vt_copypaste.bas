@@ -11,7 +11,6 @@
 ' Walk the active selection, build a plain-text string, trim trailing spaces
 ' per row, join rows with CR+LF, push to SDL clipboard.
 ' Called from vt_pump on Ctrl+INS (kbd) or RMB (mouse).
-' Safe no-op when sel_active = 0.
 ' Reads from vt_internal_display_cellptr so it works during scrollback --
 ' cells come from sb_cells or vis_buf depending on sb_offset, same as render.
 ' -----------------------------------------------------------------------------
@@ -79,10 +78,7 @@ Sub vt_internal_cp_build_text()
 End Sub
 
 ' -----------------------------------------------------------------------------
-' vt_copypaste - configure copy/paste mode
-' flags : VT_CP_DISABLED (0), VT_CP_MOUSE, VT_CP_KBD, or both Or'd together.
-' Clears any active selection. Call after vt_screen().
-' When VT_CP_DISABLED: no keys reserved, no mouse events captured by VT.
+' vt_copypaste - configure copy/paste mode [off, mouse and/or kbd]
 ' -----------------------------------------------------------------------------
 Sub vt_copypaste(flags As Long)
     If vt_internal.ready = 0 Then Exit Sub
@@ -91,4 +87,4 @@ Sub vt_copypaste(flags As Long)
     vt_internal.sel_dragging  = 0
     vt_internal.cp_paste_pend = 0
     vt_internal.dirty         = 1
-End Sub 
+End Sub

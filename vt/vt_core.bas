@@ -1,9 +1,7 @@
 ' =============================================================================
 ' vt_core.bas - VT Virtual Text Screen Library
-' SDL2 window, cell buffer, blink, palette, vt_present, key handling.
 ' =============================================================================
 
-' forward declarations
 Declare Sub      vt_present()
 Declare Sub      vt_shutdown()
 Declare Sub      vt_internal_shutdown()
@@ -15,15 +13,6 @@ Declare Sub      vt_pcopy(src As Long, dst As Long)
 Declare Sub      vt_internal_cp_build_text()
 Declare Function vt_internal_display_cellptr(col As Long, row_0 As Long, vis_buf As vt_cell Ptr) As vt_cell Ptr
 Declare Function vt_internal_build_embedded_tex() As SDL_Texture Ptr
-
-' Auto-cleanup destructor -- disabled. See Known Issues in vt_status.md.
-' SDL appears to have its own cleanup destructor; combining them causes a hang
-' when the FreeBASIC console window is closed (graphical window close works fine).
-' Call vt_shutdown() explicitly if you need to tear down mid-program.
-
-'Sub vt_auto_cleanup() Destructor
-'    vt_internal_shutdown()
-'End Sub
 
 ' -----------------------------------------------------------------------------
 ' Internal: push one key event into the circular buffer
@@ -166,7 +155,6 @@ Sub vt_pump()
         Select Case evt.type
             Case SDL_QUIT_
                 ' Window closed -- shut down and terminate.
-                ' vt_internal_shutdown() frees SDL before End is called.
                 vt_internal_shutdown()
                 End
 
@@ -440,8 +428,7 @@ End Function
 
 ' -----------------------------------------------------------------------------
 ' Internal: free all SDL and heap resources, reset state
-' Called by the auto-cleanup destructor and by vt_shutdown.
-' Also called at the top of vt_init_impl for re-init (mode change).
+' Called by vt_shutdown and at the top of vt_init_impl for re-init(mode change)
 ' -----------------------------------------------------------------------------
 Sub vt_internal_shutdown()
     If vt_internal.ready = 0 Then Exit Sub
@@ -634,14 +621,6 @@ End Function
 
 ' -----------------------------------------------------------------------------
 ' vt_screen - open the virtual text screen
-' mode  : VT_SCREEN_0 .. VT_SCREEN_TILES
-' flags : VT_WINDOWED, VT_FULLSCREEN_ASPECT, VT_NO_RESIZE, VT_VSYNC, ...
-' pages : number of cell buffers to allocate (1..VT_PAGE_SLOTS, default 1)
-'         page 0 = VT_VIDEO (always the display page at startup)
-'         extra pages used as work pages via vt_page() and vt_pcopy()
-' Call vt_title() before to set the window title.
-' Call vt_scrollback() after to enable the scrollback buffer.
-' Calling vt_screen() again closes and re-opens with the new mode.
 ' -----------------------------------------------------------------------------
 Function vt_screen(mode As Long, flags As Long, pages As Long) As Long
     Dim cols   As Long
@@ -961,8 +940,7 @@ Sub vt_present()
 End Sub
 
 ' -----------------------------------------------------------------------------
-' vt_shutdown - optional explicit teardown (auto-cleanup handles this on exit)
-' Useful if you want to close the VT screen mid-program.
+' vt_shutdown - explicit teardown
 ' -----------------------------------------------------------------------------
 Sub vt_shutdown()
     vt_internal_shutdown()
@@ -970,9 +948,6 @@ End Sub
 
 ' -----------------------------------------------------------------------------
 ' vt_title - set the window title
-' Safe to call before or after vt_screen().
-' Before: stored and used when the window is created.
-' After:  applied to the live window immediately.
 ' -----------------------------------------------------------------------------
 Sub vt_title(txt As String)
     vt_internal.win_title = txt
@@ -983,9 +958,8 @@ End Sub
 
 ' -----------------------------------------------------------------------------
 ' vt_scroll - scroll the scrollback view by amount lines
-' Positive = scroll back (older content), negative = toward live view.
 ' Returns 1 if the offset changed, 0 if already at limit or scrollback disabled.
-' Does not call vt_present -- caller handles that.
+' Does not call vt_present
 ' -----------------------------------------------------------------------------
 Function vt_scroll(amount As Long) As Byte
     If vt_internal.ready   = 0 Then Return 0
@@ -1018,13 +992,6 @@ End Function
 '
 ' Fixed rows outside view_top..view_bot are not affected by scrollback and are
 ' returned as-is. When sb_offset = 0 the function is a trivial pass-through.
-'
-' Typical click-to-locate pattern:
-'   Dim lr As Long = vt_screen_to_live_row(my)
-'   If lr > 0 Then
-'       vt_scroll -99999
-'       vt_locate lr, mx
-'   End If
 ' -----------------------------------------------------------------------------
 Function vt_screen_to_live_row(screen_row As Long) As Long
     Dim scroll_pos  As Long
@@ -1077,10 +1044,6 @@ End Sub
 ' vt_page - set the active drawing page and the visible display page
 ' work : page index written to by all drawing commands (0..num_pages-1)
 ' vis  : page index rendered to screen by vt_present (0..num_pages-1)
-' Default after vt_screen: both 0 -- identical to single-page behaviour.
-' Classic double-buffer setup: vt_page(1, 0)
-'   draw freely on page 1, page 0 stays clean until vt_pcopy(1, VT_VIDEO).
-' Swapping back: vt_page(0, 0)
 ' Invalid indices are silently ignored.
 ' -----------------------------------------------------------------------------
 Sub vt_page(work As Long, vis As Long)
@@ -1095,9 +1058,8 @@ End Sub
 
 ' -----------------------------------------------------------------------------
 ' vt_pcopy - copy one page buffer to another
-' Equivalent to QBasic PCOPY. Marks display dirty but does not call vt_present.
+' Marks display dirty but does not call vt_present.
 ' src = dst is a no-op. Invalid indices are silently ignored.
-' Typical use: vt_pcopy(1, VT_VIDEO) : vt_present()
 ' -----------------------------------------------------------------------------
 Sub vt_pcopy(src As Long, dst As Long)
     If vt_internal.ready = 0 Then Exit Sub
@@ -1126,15 +1088,6 @@ Sub vt_palette_get(pal() As UByte)
     Next pi
 End Sub
 
-' -----------------------------------------------------------------------------
-' Palette API
-' -----------------------------------------------------------------------------
-' vt_palette: idx = -1 resets all 16 colours to CGA defaults.
-'             idx = 0..15 sets one colour. r, g, b must be provided (0..255).
-'             NOTE: r/g/b default to -1 purely to allow omitting them in the
-'             reset case (idx = -1). When idx >= 0, always pass all three
-'             channels explicitly -- omitting them produces 255 (white) because
-'             -1 And 255 = 255.
 Sub vt_palette(idx As Long = -1, r As Long = -1, g As Long = -1, b As Long = -1)
     If idx < 0 Or idx > 15 Then
         vt_palette_set(vt_default_palette())
@@ -1224,7 +1177,7 @@ Function vt_inkey() As ULong
 End Function
 
 ' -----------------------------------------------------------------------------
-' vt_key_held - real-time key state poll for game loops
+' vt_key_held - real-time key state poll
 ' -----------------------------------------------------------------------------
 Function vt_key_held(vtscan As Long) As Byte
     Dim sdl_scan As Long
@@ -1277,9 +1230,7 @@ Function vt_key_held(vtscan As Long) As Byte
 End Function
 
 ' -----------------------------------------------------------------------------
-' vt_sleep
-' ms = 0 : wait for any key
-' ms > 0 : delay for ms milliseconds
+' vt_sleep ms = 0 : wait for any key; ms > 0 : delay for ms milliseconds
 ' -----------------------------------------------------------------------------
 Sub vt_sleep(ms As Long = 0)
     Dim t_start As ULong

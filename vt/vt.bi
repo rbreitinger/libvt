@@ -21,7 +21,6 @@ Const VT_WINDOWED_MAX       = 32   ' start maximized -- regular window, not full
 
 ' -----------------------------------------------------------------------------
 ' Screen mode constants
-' Values match the original QBasic SCREEN numbers where applicable.
 ' -----------------------------------------------------------------------------
 Const VT_SCREEN_0     = 0    ' 80x25  8x16  640x400  -- VGA text (default)
 Const VT_SCREEN_2     = 2    ' 80x25  8x8   640x200  -- CGA hi-res text grid
@@ -35,7 +34,7 @@ Const VT_SCREEN_TILES = 100  ' 40x25  16x16 640x400  -- square tiles, game-frien
 ' -----------------------------------------------------------------------------
 ' Page constants
 ' -----------------------------------------------------------------------------
-Const VT_VIDEO = 0   ' the visible display page -- always page 0
+Const VT_VIDEO = 0   ' the visible display page
 
 ' -----------------------------------------------------------------------------
 ' Colour constants
@@ -81,7 +80,7 @@ End Enum
 #Define VT_ALT(k)     (((k) Shr 31) And 1)
 
 ' -----------------------------------------------------------------------------
-' VT key scancode constants
+' VT key scancodes
 ' -----------------------------------------------------------------------------
 Const VT_KEY_F1  = 59
 Const VT_KEY_F2  = 60
@@ -123,7 +122,7 @@ Const VT_KEY_LWIN   = 219
 Const VT_KEY_RWIN   = 220
 
 ' -----------------------------------------------------------------------------
-' Default CGA / DOS palette  - 16 colours, 3 bytes each (R, G, B)
+' Default CGA / DOS palette - 16 colours, 3 bytes each (R, G, B)
 ' -----------------------------------------------------------------------------
 Static Shared vt_default_palette(47) As UByte = { _
     0,   0,   0,  _ '  0 Black
@@ -296,7 +295,6 @@ Dim Shared vt_internal As vt_internal_state
 #include once "vt_font_8x8.bi"
 #include once "vt_font_8x14.bi"
 #include once "vt_font_8x16.bi"
-
 #include once "vt_core.bas"
 #include once "vt_print.bas"
 #include once "vt_input.bas"
@@ -304,13 +302,6 @@ Dim Shared vt_internal As vt_internal_state
 #include once "vt_bsave.bas"
 #include once "vt_copypaste.bas"
 #include once "vt_font.bas"
-
-'--- undef internals so nothing leaks into user sources ---
-'#undef vt_internal <-- we cannot undef this one as the destructor needs it live
-#undef vt_default_palette
-#undef vt_font_data_8x8
-#undef vt_font_data_8x14
-#undef vt_font_data_8x16
 
 ' --- neutralize clashing Win32 type aliases pulled in via SDL headers ---
 #ifdef __FB_WIN32__
@@ -334,5 +325,12 @@ Dim Shared vt_internal As vt_internal_state
 ' vt_copypaste.bas
 #undef vt_internal_cp_build_text
 
-'vt_font.bas
+' vt_font.bas
 #undef vt_internal_build_embedded_tex
+
+' vt.bi
+#undef vt_default_palette
+#undef vt_font_data_8x8
+#undef vt_font_data_8x14
+#undef vt_font_data_8x16
+'#undef vt_internal

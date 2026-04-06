@@ -1,12 +1,10 @@
 ' =============================================================================
 ' vt_mouse.bas - VT Virtual Text Screen Library
-' Mouse enable/disable, coordinate query, cursor appearance.
 ' =============================================================================
 
 ' -----------------------------------------------------------------------------
-' vt_mouselock - enable or disable window grab (cursor confined to window)
-' Safe to call before or after vt_mouse(1). Takes effect immediately if the
-' mouse is already active. Fullscreen modes auto-lock at vt_screen() time.
+' enable or disable window grab (cursor confined to window)
+' Fullscreen modes auto-lock at vt_screen() time.
 ' -----------------------------------------------------------------------------
 Sub vt_mouselock(onoff As Byte)
     If vt_internal.ready = 0 Then Exit Sub
@@ -19,8 +17,6 @@ End Sub
 
 ' -----------------------------------------------------------------------------
 ' vt_mouse - enable or disable mouse tracking entirely
-' enabled = 1 : hide OS cursor, start tracking, snap char cursor to current pos
-' enabled = 0 : restore OS cursor, clear btns and wheel, stop drawing cursor
 ' -----------------------------------------------------------------------------
 Sub vt_mouse(enabled As Byte)
     Dim px As Long
@@ -56,16 +52,6 @@ End Sub
 
 ' -----------------------------------------------------------------------------
 ' vt_getmouse - read current mouse state (non-blocking)
-' All parameters are Long Ptr. Pass 0 to skip any field.
-' whl  : accumulated wheel delta since last call (+up / -down), reset on read
-' btns : use VT_MOUSE_BTN_LEFT / _RIGHT / _MIDDLE to test bits
-' Returns 0 = ok,  -1 = mouse not enabled or library not ready
-'
-' Examples:
-'   vt_getmouse(@mx, @my)           ' position only
-'   vt_getmouse(@mx, @my, @mb)      ' position + buttons
-'   vt_getmouse(0, 0, 0, @mw)       ' wheel only
-'   vt_getmouse(,,@mb)              ' buttons only (FB skips defaulted params)
 ' -----------------------------------------------------------------------------
 Function vt_getmouse(col  As Long Ptr = 0, row  As Long Ptr = 0, _
                      btns As Long Ptr = 0, whl  As Long Ptr = 0) As Byte
@@ -83,9 +69,6 @@ End Function
 
 ' -----------------------------------------------------------------------------
 ' vt_setmouse - set cursor position and/or visibility
-' col, row : 1-based cell coords; -1 = keep current
-' vis      : 0 = hide cursor, 1 = show cursor; -1 = keep current
-' Safe to call when mouse is disabled -- takes effect when re-enabled.
 ' -----------------------------------------------------------------------------
 Sub vt_setmouse(col As Long = -1, row As Long = -1, vis As Byte = -1)
     If vt_internal.ready = 0 Then Exit Sub

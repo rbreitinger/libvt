@@ -8,8 +8,6 @@ Dim k  As ULong
 Dim f  As Long
 Dim ln As String
 
-vt_title "vt_scrollback + vt_view_print Demo"
-
 ' --- init videomode in fullscren with 4096 lines of scrollback buffer ---
 vt_screen 0, VT_FULLSCREEN_ASPECT
 vt_scrollback 4096

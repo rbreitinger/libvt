@@ -2,20 +2,7 @@
 ' vt_input.bas - VT Virtual Text Screen Library
 ' vt_input : single-line blocking text editor
 ' =============================================================================
-
-' -----------------------------------------------------------------------------
-' vt_input - blocking single-line text input at current cursor position.
-' max_len  : maximum input length. -1 = fill remaining columns on the row.
-' initial  : pre-filled text. ESC restores this, leaves screen clean, returns "".
-' allowed  : if non-empty, only characters in this string are accepted.
-' cancelled: optional Byte Ptr. Set to 1 on ESC, 0 on Enter. Pass 0 to ignore.
-' Uses current vt_color fg/bg throughout. Does not call vt_present directly.
-' Paste (cp_paste_pend) is checked in the inner wait loop so it unblocks
-' without requiring an additional keypress, regardless of whether it came
-' from Shift+INS (keyboard) or MMB (mouse).
-' -----------------------------------------------------------------------------
-Function vt_input(max_len As Long = -1, initial As String = "", _
-                  allowed As String = "", cancelled As Byte Ptr = 0) As String
+Function vt_input(max_len As Long = -1, initial As String = "", allowed As String = "", cancelled As Byte Ptr = 0) As String
     If vt_internal.ready = 0 Then Return ""
 
     Dim start_col As Long

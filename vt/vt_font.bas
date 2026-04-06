@@ -1,28 +1,6 @@
 ' =============================================================================
 ' vt_font.bas - VT Virtual Text Screen Library
 ' Custom bitmap font loader. Call vt_screen() first.
-' SDL2.dll core only -- no SDL_image, ever.
-'
-' Two sheet layouts are recognised automatically:
-'   grid  -- 16 cols x 16 rows of glyphs  canvas = 16*gw  x  16*gh
-'   strip -- 256 glyphs in one horizontal row  canvas = 256*gw x gh
-' Detection is unambiguous once the glyph size is known from the screen mode.
-'
-' All non-mask pixels are normalised to white in the resulting texture so
-' SDL colormod tinting in vt_present produces the correct fg colour for
-' every cell, exactly as with the built-in embedded fonts.
-'
-' Return codes for vt_loadfont:
-'   0 = success
-'  -1 = vt_screen() not called yet
-'  -2 = BMP load or surface/texture creation failed
-'  -3 = image dimensions do not fit current screen mode glyph size
-'  -4 = SDL_CreateTextureFromSurface failed
-'
-' Return codes for vt_font_reset:
-'   0 = success
-'  -1 = vt_screen() not called yet
-'  -2 = failed (surface or texture creation)
 ' =============================================================================
 
 ' -----------------------------------------------------------------------------
@@ -93,7 +71,6 @@ End Function
 ' -----------------------------------------------------------------------------
 ' vt_font_reset - restore the built-in embedded font.
 ' Rebuilds the SDL texture from the bitpacked data that vt_screen() selected.
-' Safe to call any time after vt_screen().
 ' -----------------------------------------------------------------------------
 Function vt_font_reset() As Long
     Dim new_tex As SDL_Texture Ptr
@@ -112,22 +89,6 @@ End Function
 
 ' -----------------------------------------------------------------------------
 ' vt_loadfont - load a BMP font sheet and replace the active font texture.
-'
-' fname    : path to a BMP file (any bit depth -- converted internally to RGB24)
-' sheet_w  : expected pixel width  of the BMP (-1 = accept any)
-' sheet_h  : expected pixel height of the BMP (-1 = accept any)
-' mask_r   : red   component of the transparent background colour (default 0)
-' mask_g   : green component of the transparent background colour (default 0)
-' mask_b   : blue  component of the transparent background colour (default 0)
-'
-' Common mask colours:
-'   black   mask_r=0,   mask_g=0,   mask_b=0
-'   magenta mask_r=255, mask_g=0,   mask_b=255
-'   white   mask_r=255, mask_g=255, mask_b=255
-'
-' Must be called after vt_screen(). The loaded font stays active until
-' vt_loadfont is called again, vt_font_reset() restores the built-in font,
-' or vt_screen() reinitialises the window.
 ' -----------------------------------------------------------------------------
 Function vt_loadfont(fname As String, _
                      sheet_w As Long = -1, _
@@ -172,7 +133,7 @@ Function vt_loadfont(fname As String, _
     img_w = bmp_surf->w
     img_h = bmp_surf->h
 
-    ' --- optional dimension sanity check ---
+    ' --- dimension sanity check ---
     If sheet_w > 0 AndAlso sheet_w <> img_w Then
         SDL_FreeSurface(bmp_surf)
         Return -3
@@ -184,7 +145,7 @@ Function vt_loadfont(fname As String, _
 
     ' --- auto-detect layout from pixel dimensions ---
     ' grid  : exactly 16*gw wide and 16*gh tall  (e.g. 128x128 for 8x8 glyphs)
-    ' strip : exactly 256*gw wide and gh tall     (e.g. 2048x8 for 8x8 glyphs)
+    ' strip : exactly 256*gw wide and gh tall    (e.g. 2048x8 for 8x8 glyphs)
     If img_w = 16 * gw AndAlso img_h = 16 * gh Then
         layout = 1
     ElseIf img_w = 256 * gw AndAlso img_h = gh Then
@@ -223,7 +184,6 @@ Function vt_loadfont(fname As String, _
     dst_pitch = font_surf->pitch \ 4 ' ULong elements per row
 
     For glyph_idx = 0 To 255
-
         ' source top-left pixel coordinate inside the BMP
         If layout = 1 Then
             src_gx = (glyph_idx Mod 16) * gw

@@ -11,6 +11,7 @@ Dim t2         As Double
 Dim t_fill_ms  As Long   ' vt_set_cell loop time in ms
 Dim t_pres_ms  As Long   ' one vt_present() time in ms
 
+vt_title "VT render speed test"
 vt_screen 
 
 ' -------------------------------------------------------------------------

@@ -8,7 +8,7 @@
 ' preserved in the file. Instructions baked into each screen come back
 ' with the load -- the file is a complete snapshot.
 '
-' Files written to the working directory:
+' Files written to the /resources directory:
 '   screen_a.vts   blue theme, fake main menu
 '   screen_b.vts   dark theme, full colour palette swatch
 '
@@ -33,10 +33,11 @@ vt_screen VT_SCREEN_0
 
 ' -----------------------------------------------------------------------
 ' Build and save both screens up front.
-' A brief pause after each so the user sees what was saved.
+' A brief pause after each so we see what was saved.
 ' -----------------------------------------------------------------------
 draw_screen_a()
 vt_present()
+
 ret = vt_bsave(FILE_A)
 If ret <> 0 Then
     vt_color(VT_BRIGHT_RED, VT_BLACK)
@@ -45,10 +46,12 @@ If ret <> 0 Then
     vt_sleep(0)
     End
 End If
+
 vt_sleep(700)
 
 draw_screen_b()
 vt_present()
+
 ret = vt_bsave(FILE_B)
 If ret <> 0 Then
     vt_color(VT_BRIGHT_RED, VT_BLACK)
@@ -57,6 +60,7 @@ If ret <> 0 Then
     vt_sleep(0)
     End
 End If
+
 vt_sleep(700)
 
 ' -----------------------------------------------------------------------
@@ -225,5 +229,5 @@ Sub show_load_error(ret As Long)
     vt_locate(13, (80 - Len(err_txt) - 19) \ 2 + 1)
     vt_print("  vt_bload failed: " & err_txt & "  ")
     vt_present()
-    vt_sleep(1500)
+    vt_sleep()
 End Sub

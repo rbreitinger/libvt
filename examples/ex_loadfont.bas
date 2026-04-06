@@ -1,5 +1,6 @@
 #include once "../vt/vt.bi"
 
+vt_title "vt_loadFont - Demo"
 vt_Screen VT_SCREEN_EGA43, VT_WINDOWED_MAX
 
 '' Load a custom bitmapped font (128x128) and use magenta as mask color (255, 0, 255)

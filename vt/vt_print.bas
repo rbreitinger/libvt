@@ -1,7 +1,5 @@
 ' =============================================================================
 ' vt_print.bas - VT Virtual Text Screen Library
-' vt_cls, vt_color, vt_locate, vt_scroll_enable, vt_view_print, 
-' vt_print, vt_print_center
 ' =============================================================================
 
 ' -----------------------------------------------------------------------------
@@ -144,7 +142,7 @@ Sub vt_scroll_enable(state As Byte)
 End Sub
 
 ' -----------------------------------------------------------------------------
-' vt_view_print - restrict scroll region to a row range (like VIEW PRINT)
+' vt_view_print - restrict scroll region to a row range
 ' omit arguments resets the viewport
 ' -----------------------------------------------------------------------------
 Sub vt_view_print(top_row As Long = -1, bot_row As Long = -1)
@@ -159,7 +157,7 @@ Sub vt_view_print(top_row As Long = -1, bot_row As Long = -1)
 End Sub
 
 ' -----------------------------------------------------------------------------
-' vt_print - print a string at the current cursor position
+' vt_print - print a string at the current cursor position, NO auto LF
 ' -----------------------------------------------------------------------------
 Sub vt_print(txt As String)
     If vt_internal.ready = 0 Then Exit Sub
@@ -181,9 +179,6 @@ Sub vt_print(txt As String)
     Next ci
 End Sub
 
-' -----------------------------------------------------------------------------
-' vt_print_center - print text horizontally centered on a given row
-' -----------------------------------------------------------------------------
 Sub vt_print_center(row As Long, txt As String)
     If vt_internal.ready = 0 Then Exit Sub
     Dim txt_len   As Long = Len(txt)
