@@ -13,6 +13,9 @@ Declare Sub      vt_pcopy(src As Long, dst As Long)
 Declare Sub      vt_internal_cp_build_text()
 Declare Function vt_internal_display_cellptr(col As Long, row_0 As Long, vis_buf As vt_cell Ptr) As vt_cell Ptr
 Declare Function vt_internal_build_embedded_tex() As SDL_Texture Ptr
+#Ifdef VT_USE_SOUND
+    Declare Sub  vt_internal_sound_shutdown()
+#Endif
 
 ' -----------------------------------------------------------------------------
 ' Internal: push one key event into the circular buffer
@@ -448,7 +451,12 @@ Sub vt_internal_shutdown()
     If vt_internal.sdl_texture  <> 0 Then SDL_DestroyTexture(vt_internal.sdl_texture)  : vt_internal.sdl_texture  = 0
     If vt_internal.sdl_renderer <> 0 Then SDL_DestroyRenderer(vt_internal.sdl_renderer): vt_internal.sdl_renderer = 0
     If vt_internal.sdl_window   <> 0 Then SDL_DestroyWindow(vt_internal.sdl_window)    : vt_internal.sdl_window   = 0
-
+    
+    #Ifdef VT_USE_SOUND
+        ' vt_sound extension -- shuts down cleanly if audio was ever opened
+        vt_internal_sound_shutdown()
+    #Endif
+    
     SDL_Quit()
 End Sub
 

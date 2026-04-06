@@ -3,7 +3,7 @@
 ' Usage: #include once "vt/vt.bi"
 ' =============================================================================
 
-#include once "SDL2/SDL.bi"
+#Include Once "SDL2/SDL.bi"
 
 #Define VT_NEWLINE  Chr(10)
 
@@ -166,6 +166,29 @@ Const VT_CP_DISABLED = 0   ' default -- no keys reserved, no mouse events captur
 Const VT_CP_MOUSE    = 1   ' LMB drag selects, RMB copies, MMB pastes (paste: vt_input only)
 Const VT_CP_KBD      = 2   ' Shift+arrows select, Ctrl+INS copies, Shift+INS pastes
 
+#Ifdef VT_USE_SOUND
+    ' -----------------------------------------------------------------------------
+    ' Sound waveform constants  (vt_sound wave param)
+    ' -----------------------------------------------------------------------------
+    Const VT_WAVE_SQUARE   = 0   ' PC speaker / chiptune square wave (default)
+    Const VT_WAVE_TRIANGLE = 1   ' NES triangle channel -- softer, bass feel
+    Const VT_WAVE_SINE     = 2   ' pure sine tone
+    Const VT_WAVE_NOISE    = 3   ' 15-bit LFSR noise -- NES percussion / static
+    
+    ' -----------------------------------------------------------------------------
+    ' Sound blocking constants  (vt_sound blocking param)
+    ' -----------------------------------------------------------------------------
+    Const VT_SOUND_BLOCKING   = 1   ' wait for note to finish, keep window alive (default)
+    Const VT_SOUND_BACKGROUND = 0   ' queue and return immediately
+    
+    ' -----------------------------------------------------------------------------
+    ' Sound tuning constants
+    ' -----------------------------------------------------------------------------
+    Const VT_SND_RATE      = 11025    ' sample rate: Hz, unsigned 8-bit mono
+    Const VT_SND_QUEUE_CAP = 110250   ' max queued bytes (~10 seconds at 11025 Hz)
+    
+    #Define VT_BEEP vt_sound(800, 200)
+#Endif
 ' -----------------------------------------------------------------------------
 ' vt_cell - one character cell on the virtual screen
 ' -----------------------------------------------------------------------------
@@ -292,45 +315,66 @@ End Type
 
 Dim Shared vt_internal As vt_internal_state
 
-#include once "vt_font_8x8.bi"
-#include once "vt_font_8x14.bi"
-#include once "vt_font_8x16.bi"
-#include once "vt_core.bas"
-#include once "vt_print.bas"
-#include once "vt_input.bas"
-#include once "vt_mouse.bas"
-#include once "vt_bsave.bas"
-#include once "vt_copypaste.bas"
-#include once "vt_font.bas"
+#Ifdef VT_USE_SOUND
+    ' -----------------------------------------------------------------------------
+    ' vt_internal_sound_state - audio subsystem state (vt_sound extension)
+    ' -----------------------------------------------------------------------------
+    Type vt_internal_sound_state
+        dev    As SDL_AudioDeviceID   ' 0 = not open
+        ready  As Byte
+    End Type
+    
+    Dim Shared vt_snd As vt_internal_sound_state
+#Endif
+
+#Include Once "vt_font_8x8.bi"
+#Include Once "vt_font_8x14.bi"
+#Include Once "vt_font_8x16.bi"
+#Include Once "vt_core.bas"
+#Include Once "vt_print.bas"
+#Include Once "vt_input.bas"
+#Include Once "vt_mouse.bas"
+#Include Once "vt_bsave.bas"
+#Include Once "vt_copypaste.bas"
+#Include Once "vt_font.bas"
+#Ifdef VT_USE_SOUND
+  #Include Once "vt_sound.bas"
+#Endif
 
 ' --- neutralize clashing Win32 type aliases pulled in via SDL headers ---
-#ifdef __FB_WIN32__
-  #undef MSG
-#endif
+#Ifdef __FB_WIN32__
+    #Undef MSG
+#Endif
 
 ' vt_core.bas
-#undef vt_internal_shutdown
-#undef vt_internal_key_push
-#undef vt_internal_sdl_to_vtscan
-#undef vt_internal_blink_update
-#undef vt_init_impl
-#undef vt_internal_present_if_dirty
-#undef vt_internal_pixel_to_cell
-#undef vt_internal_display_cellptr
+#Undef vt_internal_shutdown
+#Undef vt_internal_key_push
+#Undef vt_internal_sdl_to_vtscan
+#Undef vt_internal_blink_update
+#Undef vt_init_impl
+#Undef vt_internal_present_if_dirty
+#Undef vt_internal_pixel_to_cell
+#Undef vt_internal_display_cellptr
 
 ' vt_print.bas
-#undef vt_internal_scroll_up
-#undef vt_internal_putch
+#Undef vt_internal_scroll_up
+#Undef vt_internal_putch
 
 ' vt_copypaste.bas
-#undef vt_internal_cp_build_text
+#Undef vt_internal_cp_build_text
 
 ' vt_font.bas
-#undef vt_internal_build_embedded_tex
+#Undef vt_internal_build_embedded_tex
+
+#Ifdef VT_USE_SOUND
+    ' vt_sound.bas
+    #Undef vt_internal_sound_init
+    #Undef vt_internal_sound_shutdown
+#Endif
 
 ' vt.bi
-#undef vt_default_palette
-#undef vt_font_data_8x8
-#undef vt_font_data_8x14
-#undef vt_font_data_8x16
-'#undef vt_internal
+#Undef vt_default_palette
+#Undef vt_font_data_8x8
+#Undef vt_font_data_8x14
+#Undef vt_font_data_8x16
+'#Undef vt_internal
