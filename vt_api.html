@@ -1,0 +1,1274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VT &mdash; API Reference</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 15px;
+    line-height: 1.6;
+    color: #000;
+    background: #fff;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 2em 2em 4em;
+  }
+
+  h1 { font-size: 2em; border-bottom: 2px solid #000; padding-bottom: 0.25em; margin-bottom: 0.5em; }
+  h2 { font-size: 1.4em; border-bottom: 1px solid #000; margin-top: 2.5em; margin-bottom: 0.8em; padding-bottom: 0.2em; }
+  h3 { font-size: 1.1em; margin-top: 2em; margin-bottom: 0.4em; font-family: "Courier New", Courier, monospace; }
+  h4 { font-size: 0.95em; margin-top: 1em; margin-bottom: 0.3em; font-weight: bold; }
+
+  p  { margin-bottom: 0.6em; }
+  ul { margin: 0.4em 0 0.6em 1.8em; }
+  li { margin-bottom: 0.2em; }
+
+  a            { color: #000; }
+  a:hover      { text-decoration: none; }
+
+  code, pre {
+    font-family: "Courier New", Courier, monospace;
+    font-size: 0.9em;
+  }
+
+  pre {
+    background: #f4f4f4;
+    border: 1px solid #ccc;
+    padding: 0.7em 1em;
+    overflow-x: auto;
+    margin: 0.5em 0 0.8em;
+    line-height: 1.5;
+  }
+
+  .syntax {
+    background: #f0f0f0;
+    border-left: 3px solid #000;
+    padding: 0.5em 1em;
+    margin: 0.4em 0 0.8em;
+    font-family: "Courier New", Courier, monospace;
+    font-size: 0.9em;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0.5em 0 1em;
+    font-size: 0.9em;
+  }
+  th {
+    background: #e8e8e8;
+    border: 1px solid #aaa;
+    padding: 0.35em 0.6em;
+    text-align: left;
+    font-family: "Courier New", Courier, monospace;
+    font-weight: bold;
+  }
+  td {
+    border: 1px solid #ccc;
+    padding: 0.3em 0.6em;
+    vertical-align: top;
+  }
+  td:first-child { font-family: "Courier New", Courier, monospace; white-space: nowrap; }
+  td.opt  { text-align: center; }
+  tr:nth-child(even) td { background: #fafafa; }
+
+  .ret {
+    margin: 0.4em 0 0.6em;
+    padding-left: 0.8em;
+    border-left: 2px solid #888;
+  }
+
+  .note {
+    background: #f8f8f8;
+    border: 1px dashed #999;
+    padding: 0.5em 0.8em;
+    margin: 0.5em 0 0.8em;
+    font-size: 0.9em;
+  }
+
+  .toc-col {
+    columns: 2;
+    column-gap: 2em;
+    margin-bottom: 1em;
+  }
+  .toc-col ul { margin: 0 0 0.8em 1.2em; }
+  .toc-col li { margin-bottom: 0.1em; }
+
+  .const-table td:nth-child(2) { font-family: "Courier New", Courier, monospace; }
+
+  hr { border: none; border-top: 1px solid #ccc; margin: 2em 0; }
+
+  .section-toc { margin: 0.5em 0 1.2em 1.4em; font-size: 0.9em; }
+  .section-toc li { margin-bottom: 0.1em; font-family: "Courier New", Courier, monospace; }
+
+  .badge-opt {
+    font-size: 0.75em;
+    font-family: Georgia, serif;
+    background: #ddd;
+    padding: 0 4px;
+    border-radius: 2px;
+    vertical-align: middle;
+  }
+</style>
+</head>
+<body>
+
+<h1>VT &mdash; Virtual Text Screen Library</h1>
+<p>
+  DOS-style text screen rendered through SDL2. Single include, no SDL knowledge needed.
+  Target: <strong>Windows</strong>, <strong>FreeBASIC 1.10.1</strong>.
+  Requires <strong>SDL2.dll</strong> alongside your executable.
+</p>
+<pre><em>' Include in your project:</em>
+#include once "vt/vt.bi"</pre>
+
+<!-- ============================================================ -->
+<h2 id="toc">Table of Contents</h2>
+<div class="toc-col">
+  <ul>
+    <li><a href="#constants">Constants</a>
+      <ul>
+        <li><a href="#c-screenmodes">Screen Modes</a></li>
+        <li><a href="#c-winflags">Window Flags</a></li>
+        <li><a href="#c-colors">Color Constants</a></li>
+        <li><a href="#c-keymacros">Key Macros</a></li>
+        <li><a href="#c-keyscans">Key Scancodes</a></li>
+        <li><a href="#c-mousebtns">Mouse Button Constants</a></li>
+        <li><a href="#c-cpflags">Copy/Paste Flags</a></li>
+        <li><a href="#c-misc">Misc Constants</a></li>
+      </ul>
+    </li>
+    <li><a href="#s-init">Initialization</a></li>
+    <li><a href="#s-display">Display</a></li>
+    <li><a href="#s-print">Printing &amp; Cursor</a></li>
+    <li><a href="#s-cells">Cell Access</a></li>
+    <li><a href="#s-scroll">Scroll Region &amp; Scrollback</a></li>
+    <li><a href="#s-pages">Pages</a></li>
+    <li><a href="#s-palette">Palette</a></li>
+    <li><a href="#s-query">Screen Query</a></li>
+    <li><a href="#s-keyboard">Keyboard</a></li>
+    <li><a href="#s-mouse">Mouse</a></li>
+    <li><a href="#s-copypaste">Copy/Paste</a></li>
+    <li><a href="#s-fileio">File I/O (.vts)</a></li>
+    <li><a href="#s-font">Font</a></li>
+  </ul>
+</div>
+
+<hr>
+
+<!-- ============================================================ -->
+<h2 id="hello">Quick Start</h2>
+<pre><em>' Minimal hello-world program.</em>
+#include once "vt/vt.bi"
+
+vt_title "Hello"
+vt_screen VT_SCREEN_0       <em>' 80x25, 8x16 font</em>
+
+vt_color VT_YELLOW, VT_BLACK
+vt_print_center 12, "Hello, World!"
+
+vt_color VT_LIGHT_GREY, VT_BLACK
+vt_print_center 14, "Press any key..."
+vt_present()
+
+vt_sleep 0   <em>' wait for keypress</em></pre>
+
+<hr>
+
+<!-- ============================================================ -->
+<h2 id="constants">Constants</h2>
+
+<!-- Screen Modes -->
+<h3 id="c-screenmodes">Screen Modes</h3>
+<p>Passed as the <code>mode</code> argument to <a href="#vt_screen">vt_screen</a>.</p>
+<table class="const-table">
+  <tr><th>Constant</th><th>Value</th><th>Columns &times; Rows</th><th>Glyph</th><th>Logical resolution</th></tr>
+  <tr><td>VT_SCREEN_0</td><td>0</td><td>80 &times; 25</td><td>8 &times; 16</td><td>640 &times; 400</td></tr>
+  <tr><td>VT_SCREEN_2</td><td>2</td><td>80 &times; 25</td><td>8 &times; 8</td><td>640 &times; 200</td></tr>
+  <tr><td>VT_SCREEN_9</td><td>9</td><td>80 &times; 25</td><td>8 &times; 14</td><td>640 &times; 350</td></tr>
+  <tr><td>VT_SCREEN_12</td><td>12</td><td>80 &times; 30</td><td>8 &times; 16</td><td>640 &times; 480</td></tr>
+  <tr><td>VT_SCREEN_13</td><td>13</td><td>40 &times; 25</td><td>8 &times; 8</td><td>320 &times; 200</td></tr>
+  <tr><td>VT_SCREEN_EGA43</td><td>43</td><td>80 &times; 43</td><td>8 &times; 8</td><td>640 &times; 344</td></tr>
+  <tr><td>VT_SCREEN_VGA50</td><td>50</td><td>80 &times; 50</td><td>8 &times; 8</td><td>640 &times; 400</td></tr>
+  <tr><td>VT_SCREEN_TILES</td><td>100</td><td>40 &times; 25</td><td>16 &times; 16</td><td>640 &times; 400</td></tr>
+</table>
+<p>
+  <code>VT_SCREEN_TILES</code> uses the 8x8 font data scaled to 16x16 glyphs;
+  useful for tile-based games where square cells are desirable.
+</p>
+
+<!-- Window Flags -->
+<h3 id="c-winflags">Window Flags</h3>
+<p>Passed as the <code>flags</code> argument to <a href="#vt_screen">vt_screen</a>. Combine with <code>Or</code>.</p>
+<table class="const-table">
+  <tr><th>Constant</th><th>Value</th><th>Description</th></tr>
+  <tr><td>VT_WINDOWED</td><td>1</td><td>Start in a resizable window (default).</td></tr>
+  <tr><td>VT_FULLSCREEN_ASPECT</td><td>2</td><td>Fullscreen desktop, integer-scaled, black letterbox bars.</td></tr>
+  <tr><td>VT_FULLSCREEN_STRETCH</td><td>4</td><td>Fullscreen, stretches to fill the entire display.</td></tr>
+  <tr><td>VT_NO_RESIZE</td><td>8</td><td>Prevent the user from manually resizing the window.</td></tr>
+  <tr><td>VT_VSYNC</td><td>16</td><td>Enable vertical sync. Off by default.</td></tr>
+  <tr><td>VT_WINDOWED_MAX</td><td>32</td><td>Start maximized (regular window, not fullscreen). Avoid combining with VT_NO_RESIZE.</td></tr>
+</table>
+
+<!-- Color Constants -->
+<h3 id="c-colors">Color Constants</h3>
+<p>
+  Used with <a href="#vt_color">vt_color</a>, <a href="#vt_cls">vt_cls</a>,
+  <a href="#vt_set_cell">vt_set_cell</a>, etc.
+  These are values of the <code>VT_COLOR_IDX</code> enum (0&ndash;15).
+  OR any foreground color with <code>VT_BLINK</code> to enable character blinking.
+</p>
+<table class="const-table">
+  <tr><th>Constant</th><th>Value</th><th>Constant</th><th>Value</th></tr>
+  <tr><td>VT_BLACK</td><td>0</td><td>VT_DARK_GREY</td><td>8</td></tr>
+  <tr><td>VT_BLUE</td><td>1</td><td>VT_BRIGHT_BLUE</td><td>9</td></tr>
+  <tr><td>VT_GREEN</td><td>2</td><td>VT_BRIGHT_GREEN</td><td>10</td></tr>
+  <tr><td>VT_CYAN</td><td>3</td><td>VT_BRIGHT_CYAN</td><td>11</td></tr>
+  <tr><td>VT_RED</td><td>4</td><td>VT_BRIGHT_RED</td><td>12</td></tr>
+  <tr><td>VT_MAGENTA</td><td>5</td><td>VT_BRIGHT_MAGENTA</td><td>13</td></tr>
+  <tr><td>VT_BROWN</td><td>6</td><td>VT_YELLOW</td><td>14</td></tr>
+  <tr><td>VT_LIGHT_GREY</td><td>7</td><td>VT_WHITE</td><td>15</td></tr>
+  <tr><td>VT_BLINK</td><td>16</td><td colspan="2">OR with any fg to make it blink.</td></tr>
+</table>
+<pre><em>' Example: blinking white text on blue:</em>
+vt_color VT_WHITE Or VT_BLINK, VT_BLUE</pre>
+
+<!-- Key Macros -->
+<h3 id="c-keymacros">Key Macros</h3>
+<p>
+  <a href="#vt_inkey">vt_inkey</a> and <a href="#vt_getkey">vt_getkey</a> return a packed <code>ULong</code>.
+  Use these macros to extract fields from it.
+</p>
+<table class="const-table">
+  <tr><th>Macro</th><th>Description</th></tr>
+  <tr><td>VT_CHAR(k)</td><td>ASCII character code (0 if non-printable).</td></tr>
+  <tr><td>VT_SCAN(k)</td><td>VT scancode (bits 16&ndash;27). Always compare via this macro, never directly against <code>k</code>.</td></tr>
+  <tr><td>VT_REPEAT(k)</td><td>1 if this is an auto-repeat event (key held down), 0 otherwise.</td></tr>
+  <tr><td>VT_SHIFT(k)</td><td>1 if Shift was held when the key was pressed.</td></tr>
+  <tr><td>VT_CTRL(k)</td><td>1 if Ctrl was held when the key was pressed.</td></tr>
+  <tr><td>VT_ALT(k)</td><td>1 if Alt was held when the key was pressed.</td></tr>
+</table>
+<pre><em>' Typical usage pattern:</em>
+Dim k As ULong = vt_getkey()
+
+Select Case VT_SCAN(k)
+    Case VT_KEY_UP    : <em>' move up</em>
+    Case VT_KEY_DOWN  : <em>' move down</em>
+    Case VT_KEY_ENTER : <em>' confirm</em>
+    Case Else
+        If VT_CHAR(k) = Asc("q") Then End
+End Select</pre>
+
+<!-- Key Scancodes -->
+<h3 id="c-keyscans">Key Scancodes</h3>
+<p>
+  Compare these against <code>VT_SCAN(k)</code>. Never compare them directly against
+  the raw key value returned by <code>vt_inkey</code>.
+</p>
+<table class="const-table">
+  <tr><th>Constant</th><th>Value</th><th>Constant</th><th>Value</th></tr>
+  <tr><td>VT_KEY_F1</td><td>59</td><td>VT_KEY_F7</td><td>65</td></tr>
+  <tr><td>VT_KEY_F2</td><td>60</td><td>VT_KEY_F8</td><td>66</td></tr>
+  <tr><td>VT_KEY_F3</td><td>61</td><td>VT_KEY_F9</td><td>67</td></tr>
+  <tr><td>VT_KEY_F4</td><td>62</td><td>VT_KEY_F10</td><td>68</td></tr>
+  <tr><td>VT_KEY_F5</td><td>63</td><td>VT_KEY_F11</td><td>133</td></tr>
+  <tr><td>VT_KEY_F6</td><td>64</td><td>VT_KEY_F12</td><td>134</td></tr>
+</table>
+<table class="const-table" style="margin-top:0.5em">
+  <tr><th>Constant</th><th>Value</th><th>Constant</th><th>Value</th></tr>
+  <tr><td>VT_KEY_UP</td><td>72</td><td>VT_KEY_HOME</td><td>71</td></tr>
+  <tr><td>VT_KEY_DOWN</td><td>80</td><td>VT_KEY_END</td><td>79</td></tr>
+  <tr><td>VT_KEY_LEFT</td><td>75</td><td>VT_KEY_PGUP</td><td>73</td></tr>
+  <tr><td>VT_KEY_RIGHT</td><td>77</td><td>VT_KEY_PGDN</td><td>81</td></tr>
+  <tr><td>VT_KEY_INS</td><td>82</td><td>VT_KEY_DEL</td><td>83</td></tr>
+</table>
+<table class="const-table" style="margin-top:0.5em">
+  <tr><th>Constant</th><th>Value</th><th>Constant</th><th>Value</th></tr>
+  <tr><td>VT_KEY_ESC</td><td>1</td><td>VT_KEY_LSHIFT</td><td>42</td></tr>
+  <tr><td>VT_KEY_ENTER</td><td>28</td><td>VT_KEY_RSHIFT</td><td>54</td></tr>
+  <tr><td>VT_KEY_BKSP</td><td>14</td><td>VT_KEY_LCTRL</td><td>29</td></tr>
+  <tr><td>VT_KEY_TAB</td><td>15</td><td>VT_KEY_RCTRL</td><td>157</td></tr>
+  <tr><td>VT_KEY_SPACE</td><td>57</td><td>VT_KEY_LALT</td><td>56</td></tr>
+  <tr><td>VT_KEY_LWIN</td><td>219</td><td>VT_KEY_RALT</td><td>184</td></tr>
+  <tr><td>VT_KEY_RWIN</td><td>220</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+</table>
+
+<!-- Mouse Button Constants -->
+<h3 id="c-mousebtns">Mouse Button Constants</h3>
+<p>Bitmask values returned in the <code>btns</code> parameter of <a href="#vt_getmouse">vt_getmouse</a>.</p>
+<table class="const-table">
+  <tr><th>Constant</th><th>Value</th><th>Description</th></tr>
+  <tr><td>VT_MOUSE_BTN_LEFT</td><td>1</td><td>Left button (bit 0).</td></tr>
+  <tr><td>VT_MOUSE_BTN_RIGHT</td><td>2</td><td>Right button (bit 1).</td></tr>
+  <tr><td>VT_MOUSE_BTN_MIDDLE</td><td>4</td><td>Middle button (bit 2).</td></tr>
+</table>
+
+<!-- Copy/Paste Flags -->
+<h3 id="c-cpflags">Copy/Paste Flags</h3>
+<p>Passed to <a href="#vt_copypaste">vt_copypaste</a>. Combinable with <code>Or</code>.</p>
+<table class="const-table">
+  <tr><th>Constant</th><th>Value</th><th>Description</th></tr>
+  <tr><td>VT_CP_DISABLED</td><td>0</td><td>Default. No keys reserved, no mouse events captured by VT.</td></tr>
+  <tr><td>VT_CP_MOUSE</td><td>1</td><td>LMB drag selects, RMB copies selection, MMB pastes (paste: vt_input only).</td></tr>
+  <tr><td>VT_CP_KBD</td><td>2</td><td>Shift+arrows select, Ctrl+INS copies, Shift+INS pastes (paste: vt_input only).</td></tr>
+</table>
+
+<!-- Misc Constants -->
+<h3 id="c-misc">Miscellaneous Constants</h3>
+<table class="const-table">
+  <tr><th>Constant</th><th>Description</th></tr>
+  <tr><td>VT_NEWLINE</td><td><code>Chr(10)</code> &mdash; newline character for use with <a href="#vt_print">vt_print</a>.</td></tr>
+  <tr><td>VT_VIDEO</td><td>Value <code>0</code>. The display page index. Always page 0.</td></tr>
+</table>
+
+<hr>
+
+<!-- ============================================================ -->
+<h2 id="s-init">Initialization</h2>
+<ul class="section-toc">
+  <li><a href="#vt_screen">vt_screen</a> &mdash; open / reopen the window</li>
+  <li><a href="#vt_scrollback">vt_scrollback</a> &mdash; allocate scrollback buffer</li>
+  <li><a href="#vt_shutdown">vt_shutdown</a> &mdash; explicit teardown</li>
+  <li><a href="#vt_title">vt_title</a> &mdash; set the window title</li>
+</ul>
+
+<!-- vt_screen -->
+<h3 id="vt_screen">vt_screen</h3>
+<p>Open or reopen the virtual text screen. Calling it again closes and reinitializes with the new settings.</p>
+<div class="syntax">Function vt_screen(mode  As Long = VT_SCREEN_0,
+                   flags As Long = VT_WINDOWED,
+                   pages As Long = 1) As Long</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  <tr><td>mode</td><td>Long</td><td>VT_SCREEN_0</td><td>Screen mode. One of the <a href="#c-screenmodes">VT_SCREEN_*</a> constants.</td></tr>
+  <tr><td>flags</td><td>Long</td><td>VT_WINDOWED</td><td>Window behaviour flags. One or more <a href="#c-winflags">VT_WINDOWED / VT_FULLSCREEN_*</a> constants combined with <code>Or</code>.</td></tr>
+  <tr><td>pages</td><td>Long</td><td>1</td><td>Number of cell buffers to allocate (1&ndash;8). Page 0 is always VT_VIDEO. Extra pages are used with <a href="#vt_page">vt_page</a> / <a href="#vt_pcopy">vt_pcopy</a>.</td></tr>
+</table>
+<h4>Return value</h4>
+<div class="ret">
+  <code>0</code> = success<br>
+  <code>-1</code> = SDL_Init failed<br>
+  <code>-2</code> = SDL window creation failed<br>
+  <code>-3</code> = SDL renderer creation failed<br>
+  <code>-4</code> = font texture creation failed<br>
+  <code>-6</code> = page buffer memory allocation failed
+</div>
+<div class="note">
+  Call <a href="#vt_title">vt_title</a> before <code>vt_screen</code> to set the window title before the window appears.<br>
+  Call <a href="#vt_scrollback">vt_scrollback</a> after <code>vt_screen</code> to enable the scrollback buffer.<br>
+  Call <a href="#vt_copypaste">vt_copypaste</a> after <code>vt_screen</code> to enable selection/clipboard support.
+</div>
+
+<!-- vt_scrollback -->
+<h3 id="vt_scrollback">vt_scrollback</h3>
+<p>
+  Allocate (or resize, or disable) the scrollback history buffer.
+  Must be called after <a href="#vt_screen">vt_screen</a>.
+  Calling it again clears any existing history.
+</p>
+<div class="syntax">Sub vt_scrollback(lines As Long)</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  <tr><td>lines</td><td>Long</td><td><em>none</em></td><td>Number of lines of history to keep. Pass <code>0</code> to disable scrollback and free the buffer.</td></tr>
+</table>
+<div class="note">
+  Scrollback captures lines scrolled off the top of the scroll region.
+  The user scrolls through history with <kbd>Shift+PgUp</kbd> / <kbd>Shift+PgDn</kbd>
+  (half-page), or <kbd>Ctrl+Shift+PgUp</kbd> / <kbd>Ctrl+Shift+PgDn</kbd> (single line).
+  Scrollback is automatically exited when any content key is pressed.
+</div>
+
+<!-- vt_shutdown -->
+<h3 id="vt_shutdown">vt_shutdown</h3>
+<p>
+  Explicitly tear down the VT screen and free all SDL resources.
+  This is optional: on normal program exit, SDL cleans itself up.
+  Use it when you need to close the window mid-program.
+</p>
+<div class="syntax">Sub vt_shutdown()</div>
+
+<!-- vt_title -->
+<h3 id="vt_title">vt_title</h3>
+<p>
+  Set the window title. Safe to call before or after <a href="#vt_screen">vt_screen</a>.
+  Before: the title is stored and applied when the window is created.
+  After: applied immediately to the live window.
+</p>
+<div class="syntax">Sub vt_title(txt As String)</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  <tr><td>txt</td><td>String</td><td><em>none</em></td><td>The title bar text.</td></tr>
+</table>
+
+<hr>
+
+<!-- ============================================================ -->
+<h2 id="s-display">Display</h2>
+<ul class="section-toc">
+  <li><a href="#vt_border_color">vt_border_color</a> &mdash; letterbox fill colour</li>
+  <li><a href="#vt_present">vt_present</a> &mdash; flip to screen</li>
+</ul>
+
+<!-- vt_border_color -->
+<h3 id="vt_border_color">vt_border_color</h3>
+<p>
+  Set the colour of the letterbox bars that appear outside the logical viewport
+  in windowed or fullscreen-aspect modes.
+  Default is black (0, 0, 0).
+</p>
+<div class="syntax">Sub vt_border_color(r As Long, g As Long, b As Long)</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  <tr><td>r</td><td>Long</td><td><em>none</em></td><td>Red channel (0&ndash;255).</td></tr>
+  <tr><td>g</td><td>Long</td><td><em>none</em></td><td>Green channel (0&ndash;255).</td></tr>
+  <tr><td>b</td><td>Long</td><td><em>none</em></td><td>Blue channel (0&ndash;255).</td></tr>
+</table>
+
+<!-- vt_present -->
+<h3 id="vt_present">vt_present</h3>
+<p>
+  Composite the visible page and flip it to the screen.
+  Always renders the <em>visible</em> page (<code>vis_page</code>),
+  which may differ from the active drawing page when using multi-page mode.
+  You are responsible for calling this; drawing functions such as
+  <a href="#vt_print">vt_print</a> and <a href="#vt_cls">vt_cls</a> do not call it automatically.
+</p>
+<div class="syntax">Sub vt_present()</div>
+<div class="note">
+  <a href="#vt_inkey">vt_inkey</a> and <a href="#vt_sleep">vt_sleep</a> call <code>vt_present</code>
+  automatically (throttled) to keep the display alive during wait loops.
+</div>
+
+<hr>
+
+<!-- ============================================================ -->
+<h2 id="s-print">Printing &amp; Cursor</h2>
+<ul class="section-toc">
+  <li><a href="#vt_cls">vt_cls</a> &mdash; clear screen</li>
+  <li><a href="#vt_color">vt_color</a> &mdash; set active colour</li>
+  <li><a href="#vt_locate">vt_locate</a> &mdash; move cursor</li>
+  <li><a href="#vt_print">vt_print</a> &mdash; print string</li>
+  <li><a href="#vt_print_center">vt_print_center</a> &mdash; print centered</li>
+  <li><a href="#vt_scroll_enable">vt_scroll_enable</a> &mdash; enable / disable auto-scroll</li>
+</ul>
+
+<!-- vt_cls -->
+<h3 id="vt_cls">vt_cls</h3>
+<p>
+  Clear the active scroll region to spaces using the current foreground and background colours.
+  Resets the cursor to row 1, column 1 of the scroll region.
+  Does not call <a href="#vt_present">vt_present</a>.
+</p>
+<div class="syntax">Sub vt_cls(bg As Long = -1)</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  <tr><td>bg</td><td>Long</td><td>-1</td><td>Background colour index (0&ndash;15). <code>-1</code> keeps the current background colour.</td></tr>
+</table>
+
+<!-- vt_color -->
+<h3 id="vt_color">vt_color</h3>
+<p>
+  Set the active foreground and/or background colour used by
+  <a href="#vt_print">vt_print</a>, <a href="#vt_cls">vt_cls</a>, and <a href="#vt_input">vt_input</a>.
+</p>
+<div class="syntax">Sub vt_color(fg As Long = -1, bg As Long = -1)</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  <tr><td>fg</td><td>Long</td><td>-1</td><td>Foreground colour index (0&ndash;15), optionally OR'd with <code>VT_BLINK</code> (16). <code>-1</code> keeps the current foreground.</td></tr>
+  <tr><td>bg</td><td>Long</td><td>-1</td><td>Background colour index (0&ndash;15). <code>-1</code> keeps the current background.</td></tr>
+</table>
+<pre><em>' Set only foreground, leave background unchanged:</em>
+vt_color VT_BRIGHT_GREEN
+
+<em>' Set both:</em>
+vt_color VT_WHITE, VT_BLUE
+
+<em>' Blinking foreground:</em>
+vt_color VT_RED Or VT_BLINK, VT_BLACK</pre>
+
+<!-- vt_locate -->
+<h3 id="vt_locate">vt_locate</h3>
+<p>
+  Move the text cursor and optionally change its visibility and glyph.
+  Coordinates are 1-based. Parameters with value <code>-1</code> are left unchanged.
+</p>
+<div class="syntax">Sub vt_locate(row       As Long = -1,
+              col       As Long = -1,
+              vis       As Long = -1,
+              cursor_ch As Long = -1)</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  <tr><td>row</td><td>Long</td><td>-1</td><td>Target row, 1-based. Out-of-range values are ignored. <code>-1</code> keeps current row.</td></tr>
+  <tr><td>col</td><td>Long</td><td>-1</td><td>Target column, 1-based. Out-of-range values are ignored. <code>-1</code> keeps current column.</td></tr>
+  <tr><td>vis</td><td>Long</td><td>-1</td><td>Cursor visibility: <code>1</code> = visible, <code>0</code> = hidden, <code>-1</code> = keep current.</td></tr>
+  <tr><td>cursor_ch</td><td>Long</td><td>-1</td><td>CP437 glyph index (0&ndash;255) used to draw the cursor. Default is 219 (solid block). <code>-1</code> keeps current.</td></tr>
+</table>
+
+<!-- vt_print -->
+<h3 id="vt_print">vt_print</h3>
+<p>
+  Print a string at the current cursor position using the active colour.
+  The cursor advances after each character; the display is not automatically flipped.
+  There is no implicit newline &mdash; use <code>VT_NEWLINE</code> (<code>Chr(10)</code>)
+  within the string for line breaks. CRLF pairs are collapsed to a single line feed.
+</p>
+<div class="syntax">Sub vt_print(txt As String)</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  <tr><td>txt</td><td>String</td><td><em>none</em></td><td>The string to print. May contain <code>Chr(10)</code> for newlines and <code>Chr(13)</code>+<code>Chr(10)</code> for CRLF (collapsed to one newline).</td></tr>
+</table>
+<pre><em>' Position, colour, print, flip:</em>
+vt_locate 5, 1
+vt_color VT_CYAN, VT_BLACK
+vt_print "Line one" & VT_NEWLINE & "Line two"
+vt_present()</pre>
+
+<!-- vt_print_center -->
+<h3 id="vt_print_center">vt_print_center</h3>
+<p>
+  Print a string horizontally centered on the given screen row.
+  Uses the current colour and does not call <a href="#vt_present">vt_present</a>.
+</p>
+<div class="syntax">Sub vt_print_center(row As Long, txt As String)</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  <tr><td>row</td><td>Long</td><td><em>none</em></td><td>Target row, 1-based.</td></tr>
+  <tr><td>txt</td><td>String</td><td><em>none</em></td><td>The string to center and print.</td></tr>
+</table>
+
+<!-- vt_scroll_enable -->
+<h3 id="vt_scroll_enable">vt_scroll_enable</h3>
+<p>
+  Enable or disable automatic scrolling of the scroll region.
+  When disabled, text printed past the bottom of the scroll region stays on the last row.
+  Scroll is enabled by default.
+</p>
+<div class="syntax">Sub vt_scroll_enable(state As Byte)</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  <tr><td>state</td><td>Byte</td><td><em>none</em></td><td><code>1</code> = enable scrolling, <code>0</code> = disable.</td></tr>
+</table>
+
+<hr>
+
+<!-- ============================================================ -->
+<h2 id="s-cells">Cell Access</h2>
+<ul class="section-toc">
+  <li><a href="#vt_get_cell">vt_get_cell</a> &mdash; read one character cell</li>
+  <li><a href="#vt_set_cell">vt_set_cell</a> &mdash; write one character cell</li>
+</ul>
+
+<!-- vt_get_cell -->
+<h3 id="vt_get_cell">vt_get_cell</h3>
+<p>
+  Read the character, foreground colour, and background colour of a single cell
+  on the active work page. Coordinates are 1-based. Out-of-range coordinates are ignored.
+</p>
+<div class="syntax">Sub vt_get_cell(col As Long, row As Long,
+                ByRef ch As UByte,
+                ByRef fg As UByte,
+                ByRef bg As UByte)</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  <tr><td>col</td><td>Long</td><td><em>none</em></td><td>Column, 1-based.</td></tr>
+  <tr><td>row</td><td>Long</td><td><em>none</em></td><td>Row, 1-based.</td></tr>
+  <tr><td>ch</td><td>UByte (ByRef)</td><td><em>none</em></td><td>Receives the CP437 character code.</td></tr>
+  <tr><td>fg</td><td>UByte (ByRef)</td><td><em>none</em></td><td>Receives the foreground colour index (may include blink bit).</td></tr>
+  <tr><td>bg</td><td>UByte (ByRef)</td><td><em>none</em></td><td>Receives the background colour index.</td></tr>
+</table>
+
+<!-- vt_set_cell -->
+<h3 id="vt_set_cell">vt_set_cell</h3>
+<p>
+  Write a character cell directly on the active work page without moving the cursor.
+  Does not call <a href="#vt_present">vt_present</a>.
+  Out-of-range coordinates are silently ignored.
+</p>
+<div class="syntax">Sub vt_set_cell(col As Long, row As Long,
+                ch  As UByte,
+                fg  As UByte,
+                bg  As UByte)</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  <tr><td>col</td><td>Long</td><td><em>none</em></td><td>Column, 1-based.</td></tr>
+  <tr><td>row</td><td>Long</td><td><em>none</em></td><td>Row, 1-based.</td></tr>
+  <tr><td>ch</td><td>UByte</td><td><em>none</em></td><td>CP437 character code (0&ndash;255).</td></tr>
+  <tr><td>fg</td><td>UByte</td><td><em>none</em></td><td>Foreground colour index (0&ndash;15), optionally OR'd with 16 for blink.</td></tr>
+  <tr><td>bg</td><td>UByte</td><td><em>none</em></td><td>Background colour index (0&ndash;15).</td></tr>
+</table>
+
+<hr>
+
+<!-- ============================================================ -->
+<h2 id="s-scroll">Scroll Region &amp; Scrollback</h2>
+<ul class="section-toc">
+  <li><a href="#vt_scroll">vt_scroll</a> &mdash; move scrollback view</li>
+  <li><a href="#vt_screen_to_live_row">vt_screen_to_live_row</a> &mdash; map screen row during scrollback</li>
+  <li><a href="#vt_view_print">vt_view_print</a> &mdash; restrict scroll region</li>
+</ul>
+
+<!-- vt_scroll -->
+<h3 id="vt_scroll">vt_scroll</h3>
+<p>
+  Move the scrollback view by a number of lines.
+  Positive values scroll toward older history; negative values scroll toward the live view.
+  Scrollback must be enabled with <a href="#vt_scrollback">vt_scrollback</a> first.
+  Does not call <a href="#vt_present">vt_present</a>.
+</p>
+<div class="syntax">Function vt_scroll(amount As Long) As Byte</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  <tr><td>amount</td><td>Long</td><td><em>none</em></td><td>Lines to scroll. Positive = back in history, negative = toward live view. Clamped to valid range automatically.</td></tr>
+</table>
+<h4>Return value</h4>
+<div class="ret">
+  <code>1</code> = offset changed<br>
+  <code>0</code> = already at limit, amount is zero, or scrollback is disabled
+</div>
+
+<!-- vt_screen_to_live_row -->
+<h3 id="vt_screen_to_live_row">vt_screen_to_live_row</h3>
+<p>
+  Translate a screen row number to the corresponding live buffer row while
+  the scrollback view is offset. Useful when implementing click-to-locate
+  functionality: call this before snapping back to the live view with
+  <code>vt_scroll(-99999)</code>.
+</p>
+<div class="syntax">Function vt_screen_to_live_row(screen_row As Long) As Long</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  <tr><td>screen_row</td><td>Long</td><td><em>none</em></td><td>1-based screen row as seen during the current scrollback offset.</td></tr>
+</table>
+<h4>Return value</h4>
+<div class="ret">
+  1-based live buffer row that corresponds to <code>screen_row</code>.<br>
+  <code>0</code> if the screen row is showing pure scrollback history with no live equivalent.<br>
+  Pass-through (returns <code>screen_row</code>) when scrollback is not active or the row
+  is a fixed row outside the scroll region.
+</div>
+<pre><em>' Click-to-locate pattern during scrollback:</em>
+Dim lr As Long = vt_screen_to_live_row(clicked_row)
+If lr > 0 Then
+    vt_scroll -99999   <em>' snap back to live</em>
+    vt_locate lr, clicked_col
+End If</pre>
+
+<!-- vt_view_print -->
+<h3 id="vt_view_print">vt_view_print</h3>
+<p>
+  Restrict the scroll region and print region to a range of rows (like QBasic's
+  <code>VIEW PRINT</code>). Rows outside this range are unaffected by
+  <a href="#vt_cls">vt_cls</a>, <a href="#vt_print">vt_print</a>, and scrolling.
+  Call with no arguments (or both <code>-1</code>) to reset to the full screen.
+</p>
+<div class="syntax">Sub vt_view_print(top_row As Long = -1, bot_row As Long = -1)</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  <tr><td>top_row</td><td>Long</td><td>-1</td><td>First row of the scroll region, 1-based. <code>-1</code> resets both bounds to the full screen.</td></tr>
+  <tr><td>bot_row</td><td>Long</td><td>-1</td><td>Last row of the scroll region, 1-based. Must be &ge; top_row.</td></tr>
+</table>
+<div class="note">
+  Both parameters must be <code>-1</code> together to reset. Passing one as <code>-1</code>
+  while the other has a valid value only applies the valid value.
+</div>
+
+<hr>
+
+<!-- ============================================================ -->
+<h2 id="s-pages">Pages</h2>
+<ul class="section-toc">
+  <li><a href="#vt_page">vt_page</a> &mdash; set draw and display page</li>
+  <li><a href="#vt_pcopy">vt_pcopy</a> &mdash; copy one page to another</li>
+</ul>
+<p>
+  Pages are separate full-screen cell buffers. Multiple pages are allocated at
+  <a href="#vt_screen">vt_screen</a> time via the <code>pages</code> argument.
+  Page 0 (<code>VT_VIDEO</code>) is always the startup visible page.
+  Up to 8 pages are supported (indices 0&ndash;7).
+</p>
+
+<!-- vt_page -->
+<h3 id="vt_page">vt_page</h3>
+<p>
+  Set the active drawing page and the visible display page independently.
+  All drawing commands write to the <em>work</em> page;
+  <a href="#vt_present">vt_present</a> reads from the <em>vis</em> page.
+  Invalid indices are silently ignored.
+</p>
+<div class="syntax">Sub vt_page(work As Long, vis As Long)</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  <tr><td>work</td><td>Long</td><td><em>none</em></td><td>Drawing page index (0 &le; work &lt; pages). All drawing commands go here.</td></tr>
+  <tr><td>vis</td><td>Long</td><td><em>none</em></td><td>Display page index (0 &le; vis &lt; pages). This page is shown by <a href="#vt_present">vt_present</a>.</td></tr>
+</table>
+<pre><em>' Classic double-buffer setup: draw on page 1, display page 0.</em>
+vt_page 1, VT_VIDEO
+<em>' ... draw freely on page 1 ...</em>
+vt_pcopy 1, VT_VIDEO   <em>' push finished frame to page 0</em>
+vt_present()
+<em>' Swap back when done:</em>
+vt_page VT_VIDEO, VT_VIDEO</pre>
+
+<!-- vt_pcopy -->
+<h3 id="vt_pcopy">vt_pcopy</h3>
+<p>
+  Copy one page buffer to another (equivalent to QBasic <code>PCOPY</code>).
+  Marks the display dirty but does not call <a href="#vt_present">vt_present</a>.
+  <code>src = dst</code> is a no-op. Invalid indices are silently ignored.
+</p>
+<div class="syntax">Sub vt_pcopy(src As Long, dst As Long)</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  <tr><td>src</td><td>Long</td><td><em>none</em></td><td>Source page index.</td></tr>
+  <tr><td>dst</td><td>Long</td><td><em>none</em></td><td>Destination page index.</td></tr>
+</table>
+
+<hr>
+
+<!-- ============================================================ -->
+<h2 id="s-palette">Palette</h2>
+<ul class="section-toc">
+  <li><a href="#vt_palette">vt_palette</a> &mdash; set one colour or reset all</li>
+  <li><a href="#vt_palette_get">vt_palette_get</a> &mdash; read all 16 colours into an array</li>
+  <li><a href="#vt_palette_set">vt_palette_set</a> &mdash; write all 16 colours from an array</li>
+</ul>
+<p>
+  The palette is a flat array of 48 bytes: 16 colours &times; 3 channels (R, G, B).
+  Entry <code>idx</code> starts at byte <code>idx * 3</code>.
+  The default is the CGA palette.
+</p>
+
+<!-- vt_palette -->
+<h3 id="vt_palette">vt_palette</h3>
+<p>
+  Set a single palette entry, or reset all 16 colours to CGA defaults.
+</p>
+<div class="syntax">Sub vt_palette(idx As Long = -1,
+               r   As Long = -1,
+               g   As Long = -1,
+               b   As Long = -1)</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  <tr><td>idx</td><td>Long</td><td>-1</td><td>Colour index (0&ndash;15). Pass <code>-1</code> to reset all 16 entries to the CGA defaults (r, g, b are ignored in this case).</td></tr>
+  <tr><td>r</td><td>Long</td><td>-1</td><td>Red channel (0&ndash;255). When <code>idx &ge; 0</code>, always pass all three channels explicitly.</td></tr>
+  <tr><td>g</td><td>Long</td><td>-1</td><td>Green channel (0&ndash;255).</td></tr>
+  <tr><td>b</td><td>Long</td><td>-1</td><td>Blue channel (0&ndash;255).</td></tr>
+</table>
+<div class="note">
+  When <code>idx &ge; 0</code>, always supply all three colour channels.
+  The defaults (<code>-1</code>) are only meaningful for the reset case (<code>idx = -1</code>).
+  Omitting channels when setting a specific entry produces 255 (white) because
+  <code>-1 And 255 = 255</code>.
+</div>
+<pre><em>' Replace colour index 4 (Red) with a custom orange:</em>
+vt_palette 4, 220, 120, 0
+
+<em>' Reset all 16 colours back to CGA defaults:</em>
+vt_palette</pre>
+
+<!-- vt_palette_get -->
+<h3 id="vt_palette_get">vt_palette_get</h3>
+<p>Bulk-read all 16 palette entries into a caller-supplied UByte array of at least 48 elements.</p>
+<div class="syntax">Sub vt_palette_get(pal() As UByte)</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  <tr><td>pal()</td><td>UByte array</td><td><em>none</em></td><td>Array to receive 48 bytes of palette data (16 colours &times; R, G, B).</td></tr>
+</table>
+
+<!-- vt_palette_set -->
+<h3 id="vt_palette_set">vt_palette_set</h3>
+<p>Bulk-write all 16 palette entries from a caller-supplied UByte array of 48 elements.</p>
+<div class="syntax">Sub vt_palette_set(pal() As UByte)</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  <tr><td>pal()</td><td>UByte array</td><td><em>none</em></td><td>Array containing 48 bytes of palette data (16 colours &times; R, G, B).</td></tr>
+</table>
+
+<hr>
+
+<!-- ============================================================ -->
+<h2 id="s-query">Screen Query</h2>
+<ul class="section-toc">
+  <li><a href="#vt_cols">vt_cols</a> &mdash; screen column count</li>
+  <li><a href="#vt_csrlin">vt_csrlin</a> &mdash; current cursor row</li>
+  <li><a href="#vt_pos">vt_pos</a> &mdash; current cursor column</li>
+  <li><a href="#vt_rows">vt_rows</a> &mdash; screen row count</li>
+</ul>
+
+<!-- vt_cols -->
+<h3 id="vt_cols">vt_cols</h3>
+<p>Returns the total number of columns in the current screen mode.</p>
+<div class="syntax">Function vt_cols() As Long</div>
+
+<!-- vt_csrlin -->
+<h3 id="vt_csrlin">vt_csrlin</h3>
+<p>Returns the current cursor row (1-based).</p>
+<div class="syntax">Function vt_csrlin() As Long</div>
+
+<!-- vt_pos -->
+<h3 id="vt_pos">vt_pos</h3>
+<p>Returns the current cursor column (1-based).</p>
+<div class="syntax">Function vt_pos() As Long</div>
+
+<!-- vt_rows -->
+<h3 id="vt_rows">vt_rows</h3>
+<p>Returns the total number of rows in the current screen mode.</p>
+<div class="syntax">Function vt_rows() As Long</div>
+
+<hr>
+
+<!-- ============================================================ -->
+<h2 id="s-keyboard">Keyboard</h2>
+<ul class="section-toc">
+  <li><a href="#vt_getchar">vt_getchar</a> &mdash; blocking printable character</li>
+  <li><a href="#vt_getkey">vt_getkey</a> &mdash; blocking key read</li>
+  <li><a href="#vt_inkey">vt_inkey</a> &mdash; non-blocking key read</li>
+  <li><a href="#vt_input">vt_input</a> &mdash; blocking line editor</li>
+  <li><a href="#vt_key_flush">vt_key_flush</a> &mdash; discard pending keys</li>
+  <li><a href="#vt_key_held">vt_key_held</a> &mdash; real-time key state</li>
+  <li><a href="#vt_key_repeat">vt_key_repeat</a> &mdash; configure key repeat timing</li>
+  <li><a href="#vt_pump">vt_pump</a> &mdash; manual event drain</li>
+  <li><a href="#vt_sleep">vt_sleep</a> &mdash; delay or wait for key</li>
+</ul>
+
+<!-- vt_getchar -->
+<h3 id="vt_getchar">vt_getchar</h3>
+<p>
+  Block until a printable character (ASCII 32&ndash;255) is pressed.
+  If <code>allowed</code> is non-empty, only characters within that string are accepted;
+  all others are discarded silently. Returns the accepted character as a one-character String.
+</p>
+<div class="syntax">Function vt_getchar(allowed As String = "") As String</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  <tr><td>allowed</td><td>String</td><td>""</td><td>Whitelist of accepted characters. Empty string = accept any printable character.</td></tr>
+</table>
+<h4>Return value</h4>
+<div class="ret">Single-character String containing the accepted character.</div>
+<pre><em>' Accept only Y or N:</em>
+vt_print "Continue? (Y/N) "
+vt_present()
+Dim ans As String = UCase(vt_getchar("YyNn"))</pre>
+
+<!-- vt_getkey -->
+<h3 id="vt_getkey">vt_getkey</h3>
+<p>
+  Block until any key (including non-printable and special keys) is pressed.
+  Returns the same packed <code>ULong</code> format as <a href="#vt_inkey">vt_inkey</a>;
+  use the <a href="#c-keymacros">VT_SCAN / VT_CHAR / VT_SHIFT / VT_CTRL / VT_ALT</a> macros to extract fields.
+</p>
+<div class="syntax">Function vt_getkey() As ULong</div>
+<h4>Return value</h4>
+<div class="ret">Packed key event value. Use VT_CHAR, VT_SCAN, VT_SHIFT, VT_CTRL, VT_ALT, VT_REPEAT macros to decode.</div>
+
+<!-- vt_inkey -->
+<h3 id="vt_inkey">vt_inkey</h3>
+<p>
+  Non-blocking key read. Returns the next key from the buffer, or <code>0</code> if
+  no key is pending. Also pumps events, updates blink, and calls
+  <a href="#vt_present">vt_present</a> if the display is dirty (throttled to 2&nbsp;ms).
+</p>
+<div class="syntax">Function vt_inkey() As ULong</div>
+<h4>Return value</h4>
+<div class="ret">
+  Packed key event (non-zero) if a key was waiting.<br>
+  <code>0</code> if the buffer is empty or the library is not ready.
+</div>
+<pre><em>' Game loop pattern:</em>
+Do
+    Dim k As ULong = vt_inkey()
+    If VT_SCAN(k) = VT_KEY_ESC Then Exit Do
+    <em>' ... update and draw ...</em>
+    vt_present()
+    Sleep 16, 1
+Loop</pre>
+
+<!-- vt_input -->
+<h3 id="vt_input">vt_input</h3>
+<p>
+  Full-featured blocking single-line text editor at the current cursor position.
+  Supports navigation (Home, End, Left, Right), insertion, deletion (Backspace, Del),
+  and clipboard paste when copy/paste is enabled.
+  Returns the entered string on Enter, or an empty string on Escape.
+</p>
+<div class="syntax">Function vt_input(max_len   As Long   = -1,
+                  initial   As String = "",
+                  allowed   As String = "",
+                  cancelled As Byte Ptr = 0) As String</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  <tr><td>max_len</td><td>Long</td><td>-1</td><td>Maximum input length. <code>-1</code> fills all remaining columns on the current row.</td></tr>
+  <tr><td>initial</td><td>String</td><td>""</td><td>Pre-filled text shown at startup. Pressing Escape restores this text, clears the screen, and returns <code>""</code>.</td></tr>
+  <tr><td>allowed</td><td>String</td><td>""</td><td>Whitelist of accepted characters. Empty = accept any printable ASCII.</td></tr>
+  <tr><td>cancelled</td><td>Byte Ptr</td><td>0 (null)</td><td>Optional pointer to a Byte. Set to <code>1</code> on Escape, <code>0</code> on Enter. Pass <code>0</code> to ignore.</td></tr>
+</table>
+<h4>Return value</h4>
+<div class="ret">
+  The entered string on Enter.<br>
+  <code>""</code> (empty string) on Escape.
+</div>
+<div class="note">
+  Paste (Shift+INS or MMB) is only functional inside <code>vt_input</code>.
+  The editor uses the current <a href="#vt_color">vt_color</a> settings throughout.
+  It does not call <a href="#vt_present">vt_present</a> directly; the internal
+  <a href="#vt_inkey">vt_inkey</a> calls handle presentation.
+</div>
+<pre><em>' Prompt with pre-filled default, numeric only, detect cancel:</em>
+Dim esc As Byte
+vt_locate 10, 1
+vt_print "Enter amount: "
+vt_present()
+Dim amount As String = vt_input(8, "0", "0123456789.", @esc)
+If esc Then
+    vt_print "Cancelled" & VT_NEWLINE
+Else
+    vt_print "Got: " & amount & VT_NEWLINE
+End If
+vt_present()</pre>
+
+<!-- vt_key_flush -->
+<h3 id="vt_key_flush">vt_key_flush</h3>
+<p>Discard all keys currently waiting in the internal key buffer.</p>
+<div class="syntax">Sub vt_key_flush()</div>
+
+<!-- vt_key_held -->
+<h3 id="vt_key_held">vt_key_held</h3>
+<p>
+  Poll the real-time state of a key. Returns <code>1</code> if the key is physically
+  held down at the time of the call. Useful for smooth movement in game loops where
+  event-based repeat is not fast enough.
+  Accepts the same <a href="#c-keyscans">VT_KEY_*</a> scancode constants used with VT_SCAN.
+</p>
+<div class="syntax">Function vt_key_held(vtscan As Long) As Byte</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  <tr><td>vtscan</td><td>Long</td><td><em>none</em></td><td>A VT_KEY_* scancode constant.</td></tr>
+</table>
+<h4>Return value</h4>
+<div class="ret">
+  <code>1</code> if the key is currently pressed.<br>
+  <code>0</code> if not pressed, scancode not recognized, or library not ready.
+</div>
+<pre><em>' Smooth movement example:</em>
+If vt_key_held(VT_KEY_LEFT)  Then x -= 1
+If vt_key_held(VT_KEY_RIGHT) Then x += 1</pre>
+
+<!-- vt_key_repeat -->
+<h3 id="vt_key_repeat">vt_key_repeat</h3>
+<p>
+  Configure the timing of auto-repeat events generated when a key is held down.
+  Default: 400&nbsp;ms initial delay, 30&nbsp;ms repeat rate.
+  Set either value to <code>0</code> to disable the corresponding phase of repeat.
+</p>
+<div class="syntax">Sub vt_key_repeat(initial_ms As Long, rate_ms As Long)</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  <tr><td>initial_ms</td><td>Long</td><td><em>400</em></td><td>Delay in milliseconds before the first repeat event fires.</td></tr>
+  <tr><td>rate_ms</td><td>Long</td><td><em>30</em></td><td>Interval in milliseconds between subsequent repeat events.</td></tr>
+</table>
+
+<!-- vt_pump -->
+<h3 id="vt_pump">vt_pump</h3>
+<p>
+  Manually drain the SDL event queue. Normally called automatically by
+  <a href="#vt_inkey">vt_inkey</a>, <a href="#vt_present">vt_present</a>, and
+  <a href="#vt_sleep">vt_sleep</a>.
+  Rarely needed directly &mdash; useful in tight loops that never call any of those.
+  Re-entrant safe (a second call while inside returns immediately).
+</p>
+<div class="syntax">Sub vt_pump()</div>
+
+<!-- vt_sleep -->
+<h3 id="vt_sleep">vt_sleep</h3>
+<p>
+  Delay for a fixed number of milliseconds, or wait indefinitely for any keypress.
+  Keeps the display alive (blink, present) during the wait.
+</p>
+<div class="syntax">Sub vt_sleep(ms As Long = 0)</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  <tr><td>ms</td><td>Long</td><td>0</td><td>Delay in milliseconds. <code>0</code> = wait for any keypress.</td></tr>
+</table>
+<div class="note">
+  When <code>ms = 0</code>, the keypress is consumed from the buffer.
+  When <code>ms &gt; 0</code>, no key is consumed; the delay simply elapses.
+</div>
+
+<hr>
+
+<!-- ============================================================ -->
+<h2 id="s-mouse">Mouse</h2>
+<ul class="section-toc">
+  <li><a href="#vt_getmouse">vt_getmouse</a> &mdash; read mouse state</li>
+  <li><a href="#vt_mouse">vt_mouse</a> &mdash; enable / disable tracking</li>
+  <li><a href="#vt_mouselock">vt_mouselock</a> &mdash; confine cursor to window</li>
+  <li><a href="#vt_setmouse">vt_setmouse</a> &mdash; set cursor position / visibility</li>
+</ul>
+
+<!-- vt_getmouse -->
+<h3 id="vt_getmouse">vt_getmouse</h3>
+<p>
+  Non-blocking read of the current mouse state.
+  All parameters are optional pointers; pass <code>0</code> to skip any field.
+  Must enable the mouse first with <a href="#vt_mouse">vt_mouse(1)</a>.
+  The wheel accumulator is reset to zero each time it is read.
+  Button state uses the <a href="#c-mousebtns">VT_MOUSE_BTN_*</a> bitmask constants.
+</p>
+<div class="syntax">Function vt_getmouse(col  As Long Ptr = 0,
+                     row  As Long Ptr = 0,
+                     btns As Long Ptr = 0,
+                     whl  As Long Ptr = 0) As Byte</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  <tr><td>col</td><td>Long Ptr</td><td>0</td><td>Receives 1-based column. Pass <code>0</code> to skip.</td></tr>
+  <tr><td>row</td><td>Long Ptr</td><td>0</td><td>Receives 1-based row. Pass <code>0</code> to skip.</td></tr>
+  <tr><td>btns</td><td>Long Ptr</td><td>0</td><td>Receives button bitmask. Pass <code>0</code> to skip.</td></tr>
+  <tr><td>whl</td><td>Long Ptr</td><td>0</td><td>Receives accumulated wheel delta (+up / &minus;down) since last read. Reset to 0 on read. Pass <code>0</code> to skip.</td></tr>
+</table>
+<h4>Return value</h4>
+<div class="ret">
+  <code>0</code> = ok<br>
+  <code>-1</code> = mouse not enabled, or library not ready
+</div>
+<pre><em>' Read position and buttons:</em>
+Dim mx As Long, my As Long, mb As Long
+vt_getmouse @mx, @my, @mb
+
+<em>' Read wheel only:</em>
+Dim mw As Long
+vt_getmouse 0, 0, 0, @mw
+
+<em>' Read buttons only (FreeBASIC skips defaulted pointer params):</em>
+vt_getmouse(,,@mb)</pre>
+
+<!-- vt_mouse -->
+<h3 id="vt_mouse">vt_mouse</h3>
+<p>
+  Enable or disable mouse tracking entirely.
+  Enabling hides the OS cursor, starts tracking, and snaps the character cursor to
+  the current physical mouse position.
+  Disabling restores the OS cursor and clears button/wheel state.
+</p>
+<div class="syntax">Sub vt_mouse(enabled As Byte)</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  <tr><td>enabled</td><td>Byte</td><td><em>none</em></td><td><code>1</code> = enable mouse tracking, <code>0</code> = disable.</td></tr>
+</table>
+
+<!-- vt_mouselock -->
+<h3 id="vt_mouselock">vt_mouselock</h3>
+<p>
+  Enable or disable SDL window grab, which confines the mouse cursor to the window.
+  Fullscreen modes enable this automatically at <a href="#vt_screen">vt_screen</a> time.
+  Safe to call before or after <a href="#vt_mouse">vt_mouse(1)</a>.
+</p>
+<div class="syntax">Sub vt_mouselock(onoff As Byte)</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  <tr><td>onoff</td><td>Byte</td><td><em>none</em></td><td><code>1</code> = lock cursor inside window, <code>0</code> = unlock.</td></tr>
+</table>
+
+<!-- vt_setmouse -->
+<h3 id="vt_setmouse">vt_setmouse</h3>
+<p>
+  Set the character cursor position and/or visibility.
+  Coordinates are 1-based. Pass <code>-1</code> to leave any field unchanged.
+  Safe to call when the mouse is disabled; settings take effect when re-enabled.
+</p>
+<div class="syntax">Sub vt_setmouse(col As Long = -1,
+                row As Long = -1,
+                vis As Byte = -1)</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  <tr><td>col</td><td>Long</td><td>-1</td><td>Column, 1-based. Clamped to screen bounds. <code>-1</code> = keep current.</td></tr>
+  <tr><td>row</td><td>Long</td><td>-1</td><td>Row, 1-based. Clamped to screen bounds. <code>-1</code> = keep current.</td></tr>
+  <tr><td>vis</td><td>Byte</td><td>-1</td><td><code>1</code> = show cursor, <code>0</code> = hide cursor, <code>-1</code> = keep current.</td></tr>
+</table>
+
+<hr>
+
+<!-- ============================================================ -->
+<h2 id="s-copypaste">Copy/Paste</h2>
+<ul class="section-toc">
+  <li><a href="#vt_copypaste">vt_copypaste</a> &mdash; configure selection and clipboard mode</li>
+</ul>
+
+<!-- vt_copypaste -->
+<h3 id="vt_copypaste">vt_copypaste</h3>
+<p>
+  Configure the copy/paste and text selection system. Call after
+  <a href="#vt_screen">vt_screen</a>. Clears any active selection.
+</p>
+<div class="syntax">Sub vt_copypaste(flags As Long)</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  <tr><td>flags</td><td>Long</td><td><em>none</em></td><td>One or more <a href="#c-cpflags">VT_CP_*</a> constants combined with <code>Or</code>. <code>VT_CP_DISABLED</code> (0) disables all interception.</td></tr>
+</table>
+<div class="note">
+  <strong>Keyboard mode (VT_CP_KBD):</strong> Shift+Arrow / Shift+Home / Shift+End extends a selection from
+  the cursor. Ctrl+INS copies the selection to the clipboard. Shift+INS pastes from
+  the clipboard (inside <a href="#vt_input">vt_input</a> only).<br><br>
+  <strong>Mouse mode (VT_CP_MOUSE):</strong> LMB drag creates a selection. RMB copies the current selection.
+  MMB pastes from the clipboard (inside <a href="#vt_input">vt_input</a> only).<br><br>
+  Copy works during scrollback. Keyboard selection extension and paste are gated on
+  scrollback being at the live view (sb_offset = 0).<br><br>
+  Selected text is stored in the system clipboard as plain text, with trailing spaces
+  per row trimmed and rows joined with CRLF.
+</div>
+<pre><em>' Enable both keyboard and mouse copy/paste:</em>
+vt_screen VT_SCREEN_0
+vt_copypaste VT_CP_KBD Or VT_CP_MOUSE
+
+<em>' Disable entirely:</em>
+vt_copypaste VT_CP_DISABLED</pre>
+
+<hr>
+
+<!-- ============================================================ -->
+<h2 id="s-fileio">File I/O (.vts format)</h2>
+<ul class="section-toc">
+  <li><a href="#vt_bload">vt_bload</a> &mdash; load screen from .vts file</li>
+  <li><a href="#vt_bsave">vt_bsave</a> &mdash; save screen to .vts file</li>
+</ul>
+<p>
+  The <code>.vts</code> format is a compact binary screen dump:
+  4-byte magic <code>"VTBS"</code>, 4-byte cols, 4-byte rows (all little-endian Long),
+  followed by <code>cols &times; rows &times; 3</code> bytes of cell data (ch, fg, bg per cell,
+  left-to-right, top-to-bottom). Both functions operate on the active work page.
+</p>
+
+<!-- vt_bload -->
+<h3 id="vt_bload">vt_bload</h3>
+<p>
+  Load a <code>.vts</code> file into the active work page.
+  Validates the magic and screen dimensions before touching the cell buffer.
+  Sets the display dirty on success so the next <a href="#vt_present">vt_present</a>
+  reflects the loaded content.
+</p>
+<div class="syntax">Function vt_bload(fname As String) As Long</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  <tr><td>fname</td><td>String</td><td><em>none</em></td><td>Path to the .vts file to load.</td></tr>
+</table>
+<h4>Return value</h4>
+<div class="ret">
+  <code>0</code> = success<br>
+  <code>-1</code> = library not ready (call vt_screen first)<br>
+  <code>-2</code> = file could not be opened<br>
+  <code>-3</code> = bad magic &mdash; not a valid .vts file<br>
+  <code>-4</code> = dimension mismatch &mdash; file was saved in a different screen mode
+</div>
+
+<!-- vt_bsave -->
+<h3 id="vt_bsave">vt_bsave</h3>
+<p>Save the active work page to a <code>.vts</code> file.</p>
+<div class="syntax">Function vt_bsave(fname As String) As Long</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  <tr><td>fname</td><td>String</td><td><em>none</em></td><td>Destination file path. Created or overwritten.</td></tr>
+</table>
+<h4>Return value</h4>
+<div class="ret">
+  <code>0</code> = success<br>
+  <code>-1</code> = library not ready (call vt_screen first)<br>
+  <code>-2</code> = file could not be opened for writing
+</div>
+
+<hr>
+
+<!-- ============================================================ -->
+<h2 id="s-font">Font</h2>
+<ul class="section-toc">
+  <li><a href="#vt_font_reset">vt_font_reset</a> &mdash; restore built-in embedded font</li>
+  <li><a href="#vt_loadfont">vt_loadfont</a> &mdash; load a custom BMP font sheet</li>
+</ul>
+
+<!-- vt_font_reset -->
+<h3 id="vt_font_reset">vt_font_reset</h3>
+<p>
+  Restore the built-in embedded CP437 font selected by the current screen mode.
+  Destroys any custom font loaded with <a href="#vt_loadfont">vt_loadfont</a>.
+  Must be called after <a href="#vt_screen">vt_screen</a>.
+</p>
+<div class="syntax">Function vt_font_reset() As Long</div>
+<h4>Return value</h4>
+<div class="ret">
+  <code>0</code> = success<br>
+  <code>-1</code> = library not ready<br>
+  <code>-2</code> = surface or texture creation failed
+</div>
+
+<!-- vt_loadfont -->
+<h3 id="vt_loadfont">vt_loadfont</h3>
+<p>
+  Load a BMP font sheet and replace the active font texture at runtime.
+  Uses SDL2 core only (no SDL_image).
+  The loaded font stays active until <a href="#vt_loadfont">vt_loadfont</a> is called again,
+  <a href="#vt_font_reset">vt_font_reset</a> is called, or <a href="#vt_screen">vt_screen</a>
+  reinitializes the window.
+</p>
+<div class="syntax">Function vt_loadfont(fname   As String,
+                     sheet_w As Long  = -1,
+                     sheet_h As Long  = -1,
+                     mask_r  As UByte = 0,
+                     mask_g  As UByte = 0,
+                     mask_b  As UByte = 0) As Long</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  <tr><td>fname</td><td>String</td><td><em>none</em></td><td>Path to a BMP file. Any bit depth is accepted (converted internally).</td></tr>
+  <tr><td>sheet_w</td><td>Long</td><td>-1</td><td>Expected BMP pixel width for validation. <code>-1</code> = accept any width.</td></tr>
+  <tr><td>sheet_h</td><td>Long</td><td>-1</td><td>Expected BMP pixel height for validation. <code>-1</code> = accept any height.</td></tr>
+  <tr><td>mask_r</td><td>UByte</td><td>0</td><td>Red component of the background (transparent) colour in the BMP.</td></tr>
+  <tr><td>mask_g</td><td>UByte</td><td>0</td><td>Green component of the background colour.</td></tr>
+  <tr><td>mask_b</td><td>UByte</td><td>0</td><td>Blue component of the background colour.</td></tr>
+</table>
+<h4>Return value</h4>
+<div class="ret">
+  <code>0</code> = success<br>
+  <code>-1</code> = library not ready<br>
+  <code>-2</code> = BMP load or surface creation failed<br>
+  <code>-3</code> = image dimensions do not match the current screen mode glyph size (or explicit sheet_w / sheet_h mismatch)<br>
+  <code>-4</code> = SDL texture upload failed
+</div>
+<h4>Sheet layout detection</h4>
+<p>
+  The layout is detected automatically from the BMP pixel dimensions relative to
+  the current screen mode's glyph size (<code>gw</code> &times; <code>gh</code>):
+</p>
+<table>
+  <tr><th>Layout</th><th>BMP size</th><th>Example (8&times;8 glyphs)</th></tr>
+  <tr><td>16&times;16 grid</td><td>16&sdot;gw &times; 16&sdot;gh</td><td>128 &times; 128</td></tr>
+  <tr><td>256&times;1 strip</td><td>256&sdot;gw &times; gh</td><td>2048 &times; 8</td></tr>
+</table>
+<p>Common mask colours:</p>
+<table>
+  <tr><th>Colour</th><th>mask_r</th><th>mask_g</th><th>mask_b</th></tr>
+  <tr><td>Black (default)</td><td>0</td><td>0</td><td>0</td></tr>
+  <tr><td>Magenta</td><td>255</td><td>0</td><td>255</td></tr>
+  <tr><td>White</td><td>255</td><td>255</td><td>255</td></tr>
+</table>
+<div class="note">
+  All non-mask pixels are normalized to white in the internal texture so that
+  SDL color-mod tinting in <a href="#vt_present">vt_present</a> applies the correct
+  foreground color, exactly as with the built-in embedded fonts.
+</div>
+<pre><em>' Load a magenta-keyed grid font sheet:</em>
+Dim r As Long = vt_loadfont("myfont.bmp", -1, -1, 255, 0, 255)
+If r &lt;&gt; 0 Then
+    vt_print "Font load failed: " & r & VT_NEWLINE
+End If</pre>
+
+<hr>
+<p style="font-size:0.85em; color:#555;">
+  VT Virtual Text Screen Library &mdash; API Reference<br>
+  FreeBASIC 1.10.1 / SDL2 / Windows
+</p>
+
+</body>
+</html>
