@@ -1,4 +1,4 @@
-#include "vt/vt.bi"
+#include once "../vt/vt.bi"
 
 vt_title "vt_input Demo"
 vt_screen
@@ -9,7 +9,7 @@ vt_color VT_WHITE, VT_BLUE
 vt_locate 12, 20
 
 Dim was_cancelled As Byte
-Dim result As String = vt_input( 30, "default", "", @was_cancelled )
+Dim result As String = vt_input( 30, "Hello World", "", @was_cancelled )
 
 
 If was_cancelled Then   

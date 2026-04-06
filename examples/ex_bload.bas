@@ -16,14 +16,14 @@
 '  -2 = file not found   -3 = not a .vts file   -4 = wrong screen mode
 ' =============================================================================
 
-#include once "vt/vt.bi"
+#include once "../vt/vt.bi"
 
 Declare Sub draw_screen_a()
 Declare Sub draw_screen_b()
 Declare Sub show_load_error(ret As Long)
 
-Const FILE_A = "screen_a.vts"
-Const FILE_B = "screen_b.vts"
+Const FILE_A = "resources/screen_a.vts"
+Const FILE_B = "resources/screen_b.vts"
 
 Dim k   As ULong
 Dim ret As Long

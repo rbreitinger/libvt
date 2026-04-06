@@ -1,9 +1,9 @@
-#include once "vt/vt.bi"
+#include once "../vt/vt.bi"
 
 dim as long mode_idx, mode
 dim as string modename
-vt_title  "Screen Modes Demo"       ' set window title
 
+vt_title  "Screen Modes Demo"       ' set window title
 
 for mode_idx = 0 to 15
   
@@ -28,8 +28,15 @@ for mode_idx = 0 to 15
   vt_print_center 10, "vt_screen " & mode _  ' print text in row 10 centered
                     & " [" & modename & "]"
                       
+  vt_color    VT_GREEN
+  
   vt_print_center 12, iif( mode_idx and 1, _
       "VT_WINDOWED", "VT_FULLSCREEN_ASPECT" )
+      
+  vt_color    VT_WHITE
+  
+  vt_print_center 15, iif( mode_idx < 15, _
+      "any key to continue", "any key to quit" )
   
   vt_sleep                                   ' waits until a key is pressed, vt_sleep already calls vt_present
 next 

@@ -25,7 +25,8 @@ vt_shutdown
 
 Get **SDL2.dll** from the
 [FreeBASIC library archive](https://github.com/rbreitinger/fb-lib-archive/tree/main/libraries/SDL2/SDL2-2.0.14)
-and place it alongside your executable.
+and place it alongside your compiled executable. If you are running the examples,
+`SDL2.dll` must go inside the `examples/` folder, not the project root.
 
 ### Linux
 
@@ -128,6 +129,13 @@ Mode constants match original QBasic `SCREEN` numbers where applicable.
 - Multiple display pages with PCOPY equivalent
 - Custom BMP font loading at runtime (`vt_loadfont`)
 - Screen save/load in `.vts` format (`vt_bsave` / `vt_bload`)
+
+---
+
+## API Reference
+
+Full function reference, constants, and parameter details:
+**[rbreitinger.github.io/libvt/vt_api.html](https://rbreitinger.github.io/libvt/vt_api.html)**
 
 ---
 

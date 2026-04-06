@@ -1,4 +1,4 @@
-#include once "vt/vt.bi"
+#include once "../vt/vt.bi"
 
 Dim choice As String
 Dim k      As ULong

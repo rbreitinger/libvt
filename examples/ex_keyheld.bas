@@ -1,4 +1,4 @@
-#include once "vt/vt.bi"
+#include once "../vt/vt.bi"
 
 Dim px    As Long = 40
 Dim py    As Long = 12

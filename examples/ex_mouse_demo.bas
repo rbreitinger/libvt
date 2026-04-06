@@ -1,4 +1,4 @@
-#include once "vt/vt.bi"
+#include once "../vt/vt.bi"
 
 ' =============================================================================
 ' vt_mouse_test.bas
@@ -12,7 +12,8 @@
 vt_title "VT Mouse Test"
 vt_screen VT_SCREEN_0
 
-vt_mouselock 0
+' lock the mouse into the window
+vt_mouselock 1
 
 ' restrict scroll region, row 25 is the status bar
 vt_view_print(1, 24)
@@ -27,6 +28,7 @@ For row_i = 1 To 24
     Next col_i
 Next row_i
 
+' enable mouse
 vt_mouse(1)
 
 Dim mx          As Long
@@ -45,6 +47,8 @@ wheel_total = 0
 
 Do
     prev_mb      = mb
+    
+    ' get mouse position, buttons and wheel states
     vt_getmouse(@mx, @my, @mb, @mw)
     wheel_total += mw
 

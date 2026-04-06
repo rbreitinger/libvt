@@ -1,4 +1,4 @@
-#include once "vt/vt.bi"
+#include once "../vt/vt.bi"
 
 '' custom palette entries (by by Arne Niklas Jansson)
 '' https://androidarts.com/palette/16pal.htm

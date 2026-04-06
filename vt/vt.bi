@@ -311,7 +311,9 @@ Dim Shared vt_internal As vt_internal_state
 #undef vt_font_data_8x16
 
 ' --- neutralize clashing Win32 type aliases pulled in via SDL headers ---
-#undef MSG
+#ifdef __FB_WIN32__
+  #undef MSG
+#endif
 
 ' vt_core.bas
 #undef vt_internal_shutdown

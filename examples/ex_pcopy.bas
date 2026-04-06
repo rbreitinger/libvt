@@ -11,7 +11,7 @@
 ' vt_pcopy delivers a complete image in one memcpy, then vt_present shows it.
 ' =============================================================================
 
-#include once "vt/vt.bi"
+#include once "../vt/vt.bi"
 
 ' -----------------------------------------------------------------------------
 ' ball type
@@ -49,7 +49,7 @@ scr_rows = vt_rows()
 ' seed balls
 Randomize
 
-Dim glyphs(7) As UByte = {1, 2, 3, 4, 6, 15, 42, 254}
+Static glyphs(7) As UByte = {1, 2, 3, 4, 6, 15, 42, 254}
 
 For idx = 0 To NUM_BALLS - 1
     b(idx).xp  = 3 + Rnd * (scr_cols - 4)
@@ -114,10 +114,8 @@ Do
     vt_color(VT_DARK_GREY, VT_BLACK)
     vt_locate(scr_rows - 1, 3)
     vt_print("frame " & Str(frame_num) & "   ESC = quit")
-
-    ' -----------------------------------------------------------------------
+    
     ' flip 
-    ' -----------------------------------------------------------------------
     vt_pcopy(1, VT_VIDEO)   ' copy finished work page -> display page
     
     frame_num += 1
