@@ -162,4 +162,4 @@ To change mode mid-program, call `vt_screen` again — it closes and reopens cle
 ## License
 
 MIT License — Copyright (c) 2026 Rene Breitinger (yorokobi)
-**[see LICENSE] (https://github.com/rbreitinger/libvt/LICENSE)**
+**[https://github.com/rbreitinger/libvt/LICENSE] (read LICENSE here)**
