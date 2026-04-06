@@ -18,11 +18,80 @@ vt_shutdown
 
 ## Requirements
 
-- **FreeBASIC 1.10.1** (Windows)
-- **SDL2.dll** — get it from the
-  [FreeBASIC library archive](https://github.com/rbreitinger/fb-lib-archive/tree/main/libraries/SDL2/SDL2-2.0.14)
+- **FreeBASIC 1.10.1**
+- **SDL2** — platform-specific, see below
+
+### Windows
+
+Get **SDL2.dll** from the
+[FreeBASIC library archive](https://github.com/rbreitinger/fb-lib-archive/tree/main/libraries/SDL2/SDL2-2.0.14)
+and place it alongside your executable.
+
+### Linux
+
+Install SDL2 via your package manager — FreeBASIC links against the system library automatically.
+
+```bash
+# Debian / Ubuntu
+sudo apt install libsdl2-dev
+
+# Fedora
+sudo dnf install SDL2-devel
+
+# Arch
+sudo pacman -S sdl2
+```
+
+No `.so` file needs to be bundled; the user's system provides it.
+Primary development and testing is done on Windows. Linux has not been
+formally tested, but no Windows-specific code is used — all SDL2 calls,
+FreeBASIC built-ins, and file I/O are cross-platform.
+
+---
 
 No other dependencies. All CP437 fonts are embedded — no external files needed.
+
+---
+
+## Installation
+
+Clone or download this repository and copy the `vt` folder into FreeBASIC's `inc`
+directory. This makes the library available to any project on your machine without
+keeping copies in each project folder.
+
+**Windows** (default FreeBASIC install path):
+```
+C:\FreeBASIC\inc\vt\
+```
+
+**Linux** (typical path):
+```
+/usr/local/share/freebasic/inc/vt/
+```
+
+Then in any source file:
+```freebasic
+#include once "vt/vt.bi"
+```
+
+---
+
+## Distributing programs that use VT
+
+### Shipping an executable
+
+Your compiled `.exe` has no dependency on the VT source files, but it does require
+**SDL2.dll** at runtime. Place `SDL2.dll` in the same folder as your executable and
+include it in any release archive you distribute.
+
+### Shipping source code
+
+Add a note in your readme that your project depends on libvt and point users to the
+repository so they can install it:
+
+```
+Requires: libvt — https://github.com/rbreitinger/libvt
+```
 
 ---
 
