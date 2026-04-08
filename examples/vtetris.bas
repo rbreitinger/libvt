@@ -7,6 +7,7 @@
 ''             P              pause         Esc    quit
 '' =============================================================================
 #define VT_USE_SOUND
+#define VT_USE_MATH
 #include once "../vt/vt.bi"
 
 '' --- layout constants --------------------------------------------------------
@@ -25,6 +26,11 @@ Const PC_S = 4 : Const PC_T = 5 : Const PC_Z = 6
 Dim Shared board(BOARD_W - 1, BOARD_H - 1) As UByte
 
 '' shape strings: 16-char 4x4 grid, row-major, 'X'=filled '.'=empty
+'' NOTE: vt_mat_rotate_cw/ccw are not used here.
+'' Tetris piece rotations follow SRS-style offset rules: each state has a
+'' specific position within the 4x4 box tuned for wall kicks and spawn.
+'' Pure matrix rotation produces the wrong offsets (horizontal mirror for
+'' asymmetric pieces). The four rotations per piece are defined manually.
 Static Shared pstr(6, 3) As String * 16
 
 '' VT color index per piece type 0-6
@@ -200,59 +206,14 @@ Sub draw_ghost(gy As Long)
     Next i
 End Sub
 
-'' --- border and panel --------------------------------------------------------
-Sub draw_border()
-    Dim c As Long, r As Long
-    Dim lft As Long = BOARD_COL - 1
-    Dim rgt As Long = BOARD_COL + BOARD_W * 2
-    Dim top As Long = BOARD_ROW - 1
-    Dim bot As Long = BOARD_ROW + BOARD_H
-
-    '' Top  +---+
-    vt_set_cell lft, top, 201, VT_WHITE, VT_BLACK
-    vt_set_cell rgt, top, 187, VT_WHITE, VT_BLACK
-    For c = lft + 1 To rgt - 1
-        vt_set_cell c, top, 205, VT_WHITE, VT_BLACK
-    Next c
-    '' Sides  ¦
-    For r = BOARD_ROW To BOARD_ROW + BOARD_H - 1
-        vt_set_cell lft, r, 186, VT_WHITE, VT_BLACK
-        vt_set_cell rgt, r, 186, VT_WHITE, VT_BLACK
-    Next r
-    '' Bottom  +---+
-    vt_set_cell lft, bot, 200, VT_WHITE, VT_BLACK
-    vt_set_cell rgt, bot, 188, VT_WHITE, VT_BLACK
-    For c = lft + 1 To rgt - 1
-        vt_set_cell c, bot, 205, VT_WHITE, VT_BLACK
-    Next c
-End Sub
-
-Sub draw_panel_static()
-    Dim pc As Long = PANEL_COL
-    vt_color VT_LIGHT_GREY, VT_BLACK
-    vt_locate BOARD_ROW,      pc : vt_print "NEXT"
-    vt_locate BOARD_ROW + 6,  pc : vt_print "SCORE"
-    vt_locate BOARD_ROW + 9,  pc : vt_print "LEVEL"
-    vt_locate BOARD_ROW + 11, pc : vt_print "LINES"
-    vt_color VT_DARK_GREY, VT_BLACK
-    vt_locate BOARD_ROW + 13, pc : vt_print String(22, Chr(196))
-    vt_locate BOARD_ROW + 14, pc : vt_print "CONTROLS"
-    vt_locate BOARD_ROW + 15, pc : vt_print Chr(27) & Chr(26) & "   Move"
-    vt_locate BOARD_ROW + 16, pc : vt_print Chr(24) & " X  Rotate CW / CCW"
-    vt_locate BOARD_ROW + 17, pc : vt_print Chr(25) & "    Soft drop"
-    vt_locate BOARD_ROW + 18, pc : vt_print "SPC  Hard drop"
-    vt_locate BOARD_ROW + 19, pc : vt_print "P    Pause"
-    vt_locate BOARD_ROW + 20, pc : vt_print "ESC  Quit"
-End Sub
-
 Sub update_panel()
     Dim pc As Long = PANEL_COL
     vt_color VT_YELLOW,       VT_BLACK
-    vt_locate BOARD_ROW + 7,  pc : vt_print Right("       " & score,     7)
+    vt_locate BOARD_ROW + 7,  pc : vt_print Space(7 - vt_digits(score))     & score
     vt_color VT_BRIGHT_CYAN,  VT_BLACK
-    vt_locate BOARD_ROW + 10, pc : vt_print Right("  "      & lvl,       3)
+    vt_locate BOARD_ROW + 10, pc : vt_print Space(3 - vt_digits(lvl))       & lvl
     vt_color VT_BRIGHT_GREEN, VT_BLACK
-    vt_locate BOARD_ROW + 12, pc : vt_print Right("    "    & tot_lines, 4)
+    vt_locate BOARD_ROW + 12, pc : vt_print Space(4 - vt_digits(tot_lines)) & tot_lines
 End Sub
 
 '' Redraw 4x4 NEXT preview area and show nxt_pc at rotation 0
@@ -343,11 +304,9 @@ Sub add_score(nc As Long)
     End If
 End Sub
 
-'' Gravity drop interval in milliseconds (clamps at 50ms)
+'' Gravity drop interval in milliseconds, floor at 50ms
 Function grav_ms() As Long
-    Dim ms As Long = 800 - (lvl - 1) * 65
-    If ms < 50 Then ms = 50
-    Return ms
+    Return VT_MAX(800 - (lvl - 1) * 65, 50)
 End Function
 
 '' --- sound helpers -----------------------------------------------------------
@@ -396,52 +355,17 @@ End Function
 
 '' --- title screen ------------------------------------------------------------
 Sub title_screen()
-    Dim i As Long
-
     vt_page 1, VT_VIDEO
-    vt_color VT_BLACK, VT_BLACK
-    vt_cls
     vt_scroll_enable 0
 
-    '' Colored block strips at top and bottom
-    For i = 1 To 80
-        vt_set_cell i, 1,  219, pc_col((i - 1) Mod 7), VT_BLACK
-        vt_set_cell i, 25, 219, pc_col((i + 3) Mod 7), VT_BLACK
-    Next i
-
-    '' Title box  (26 chars wide, starting col 28, rows 4-8)
-    vt_color VT_WHITE, VT_BLACK
-    vt_locate 4, 28 : vt_print Chr(201) & String(24, Chr(205)) & Chr(187)
-    vt_locate 5, 28 : vt_print Chr(186) & Space(24)             & Chr(186)
-    vt_color VT_BRIGHT_CYAN, VT_BLACK
-    vt_locate 6, 28 : vt_print Chr(186) & "   V  T  e  t  r  i  s  " & Chr(186)
-    vt_color VT_WHITE, VT_BLACK
-    vt_locate 7, 28 : vt_print Chr(186) & Space(24)             & Chr(186)
-    vt_locate 8, 28 : vt_print Chr(200) & String(24, Chr(205)) & Chr(188)
-
-    vt_color VT_DARK_GREY, VT_BLACK
-    vt_print_center 10, "A Tetris showcase for the libvt FreeBASIC library"
-
-    '' Controls
-    vt_color VT_LIGHT_GREY, VT_BLACK
-    vt_print_center 12, "Controls"
-    vt_color VT_DARK_GREY, VT_BLACK
-    vt_locate 13, 27 : vt_print Chr(27) & Chr(26) & "      Move left / right"
-    vt_locate 14, 27 : vt_print Chr(24) & " X     Rotate CW / CCW"
-    vt_locate 15, 27 : vt_print Chr(25) & "       Soft drop   (+"  & Chr(49) & " pt/row)"
-    vt_locate 16, 27 : vt_print "SPACE   Hard drop   (+2 pts/row)"
-    vt_locate 17, 27 : vt_print "P       Pause / Resume"
-    vt_locate 18, 27 : vt_print "ESC     Quit"
-
-    '' Piece color swatch
-    For i = 0 To 6
-        Dim sc As Long = 27 + i * 4
-        vt_set_cell sc,     21, 32, VT_WHITE, pc_col(i)
-        vt_set_cell sc + 1, 21, 32, VT_WHITE, pc_col(i)
-    Next i
-
-    vt_color VT_WHITE, VT_BLACK
-    vt_print_center 23, Chr(16) & "  Press any key to play  " & Chr(17)
+    If vt_bload("resources/vtetris-title.vts") <> 0 Then
+        vt_color VT_BRIGHT_RED, VT_BLACK
+        vt_print_center 12, " Run vtetris-bake.bas first! "
+        vt_pcopy 1, VT_VIDEO : vt_present()
+        vt_sleep 0
+        vt_shutdown()
+        End
+    End If
 
     vt_pcopy 1, VT_VIDEO
     vt_present()
@@ -465,19 +389,19 @@ Sub run_game()
     Next by
     score = 0 : lvl = 1 : tot_lines = 0 : is_over = 0
 
-    '' Build screen on page 1
+    '' Build screen on page 1 from baked asset.
+    '' Run vtetris-bake.bas once to generate the resources/ files.
     vt_page 1, VT_VIDEO
-    vt_color VT_BLACK, VT_BLACK
-    vt_cls
     vt_scroll_enable 0
 
-    vt_color VT_BRIGHT_CYAN, VT_BLACK
-    vt_print_center 1, " V T e t r i s "
-
-    draw_border()
-    draw_board()
-    draw_panel_static()
-    update_panel()
+    If vt_bload("resources/vtetris-game.vts") <> 0 Then
+        vt_color VT_BRIGHT_RED, VT_BLACK
+        vt_print_center 12, " Run vtetris-bake.bas first! "
+        vt_pcopy 1, VT_VIDEO : vt_present()
+        vt_sleep 0
+        vt_shutdown()
+        End
+    End If
 
     '' Prime bag and spawn first piece
     shuffle_bag()
@@ -532,8 +456,8 @@ Sub run_game()
                 End If
 
             Case VT_KEY_UP
-                '' Rotate CW with ±1 wall-kick
-                new_rot = (cur_rot + 1) Mod 4
+                '' Rotate CW with wall-kick
+                new_rot = vt_wrap(cur_rot + 1, 0, 3)
                 If piece_ok(cur_pc, new_rot, cur_bx, cur_by) Then
                     cur_rot = new_rot : snd_rotate()
                 ElseIf piece_ok(cur_pc, new_rot, cur_bx - 1, cur_by) Then
@@ -565,10 +489,10 @@ Sub run_game()
                 k = 0 : Exit Do   '' consume remaining keys this tick
 
             Case Else
-                '' X = rotate CCW with ±1 wall-kick
+                '' X = rotate CCW with wall-kick
                 If VT_CHAR(k) = Asc("x") OrElse VT_CHAR(k) = Asc("X") Then
                                 
-                    new_rot = (cur_rot + 3) Mod 4
+                    new_rot = vt_wrap(cur_rot - 1, 0, 3)
                     If piece_ok(cur_pc, new_rot, cur_bx, cur_by) Then
                         cur_rot = new_rot : snd_rotate()
                     ElseIf piece_ok(cur_pc, new_rot, cur_bx - 1, cur_by) Then
@@ -652,3 +576,5 @@ Do
     title_screen()
     run_game()
 Loop While want_quit = 0
+
+vt_shutdown()
