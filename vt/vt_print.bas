@@ -1,7 +1,7 @@
 ' =============================================================================
 ' vt_print.bas - VT Virtual Text Screen Library
 ' =============================================================================
-
+ 
 ' -----------------------------------------------------------------------------
 ' Internal: scroll the view region up by one line
 ' -----------------------------------------------------------------------------
@@ -86,6 +86,14 @@ Sub vt_internal_putch(ch As UByte)
 End Sub
 
 ' -----------------------------------------------------------------------------
+' vt_scroll_enable - enable or disable automatic scrolling (default: on)
+' -----------------------------------------------------------------------------
+Sub vt_scroll_enable(state As Byte)
+    If vt_internal.ready = 0 Then Exit Sub
+    vt_internal.scroll_on = state
+End Sub
+
+' -----------------------------------------------------------------------------
 ' vt_cls - clear the screen
 ' Respects view_top/view_bot - only clears the active scroll region.
 ' -----------------------------------------------------------------------------
@@ -115,6 +123,31 @@ Sub vt_cls(bg As Long = -1)
 End Sub
 
 ' -----------------------------------------------------------------------------
+' vt_get_cell / vt_set_cell
+' Both operate on the active work page (via vt_internal.cells).
+' -----------------------------------------------------------------------------
+Sub vt_get_cell(col As Long, row As Long, ByRef ch As UByte, ByRef fg As UByte, ByRef bg As UByte)
+    If vt_internal.ready = 0 Then Exit Sub
+    If col < 1 Or col > vt_internal.scr_cols Then Exit Sub
+    If row < 1 Or row > vt_internal.scr_rows Then Exit Sub
+    Dim cellptr As vt_cell Ptr = vt_internal.cells + ((row - 1) * vt_internal.scr_cols + (col - 1))
+    ch = cellptr->ch
+    fg = cellptr->fg
+    bg = cellptr->bg
+End Sub
+
+Sub vt_set_cell(col As Long, row As Long, ch As UByte, fg As UByte, bg As UByte)
+    If vt_internal.ready = 0 Then Exit Sub
+    If col < 1 Or col > vt_internal.scr_cols Then Exit Sub
+    If row < 1 Or row > vt_internal.scr_rows Then Exit Sub
+    Dim cellptr As vt_cell Ptr = vt_internal.cells + ((row - 1) * vt_internal.scr_cols + (col - 1))
+    cellptr->ch = ch
+    cellptr->fg = fg
+    cellptr->bg = bg
+    vt_internal.dirty = 1
+End Sub
+
+' -----------------------------------------------------------------------------
 ' vt_color - set active foreground and/or background colour
 ' -----------------------------------------------------------------------------
 Sub vt_color(fg As Long = -1, bg As Long = -1)
@@ -134,12 +167,12 @@ Sub vt_locate(row As Long = -1, col As Long = -1, vis As Long = -1, cursor_ch As
 End Sub
 
 ' -----------------------------------------------------------------------------
-' vt_scroll_enable - enable or disable automatic scrolling (default: on)
+' Query functions
 ' -----------------------------------------------------------------------------
-Sub vt_scroll_enable(state As Byte)
-    If vt_internal.ready = 0 Then Exit Sub
-    vt_internal.scroll_on = state
-End Sub
+Function vt_csrlin() As Long : Return vt_internal.cur_row  : End Function
+Function vt_pos()    As Long : Return vt_internal.cur_col  : End Function
+Function vt_cols()   As Long : Return vt_internal.scr_cols : End Function
+Function vt_rows()   As Long : Return vt_internal.scr_rows : End Function
 
 ' -----------------------------------------------------------------------------
 ' vt_view_print - restrict scroll region to a row range
