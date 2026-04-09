@@ -8,7 +8,6 @@
 '' =============================================================================
 #define VT_USE_SOUND
 #define VT_USE_MATH
-#define VT_USE_STRINGS
 #include once "../vt/vt.bi"
 
 '' --- layout constants --------------------------------------------------------
@@ -210,11 +209,11 @@ End Sub
 Sub update_panel()
     Dim pc As Long = PANEL_COL
     vt_color VT_YELLOW,       VT_BLACK
-    vt_locate BOARD_ROW + 7,  pc : vt_print vt_str_pad_left(LTrim(Str(score)),     7, "0")
+    vt_locate BOARD_ROW + 7,  pc : vt_print Space(7 - vt_digits(score))     & score
     vt_color VT_BRIGHT_CYAN,  VT_BLACK
-    vt_locate BOARD_ROW + 10, pc : vt_print vt_str_pad_left(LTrim(Str(lvl)),       2, "0")
+    vt_locate BOARD_ROW + 10, pc : vt_print Space(3 - vt_digits(lvl))       & lvl
     vt_color VT_BRIGHT_GREEN, VT_BLACK
-    vt_locate BOARD_ROW + 12, pc : vt_print vt_str_pad_left(LTrim(Str(tot_lines)), 4, "0")
+    vt_locate BOARD_ROW + 12, pc : vt_print Space(4 - vt_digits(tot_lines)) & tot_lines
 End Sub
 
 '' Redraw 4x4 NEXT preview area and show nxt_pc at rotation 0
@@ -410,7 +409,6 @@ Sub run_game()
     draw_next_piece()
     If spawn_piece() = 0 Then is_over = 1
 
-    update_panel()   '' stamp zero-padded initial values over the baked asset
     grav_t = Timer()
     vt_key_flush()
     vt_pcopy 1, VT_VIDEO
@@ -552,7 +550,7 @@ Sub run_game()
         vt_color VT_BRIGHT_RED, VT_BLACK
         vt_print_center 10, " G A M E   O V E R "
         vt_color VT_YELLOW, VT_BLACK
-        vt_print_center 12, " Score: " & vt_str_pad_left(LTrim(Str(score)), 7, "0") & " "
+        vt_print_center 12, " Score: " & score & " "
         vt_color VT_LIGHT_GREY, VT_BLACK
         vt_print_center 14, " Press any key "
         vt_pcopy 1, VT_VIDEO

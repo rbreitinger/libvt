@@ -340,16 +340,14 @@ Dim Shared vt_internal As vt_internal_state
 #Include Once "vt_bsave.bas"
 #Include Once "vt_copypaste.bas"
 #Include Once "vt_font.bas"
+#Ifdef VT_USE_STRINGS
+    #Include Once "vt_strings.bas"
+#Endif
 #Ifdef VT_USE_MATH
     #Include Once "vt_math.bas"
 #Endif
 #Ifdef VT_USE_SOUND
     #Include Once "vt_sound.bas"
-#Endif
-
-' --- neutralize clashing Win32 type aliases pulled in via SDL headers ---
-#Ifdef __FB_WIN32__
-    #Undef MSG
 #Endif
 
 ' vt_core.bas
