@@ -157,6 +157,18 @@
     <li><a href="#s-copypaste">Copy/Paste</a></li>
     <li><a href="#s-fileio">File I/O (.vts)</a></li>
     <li><a href="#s-font">Font</a></li>
+    <li><a href="#s-misc">Utilities</a></li>
+    <li><a href="#s-math">Math</a> <span class="badge-opt">opt-in</span>
+      <ul>
+        <li><a href="#c-mathconsts">Math Macros</a></li>
+      </ul>
+    </li>
+    <li><a href="#s-sound">Sound</a> <span class="badge-opt">opt-in</span>
+      <ul>
+        <li><a href="#c-soundconsts">Sound Constants</a></li>
+      </ul>
+    </li>
+    <li><a href="#s-strings">Strings</a> <span class="badge-opt">opt-in</span></li>
   </ul>
 </div>
 
@@ -325,6 +337,53 @@ End Select</pre>
   <tr><th>Constant</th><th>Description</th></tr>
   <tr><td>VT_NEWLINE</td><td><code>Chr(10)</code> &mdash; newline character for use with <a href="#vt_print">vt_print</a>.</td></tr>
   <tr><td>VT_VIDEO</td><td>Value <code>0</code>. The display page index. Always page 0.</td></tr>
+</table>
+
+<!-- Math Macros -->
+<h3 id="c-mathconsts">Math Macros <span class="badge-opt">opt-in</span></h3>
+<p>
+  Available when <code>#define VT_USE_MATH</code> is placed before
+  <code>#include once "vt/vt.bi"</code>.
+  See the <a href="#s-math">Math</a> section for the full function reference.
+</p>
+<div class="note">
+  Macros use <code>IIf()</code> which evaluates both sides &mdash; avoid passing
+  expressions with side effects (function calls, increments) as arguments.
+</div>
+<table class="const-table">
+  <tr><th>Macro</th><th>Description</th></tr>
+  <tr><td>VT_MIN(a, b)</td><td>Returns the smaller of two values.</td></tr>
+  <tr><td>VT_MAX(a, b)</td><td>Returns the larger of two values.</td></tr>
+  <tr><td>VT_CLAMP(v, lo, hi)</td><td>Clamps <code>v</code> to the range [<code>lo</code> .. <code>hi</code>].</td></tr>
+  <tr><td>VT_SIGN(x)</td><td>Returns <code>-1</code>, <code>0</code>, or <code>1</code> depending on the sign of <code>x</code>.</td></tr>
+</table>
+
+<!-- Sound Constants -->
+<h3 id="c-soundconsts">Sound Constants <span class="badge-opt">opt-in</span></h3>
+<p>
+  Available when <code>#define VT_USE_SOUND</code> is placed before
+  <code>#include once "vt/vt.bi"</code>.
+  See the <a href="#s-sound">Sound</a> section for full details.
+</p>
+<h4>Waveforms &mdash; passed as the <code>wave</code> parameter to <a href="#vt_sound">vt_sound</a></h4>
+<table class="const-table">
+  <tr><th>Constant</th><th>Value</th><th>Description</th></tr>
+  <tr><td>VT_WAVE_SQUARE</td><td>0</td><td>PC speaker / chiptune square wave. Default.</td></tr>
+  <tr><td>VT_WAVE_TRIANGLE</td><td>1</td><td>NES triangle channel &mdash; softer, bass feel.</td></tr>
+  <tr><td>VT_WAVE_SINE</td><td>2</td><td>Pure sine tone.</td></tr>
+  <tr><td>VT_WAVE_NOISE</td><td>3</td><td>15-bit LFSR noise &mdash; NES percussion / static feel.</td></tr>
+</table>
+<h4>Blocking mode &mdash; passed as the <code>blocking</code> parameter to <a href="#vt_sound">vt_sound</a></h4>
+<table class="const-table">
+  <tr><th>Constant</th><th>Value</th><th>Description</th></tr>
+  <tr><td>VT_SOUND_BLOCKING</td><td>1</td><td>Wait for the note to finish. The window stays alive during the wait. Default.</td></tr>
+  <tr><td>VT_SOUND_BACKGROUND</td><td>0</td><td>Queue samples and return immediately. Use <a href="#vt_sound_wait">vt_sound_wait</a> to sync.</td></tr>
+</table>
+<h4>Tuning constants</h4>
+<table class="const-table">
+  <tr><th>Constant</th><th>Value</th><th>Description</th></tr>
+  <tr><td>VT_SND_RATE</td><td>11025</td><td>Sample rate in Hz. Unsigned 8-bit mono.</td></tr>
+  <tr><td>VT_SND_QUEUE_CAP</td><td>110250</td><td>Maximum bytes that may be queued (~10 seconds). Calls that would exceed this are skipped and return <code>-2</code>.</td></tr>
 </table>
 
 <hr>
@@ -1263,6 +1322,664 @@ Dim r As Long = vt_loadfont("myfont.bmp", -1, -1, 255, 0, 255)
 If r &lt;&gt; 0 Then
     vt_print "Font load failed: " & r & VT_NEWLINE
 End If</pre>
+
+<hr>
+
+<!-- ============================================================ -->
+<h2 id="s-misc">Utilities</h2>
+<ul class="section-toc">
+  <li><a href="#vt_rnd">vt_rnd</a> &mdash; random number in a range</li>
+</ul>
+
+<!-- vt_rnd -->
+<h3 id="vt_rnd">vt_rnd</h3>
+<p>
+  Return a random <code>Long</code> in the inclusive range [<code>lo</code> .. <code>hi</code>].
+  Negative bounds are fully supported. If <code>lo</code> &gt; <code>hi</code> the two values
+  are swapped silently. Seeding the RNG with <code>Randomize</code> is the caller's
+  responsibility &mdash; <code>vt_rnd</code> does not call it.
+</p>
+<div class="syntax">Function vt_rnd(lo As Long, hi As Long) As Long</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  <tr><td>lo</td><td>Long</td><td><em>none</em></td><td>Lower bound (inclusive).</td></tr>
+  <tr><td>hi</td><td>Long</td><td><em>none</em></td><td>Upper bound (inclusive).</td></tr>
+</table>
+<pre><em>' Seed once at startup, then use freely:</em>
+Randomize Timer
+
+Dim n As Long = vt_rnd(-15, 15)   <em>' -15 to 15</em>
+Dim d As Long = vt_rnd(1, 6)      <em>' die roll</em>
+Dim x As Long = vt_rnd(1, vt_cols())</pre>
+
+<hr>
+
+<!-- ============================================================ -->
+<h2 id="s-math">Math <span class="badge-opt">opt-in</span></h2>
+<p>
+  Pure FreeBASIC math helpers. No SDL2 required &mdash; usable with or without a VT screen open.
+  Especially useful for game logic: grid distance, line of sight, smooth movement, matrix rotation.
+</p>
+<div class="note">
+  <strong>Opt-in:</strong> define <code>VT_USE_MATH</code> <em>before</em> the include.
+  Without it the entire extension is absent at compile time &mdash; zero overhead.
+<pre><em>' Enable math in your project:</em>
+#define VT_USE_MATH
+#include once "vt/vt.bi"</pre>
+  The four convenience macros (<a href="#c-mathconsts">VT_MIN, VT_MAX, VT_CLAMP, VT_SIGN</a>) are
+  also part of this extension and documented in the Constants section.
+</div>
+<ul class="section-toc">
+  <li><a href="#vt_wrap">vt_wrap</a> &mdash; modular roll-over wrap</li>
+  <li><a href="#vt_lerp">vt_lerp</a> &mdash; linear interpolation</li>
+  <li><a href="#vt_approach">vt_approach</a> &mdash; step toward a target without overshooting</li>
+  <li><a href="#vt_manhattan">vt_manhattan</a> &mdash; orthogonal grid distance</li>
+  <li><a href="#vt_chebyshev">vt_chebyshev</a> &mdash; 8-direction king-moves distance</li>
+  <li><a href="#vt_in_rect">vt_in_rect</a> &mdash; point-in-rectangle test</li>
+  <li><a href="#vt_digits">vt_digits</a> &mdash; printed character count of a number</li>
+  <li><a href="#vt_bresenham_walk">vt_bresenham_walk</a> &mdash; walk all cells on a straight line</li>
+  <li><a href="#vt_los">vt_los</a> &mdash; line-of-sight check</li>
+  <li><a href="#vt_mat_rotate_cw">vt_mat_rotate_cw</a> &mdash; rotate a 2D array 90&deg; clockwise</li>
+  <li><a href="#vt_mat_rotate_ccw">vt_mat_rotate_ccw</a> &mdash; rotate a 2D array 90&deg; counter-clockwise</li>
+</ul>
+
+<!-- vt_wrap -->
+<h3 id="vt_wrap">vt_wrap</h3>
+<p>
+  Wraps <code>v</code> into the inclusive range [<code>lo</code> .. <code>hi</code>] with roll-over.
+  Unlike <code>VT_CLAMP</code>, hitting an edge rolls around to the opposite side.
+  If <code>hi &minus; lo + 1 &le; 0</code> the function returns <code>lo</code>.
+</p>
+<div class="syntax">Function vt_wrap(v As Long, lo As Long, hi As Long) As Long</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+  <tr><td>v</td><td>Long</td><td>The value to wrap.</td></tr>
+  <tr><td>lo</td><td>Long</td><td>Lower bound (inclusive).</td></tr>
+  <tr><td>hi</td><td>Long</td><td>Upper bound (inclusive).</td></tr>
+</table>
+<pre><em>' Menu cursor that wraps at the edges:</em>
+cursor_row = vt_wrap(cursor_row + delta, 1, num_items)
+
+<em>' Toroidal map: player walks off the right edge, appears on the left:</em>
+px = vt_wrap(px + 1, 0, map_width - 1)</pre>
+
+<!-- vt_lerp -->
+<h3 id="vt_lerp">vt_lerp</h3>
+<p>
+  Linear interpolation between <code>a</code> and <code>b</code>.
+  At <code>t = 0</code> the result is <code>a</code>; at <code>t = 1</code> the result is <code>b</code>.
+  <code>t</code> is not clamped &mdash; values outside [0..1] extrapolate beyond the endpoints.
+</p>
+<div class="syntax">Function vt_lerp(a As Double, b As Double, t As Double) As Double</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+  <tr><td>a</td><td>Double</td><td>Start value (returned when t = 0).</td></tr>
+  <tr><td>b</td><td>Double</td><td>End value (returned when t = 1).</td></tr>
+  <tr><td>t</td><td>Double</td><td>Interpolation factor. Not clamped.</td></tr>
+</table>
+<pre><em>' Animated value moving from 0 to 100 over time:</em>
+Dim brightness As Double = vt_lerp(0, 100, elapsed / total)
+
+<em>' Blend two palette entries at the midpoint:</em>
+Dim r As Double = vt_lerp(col_a.r, col_b.r, 0.5)</pre>
+
+<!-- vt_approach -->
+<h3 id="vt_approach">vt_approach</h3>
+<p>
+  Moves <code>cur</code> toward <code>tgt</code> by <code>amt</code> without overshooting.
+  If <code>cur = tgt</code> it returns unchanged. <code>amt</code> should be positive.
+</p>
+<div class="syntax">Function vt_approach(cur As Long, tgt As Long, amt As Long) As Long</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+  <tr><td>cur</td><td>Long</td><td>Current value.</td></tr>
+  <tr><td>tgt</td><td>Long</td><td>Target value to approach.</td></tr>
+  <tr><td>amt</td><td>Long</td><td>Step size per call. Should be positive.</td></tr>
+</table>
+<pre><em>' Smooth enemy movement: move one step per frame toward the player:</em>
+enemy_x = vt_approach(enemy_x, player_x, 1)
+enemy_y = vt_approach(enemy_y, player_y, 1)
+
+<em>' Animated score counter that catches up 10 points per frame:</em>
+display_score = vt_approach(display_score, real_score, 10)</pre>
+
+<!-- vt_manhattan -->
+<h3 id="vt_manhattan">vt_manhattan</h3>
+<p>
+  Manhattan (taxicab) distance between two grid points.
+  Counts only orthogonal steps &mdash; no diagonals.
+  Equivalent to <code>Abs(x2 &minus; x1) + Abs(y2 &minus; y1)</code>.
+</p>
+<div class="syntax">Function vt_manhattan(x1 As Long, y1 As Long, x2 As Long, y2 As Long) As Long</div>
+<pre><em>' Only attack if the player is within 4 orthogonal steps:</em>
+If vt_manhattan(enemy_x, enemy_y, player_x, player_y) &lt;= 4 Then
+    attack()
+End If</pre>
+
+<!-- vt_chebyshev -->
+<h3 id="vt_chebyshev">vt_chebyshev</h3>
+<p>
+  Chebyshev (king-moves) distance between two grid points.
+  Diagonal steps cost 1, the same as orthogonal &mdash; matches 8-direction movement.
+  Equivalent to <code>VT_MAX(Abs(x2 &minus; x1), Abs(y2 &minus; y1))</code>.
+</p>
+<div class="syntax">Function vt_chebyshev(x1 As Long, y1 As Long, x2 As Long, y2 As Long) As Long</div>
+<pre><em>' Check if a target is within melee range (1 king-move):</em>
+If vt_chebyshev(ax, ay, bx, by) = 1 Then
+    melee_attack()
+End If</pre>
+
+<!-- vt_in_rect -->
+<h3 id="vt_in_rect">vt_in_rect</h3>
+<p>
+  Returns <code>1</code> if point (<code>px</code>, <code>py</code>) lies within the rectangle.
+  The rect is half-open: [<code>rx</code>, <code>rx+rw</code>) &times; [<code>ry</code>, <code>ry+rh</code>)
+  &mdash; the right and bottom edges are excluded. Returns <code>0</code> otherwise.
+</p>
+<div class="syntax">Function vt_in_rect(px As Long, py As Long,
+                    rx As Long, ry As Long,
+                    rw As Long, rh As Long) As Byte</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+  <tr><td>px</td><td>Long</td><td>Point X coordinate.</td></tr>
+  <tr><td>py</td><td>Long</td><td>Point Y coordinate.</td></tr>
+  <tr><td>rx</td><td>Long</td><td>Rectangle left edge.</td></tr>
+  <tr><td>ry</td><td>Long</td><td>Rectangle top edge.</td></tr>
+  <tr><td>rw</td><td>Long</td><td>Rectangle width in cells.</td></tr>
+  <tr><td>rh</td><td>Long</td><td>Rectangle height in cells.</td></tr>
+</table>
+<pre><em>' Hit-test a mouse click against a button region:</em>
+Dim mcol As Long, mrow As Long, mbtns As Long
+vt_getmouse @mcol, @mrow, @mbtns, 0
+If (mbtns And VT_MOUSE_BTN_LEFT) AndAlso vt_in_rect(mcol, mrow, 10, 5, 20, 3) Then
+    button_clicked()
+End If</pre>
+
+<!-- vt_digits -->
+<h3 id="vt_digits">vt_digits</h3>
+<p>
+  Returns the number of characters that <code>Str(n)</code> or <code>Print n</code> would produce,
+  including the minus sign for negative numbers. Zero returns <code>1</code>.
+  Uses <code>LongInt</code> internally to handle the full <code>Long</code> range without overflow.
+</p>
+<div class="syntax">Function vt_digits(n As Long) As Long</div>
+<table>
+  <tr><th>n</th><th>Returns</th></tr>
+  <tr><td>0</td><td>1</td></tr>
+  <tr><td>1234</td><td>4</td></tr>
+  <tr><td>-99</td><td>3 (minus + 2 digits)</td></tr>
+  <tr><td>-2147483648</td><td>11</td></tr>
+</table>
+<pre><em>' Right-align a score in a fixed-width column:</em>
+Dim score As Long = 9870
+Dim col As Long = 75 - vt_digits(score)  <em>' compute start column</em>
+vt_locate 1, col
+vt_print Str(score)</pre>
+
+<!-- vt_bresenham_walk -->
+<h3 id="vt_bresenham_walk">vt_bresenham_walk</h3>
+<p>
+  Walks every cell on the straight line from (<code>x1</code>, <code>y1</code>) to
+  (<code>x2</code>, <code>y2</code>) using Bresenham's line algorithm and calls
+  <code>cb(x, y)</code> for each cell in order. Both endpoints are included.
+</p>
+<p>
+  The callback is a <code>Sub(x As Long, y As Long)</code> &mdash; pass its address with <code>@</code>.
+  Because FreeBASIC has no closures, use module-level <code>Shared</code> variables to
+  give the callback access to map data or other state.
+</p>
+<div class="syntax">Sub vt_bresenham_walk(x1 As Long, y1 As Long,
+                      x2 As Long, y2 As Long,
+                      cb As Sub(As Long, As Long))</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+  <tr><td>x1, y1</td><td>Long</td><td>Start cell (included in walk).</td></tr>
+  <tr><td>x2, y2</td><td>Long</td><td>End cell (included in walk).</td></tr>
+  <tr><td>cb</td><td>Sub(As Long, As Long)</td><td>Called once per cell on the line. Pass with <code>@</code>.</td></tr>
+</table>
+<pre><em>' Draw a line of ASCII dashes on the text screen:</em>
+Sub draw_dash(x As Long, y As Long)
+    vt_set_cell x, y, Asc("-"), VT_WHITE, VT_BLACK
+End Sub
+
+vt_bresenham_walk 1, 1, 40, 15, @draw_dash
+vt_present()</pre>
+
+<!-- vt_los -->
+<h3 id="vt_los">vt_los</h3>
+<p>
+  Line-of-sight check from (<code>x1</code>, <code>y1</code>) to (<code>x2</code>, <code>y2</code>)
+  using Bresenham's algorithm. The <code>blocker</code> function is called for each cell on the line
+  and must return <code>1</code> if that cell blocks sight, <code>0</code> if clear.
+</p>
+<p>
+  The <strong>start cell is never tested</strong> &mdash; the observer is standing there.
+  The <strong>end cell is tested</strong> &mdash; a wall blocks LOS to itself.
+  Returns <code>1</code> if the path is clear, <code>0</code> if blocked.
+</p>
+<p>
+  Because FreeBASIC has no closures, use module-level <code>Shared</code> variables to
+  give the blocker function access to your map array.
+</p>
+<div class="syntax">Function vt_los(x1 As Long, y1 As Long,
+                x2 As Long, y2 As Long,
+                blocker As Function(As Long, As Long) As Byte) As Byte</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+  <tr><td>x1, y1</td><td>Long</td><td>Observer position. Never passed to <code>blocker</code>.</td></tr>
+  <tr><td>x2, y2</td><td>Long</td><td>Target position. Passed to <code>blocker</code>.</td></tr>
+  <tr><td>blocker</td><td>Function(As Long, As Long) As Byte</td><td>Returns <code>1</code> if the cell blocks sight. Pass with <code>@</code>.</td></tr>
+</table>
+<h4>Return value</h4>
+<div class="ret">
+  <code>1</code> = line of sight is clear<br>
+  <code>0</code> = blocked by at least one cell on the path
+</div>
+<pre><em>' Roguelike enemy vision check:</em>
+Dim Shared g_map(79, 49) As Byte   <em>' 1 = wall</em>
+
+Function is_wall(x As Long, y As Long) As Byte
+    Return g_map(x, y)
+End Function
+
+If vt_los(enemy_x, enemy_y, player_x, player_y, @is_wall) Then
+    <em>' enemy can see the player -- enter alert state</em>
+    alert_enemy()
+End If</pre>
+
+<!-- vt_mat_rotate_cw -->
+<h3 id="vt_mat_rotate_cw">vt_mat_rotate_cw</h3>
+<p>
+  Rotates a 2D <code>Long</code> array 90&deg; clockwise in-place.
+  The array must be square. <code>LBound</code> and <code>UBound</code> are used internally
+  to detect the size automatically &mdash; no size argument is needed.
+  Non-square arrays are silently ignored (no-op). Works with any <code>LBound</code>
+  (0-based or 1-based declarations).
+</p>
+<div class="syntax">Sub vt_mat_rotate_cw(m() As Long)</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+  <tr><td>m()</td><td>Long array</td><td>Square 2D array to rotate in-place.</td></tr>
+</table>
+<pre><em>' Rotate a Tetris piece clockwise:</em>
+Dim piece(0 To 3, 0 To 3) As Long
+<em>' ... fill piece with 0/1 values ...</em>
+vt_mat_rotate_cw piece()   <em>' one 90-degree CW step</em></pre>
+
+<!-- vt_mat_rotate_ccw -->
+<h3 id="vt_mat_rotate_ccw">vt_mat_rotate_ccw</h3>
+<p>
+  Rotates a 2D <code>Long</code> array 90&deg; counter-clockwise in-place.
+  Identical behaviour to <a href="#vt_mat_rotate_cw">vt_mat_rotate_cw</a>
+  but in the opposite direction.
+</p>
+<div class="syntax">Sub vt_mat_rotate_ccw(m() As Long)</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+  <tr><td>m()</td><td>Long array</td><td>Square 2D array to rotate in-place.</td></tr>
+</table>
+<pre><em>' Four CCW rotations return the matrix to its original orientation:</em>
+vt_mat_rotate_ccw piece()
+vt_mat_rotate_ccw piece()
+vt_mat_rotate_ccw piece()
+vt_mat_rotate_ccw piece()   <em>' back to start</em></pre>
+
+<hr>
+
+<!-- ============================================================ -->
+<h2 id="s-sound">Sound <span class="badge-opt">opt-in</span></h2>
+<p>
+  The sound extension generates waveform samples and plays them via
+  <code>SDL_QueueAudio</code>. No SDL2_mixer required &mdash; SDL2 core audio only.
+  The audio subsystem initializes automatically on the first <code>vt_sound</code> call
+  and does not require <a href="#vt_screen">vt_screen</a> to be open.
+</p>
+<div class="note">
+  <strong>Opt-in:</strong> define <code>VT_USE_SOUND</code> <em>before</em> the include.
+  Without it the entire extension is absent at compile time &mdash; zero overhead.
+<pre><em>' Enable sound in your project:</em>
+#define VT_USE_SOUND
+#include once "vt/vt.bi"</pre>
+  Shutdown is handled automatically by <a href="#vt_shutdown">vt_shutdown</a>.
+  If <code>vt_screen</code> is called again after audio was active, the next
+  <code>vt_sound</code> call transparently reopens the audio device.
+</div>
+<ul class="section-toc">
+  <li><a href="#vt_sound">vt_sound</a> &mdash; generate and queue a tone</li>
+  <li><a href="#vt_sound_wait">vt_sound_wait</a> &mdash; wait for the queue to drain</li>
+  <li><a href="#VT_BEEP">VT_BEEP</a> &mdash; convenience macro</li>
+</ul>
+
+<!-- vt_sound -->
+<h3 id="vt_sound">vt_sound</h3>
+<p>
+  Generate samples for a tone of the given frequency and duration and add them to the
+  SDL audio queue. The waveform and blocking behaviour are selectable.
+  Pass <code>freq = 0</code> to stop playback and clear the queue immediately.
+</p>
+<div class="syntax">Function vt_sound(freq     As Long,
+                  dur_ms   As Long = 200,
+                  wave     As Long = VT_WAVE_SQUARE,
+                  blocking As Long = VT_SOUND_BLOCKING) As Long</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  <tr><td>freq</td><td>Long</td><td><em>none</em></td><td>Frequency in Hz. <code>0</code> = stop and clear the queue immediately (all other parameters are ignored).</td></tr>
+  <tr><td>dur_ms</td><td>Long</td><td>200</td><td>Duration in milliseconds.</td></tr>
+  <tr><td>wave</td><td>Long</td><td>VT_WAVE_SQUARE</td><td>Waveform. One of the <a href="#c-soundconsts">VT_WAVE_*</a> constants.</td></tr>
+  <tr><td>blocking</td><td>Long</td><td>VT_SOUND_BLOCKING</td><td><code>VT_SOUND_BLOCKING</code> &mdash; waits for the note to finish while keeping the window fully alive (pump, blink, present). <code>VT_SOUND_BACKGROUND</code> &mdash; queues samples and returns immediately.</td></tr>
+</table>
+<h4>Return value</h4>
+<div class="ret">
+  <code>0</code> = success<br>
+  <code>-1</code> = SDL audio init or memory allocation failed<br>
+  <code>-2</code> = queue cap exceeded (<a href="#c-soundconsts">VT_SND_QUEUE_CAP</a>), call was skipped
+</div>
+<div class="note">
+  <strong>Blocking wait and window responsiveness:</strong> when <code>VT_SOUND_BLOCKING</code>
+  is used the wait loop calls <code>vt_pump</code>, blink update, and present on every tick,
+  so the window redraws, blinks, and responds to the close button normally during the wait.
+  This mirrors the behaviour of <a href="#vt_sleep">vt_sleep</a>. When no window is open
+  the loop simply sleeps and audio drains on its own SDL thread.
+</div>
+<pre><em>' Single blocking note (default):</em>
+vt_sound 440, 500
+
+<em>' Simple melody -- blocking, plays note-by-note:</em>
+vt_sound 262, 200
+vt_sound 330, 200
+vt_sound 392, 400
+
+<em>' Same melody queued in the background -- screen updates while it plays:</em>
+vt_sound 262, 200, VT_WAVE_SQUARE, VT_SOUND_BACKGROUND
+vt_sound 330, 200, VT_WAVE_SQUARE, VT_SOUND_BACKGROUND
+vt_sound 392, 400, VT_WAVE_SQUARE, VT_SOUND_BACKGROUND
+vt_print "Playing..." : vt_present()
+vt_sound_wait()
+
+<em>' Stop playback immediately:</em>
+vt_sound 0</pre>
+
+<!-- vt_sound_wait -->
+<h3 id="vt_sound_wait">vt_sound_wait</h3>
+<p>
+  Block until the audio queue fully drains. This is the sync barrier for sequences
+  queued with <code>VT_SOUND_BACKGROUND</code> &mdash; it lets you run code (update the
+  screen, compute the next frame) while a melody plays, then wait for it to finish
+  without having to calculate the total duration yourself.
+  The window stays alive during the wait, identical to the blocking wait in
+  <a href="#vt_sound">vt_sound</a>.
+  No-op if the sound subsystem was never initialized.
+</p>
+<div class="syntax">Sub vt_sound_wait()</div>
+
+<!-- VT_BEEP -->
+<h3 id="VT_BEEP">VT_BEEP</h3>
+<p>
+  Convenience macro. Plays a short 800&nbsp;Hz square-wave beep, blocking.
+  Equivalent to <code>vt_sound(800, 200)</code>.
+</p>
+<div class="syntax">#Define VT_BEEP vt_sound(800, 200)</div>
+<pre><em>' Simple error beep:</em>
+VT_BEEP</pre>
+
+<hr>
+
+<!-- ============================================================ -->
+<h2 id="s-strings">Strings <span class="badge-opt">opt-in</span></h2>
+<p>
+  Pure FreeBASIC string utilities. No SDL2 or open VT screen required &mdash;
+  all helpers work in any FreeBASIC project. Fills gaps that FreeBASIC's built-in
+  string handling does not cover (<code>InStr</code>, <code>Mid</code>, <code>LTrim</code> etc.
+  are already available and are not duplicated here).
+</p>
+<div class="note">
+  <strong>Opt-in:</strong> define <code>VT_USE_STRINGS</code> <em>before</em> the include.
+  Without it the entire extension is absent at compile time &mdash; zero overhead.
+<pre><em>' Enable string helpers in your project:</em>
+#define VT_USE_STRINGS
+#include once "vt/vt.bi"</pre>
+</div>
+<ul class="section-toc">
+  <li><a href="#vt_str_replace">vt_str_replace</a> &mdash; replace all occurrences of a substring</li>
+  <li><a href="#vt_str_split">vt_str_split</a> &mdash; split a string into an array by delimiter</li>
+  <li><a href="#vt_str_pad_left">vt_str_pad_left</a> &mdash; right-align in a fixed-width field</li>
+  <li><a href="#vt_str_pad_right">vt_str_pad_right</a> &mdash; left-align in a fixed-width field</li>
+  <li><a href="#vt_str_repeat">vt_str_repeat</a> &mdash; repeat a string n times</li>
+  <li><a href="#vt_str_count">vt_str_count</a> &mdash; count non-overlapping occurrences</li>
+  <li><a href="#vt_str_starts_with">vt_str_starts_with</a> &mdash; prefix test</li>
+  <li><a href="#vt_str_ends_with">vt_str_ends_with</a> &mdash; suffix test</li>
+  <li><a href="#vt_str_trim_chars">vt_str_trim_chars</a> &mdash; trim a custom character set from both ends</li>
+  <li><a href="#vt_str_wordwrap">vt_str_wordwrap</a> &mdash; insert line breaks for word wrapping</li>
+</ul>
+
+<!-- vt_str_replace -->
+<h3 id="vt_str_replace">vt_str_replace</h3>
+<p>
+  Replace every non-overlapping occurrence of <code>find</code> in <code>s</code>
+  with <code>repl</code>. Scanning always advances past the replacement so
+  overlapping matches are not produced. Returns <code>s</code> unchanged if
+  <code>find</code> is empty.
+</p>
+<div class="syntax">Function vt_str_replace(s As String, find As String, repl As String) As String</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+  <tr><td>s</td><td>String</td><td>Source string.</td></tr>
+  <tr><td>find</td><td>String</td><td>Substring to search for. Empty string is a no-op.</td></tr>
+  <tr><td>repl</td><td>String</td><td>Replacement string. May be empty to delete all occurrences.</td></tr>
+</table>
+<pre><em>' Replace spaces with underscores:</em>
+Dim fname As String = vt_str_replace("hello world foo", " ", "_")
+<em>' fname = "hello_world_foo"</em>
+
+<em>' Delete all occurrences:</em>
+Dim stripped As String = vt_str_replace("a--b--c", "--", "")
+<em>' stripped = "abc"</em></pre>
+
+<!-- vt_str_split -->
+<h3 id="vt_str_split">vt_str_split</h3>
+<p>
+  Split <code>s</code> by <code>delim</code> and fill <code>arr()</code> with the resulting
+  segments. The array is <code>ReDim</code>'d by this function; the caller only needs to
+  declare <code>Dim arr() As String</code>. Returns the number of elements produced.
+</p>
+<p>
+  If <code>delim</code> is empty, each character of <code>s</code> becomes its own element.
+  A trailing delimiter produces a final empty element (e.g. <code>"a,b,"</code> yields
+  three elements, the last being <code>""</code>). An empty <code>s</code> always returns
+  one element containing <code>""</code>.
+</p>
+<div class="syntax">Function vt_str_split(s As String, delim As String, arr() As String) As Long</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+  <tr><td>s</td><td>String</td><td>Source string to split.</td></tr>
+  <tr><td>delim</td><td>String</td><td>Delimiter string. Empty = split into individual characters.</td></tr>
+  <tr><td>arr()</td><td>String array</td><td>Receives the segments. <code>ReDim</code>'d to <code>0 To count-1</code>.</td></tr>
+</table>
+<h4>Return value</h4>
+<div class="ret">Number of elements placed in <code>arr()</code>.</div>
+<pre><em>' Parse a comma-separated list:</em>
+Dim parts() As String
+Dim cnt As Long = vt_str_split("one,two,three", ",", parts())
+<em>' cnt = 3,  parts(0)="one"  parts(1)="two"  parts(2)="three"</em>
+
+For i As Long = 0 To cnt - 1
+    vt_print parts(i) + !"\n"
+Next i</pre>
+
+<!-- vt_str_pad_left -->
+<h3 id="vt_str_pad_left">vt_str_pad_left</h3>
+<p>
+  Right-align <code>s</code> in a field of exactly <code>length</code> characters by
+  padding with <code>ch</code> on the left. If <code>s</code> is already longer than
+  <code>length</code>, the rightmost <code>length</code> characters are returned (truncation
+  keeps the least-significant end, useful for numbers). Only the first character of
+  <code>ch</code> is used; if <code>ch</code> is empty a space is substituted.
+  Returns <code>""</code> if <code>length</code> &le; 0.
+</p>
+<div class="syntax">Function vt_str_pad_left(s As String, length As Long, ch As String) As String</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+  <tr><td>s</td><td>String</td><td>Source string.</td></tr>
+  <tr><td>length</td><td>Long</td><td>Desired output width in characters.</td></tr>
+  <tr><td>ch</td><td>String</td><td>Fill character. Only the first character is used.</td></tr>
+</table>
+<pre><em>' Zero-pad a score value to 6 digits:</em>
+vt_print vt_str_pad_left(Str(score), 6, "0")   <em>' "001450"</em>
+
+<em>' Right-align a label in a 10-char column:</em>
+vt_print "[" + vt_str_pad_left("hi", 10, " ") + "]"   <em>' "[        hi]"</em></pre>
+
+<!-- vt_str_pad_right -->
+<h3 id="vt_str_pad_right">vt_str_pad_right</h3>
+<p>
+  Left-align <code>s</code> in a field of exactly <code>length</code> characters by
+  padding with <code>ch</code> on the right. If <code>s</code> is already longer than
+  <code>length</code>, the leftmost <code>length</code> characters are returned.
+  Only the first character of <code>ch</code> is used; if <code>ch</code> is empty
+  a space is substituted. Returns <code>""</code> if <code>length</code> &le; 0.
+</p>
+<div class="syntax">Function vt_str_pad_right(s As String, length As Long, ch As String) As String</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+  <tr><td>s</td><td>String</td><td>Source string.</td></tr>
+  <tr><td>length</td><td>Long</td><td>Desired output width in characters.</td></tr>
+  <tr><td>ch</td><td>String</td><td>Fill character. Only the first character is used.</td></tr>
+</table>
+<pre><em>' Fixed-width label next to a zero-padded value:</em>
+vt_print vt_str_pad_right("SCORE", 10, " ") + vt_str_pad_left(Str(score), 6, "0")
+<em>' "SCORE      001450"</em></pre>
+
+<!-- vt_str_repeat -->
+<h3 id="vt_str_repeat">vt_str_repeat</h3>
+<p>
+  Return <code>s</code> concatenated <code>n</code> times.
+  Returns <code>""</code> for <code>n</code> &le; 0 or an empty <code>s</code>.
+  Single-character strings use FreeBASIC's <code>String()</code> internally for efficiency.
+</p>
+<div class="syntax">Function vt_str_repeat(s As String, n As Long) As String</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+  <tr><td>s</td><td>String</td><td>String to repeat.</td></tr>
+  <tr><td>n</td><td>Long</td><td>Number of repetitions. 0 or negative returns <code>""</code>.</td></tr>
+</table>
+<pre><em>' Draw a separator line:</em>
+vt_print vt_str_repeat("-=", 20) + !"\n"   <em>' "-=-=-=-=-= ..." (40 chars)</em>
+
+<em>' Build a progress bar:</em>
+Dim bar As String = "[" + vt_str_repeat("#", filled) + vt_str_repeat(".", empty_slots) + "]"</pre>
+
+<!-- vt_str_count -->
+<h3 id="vt_str_count">vt_str_count</h3>
+<p>
+  Count non-overlapping occurrences of <code>find</code> in <code>s</code>.
+  Returns <code>0</code> if either string is empty.
+</p>
+<div class="syntax">Function vt_str_count(s As String, find As String) As Long</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+  <tr><td>s</td><td>String</td><td>String to search in.</td></tr>
+  <tr><td>find</td><td>String</td><td>Substring to count. Empty string always returns 0.</td></tr>
+</table>
+<h4>Return value</h4>
+<div class="ret">Number of non-overlapping occurrences found. 0 if none or if either argument is empty.</div>
+<pre><em>' Count vowels (as single chars):</em>
+Dim n As Long = vt_str_count("banana", "a")   <em>' 3</em>
+
+<em>' Count two-char patterns (non-overlapping):</em>
+n = vt_str_count("banana", "an")   <em>' 2  ("b[an][an]a")</em></pre>
+
+<!-- vt_str_starts_with -->
+<h3 id="vt_str_starts_with">vt_str_starts_with</h3>
+<p>
+  Returns <code>1</code> if <code>s</code> begins with <code>pfx</code>, <code>0</code>
+  otherwise. An empty <code>pfx</code> always returns <code>1</code>.
+</p>
+<div class="syntax">Function vt_str_starts_with(s As String, pfx As String) As Byte</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+  <tr><td>s</td><td>String</td><td>String to test.</td></tr>
+  <tr><td>pfx</td><td>String</td><td>Expected prefix.</td></tr>
+</table>
+<pre><em>' Simple command dispatch:</em>
+If vt_str_starts_with(input_line, "/quit") Then end_game = 1
+If vt_str_starts_with(input_line, "/say ")  Then broadcast Mid(input_line, 6)</pre>
+
+<!-- vt_str_ends_with -->
+<h3 id="vt_str_ends_with">vt_str_ends_with</h3>
+<p>
+  Returns <code>1</code> if <code>s</code> ends with <code>sfx</code>, <code>0</code>
+  otherwise. An empty <code>sfx</code> always returns <code>1</code>.
+</p>
+<div class="syntax">Function vt_str_ends_with(s As String, sfx As String) As Byte</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+  <tr><td>s</td><td>String</td><td>String to test.</td></tr>
+  <tr><td>sfx</td><td>String</td><td>Expected suffix.</td></tr>
+</table>
+<pre><em>' Check file extension:</em>
+If vt_str_ends_with(filename, ".vts") Then vt_bload filename</pre>
+
+<!-- vt_str_trim_chars -->
+<h3 id="vt_str_trim_chars">vt_str_trim_chars</h3>
+<p>
+  Remove any character found in the set <code>chars</code> from both ends of <code>s</code>
+  and return the result. FreeBASIC's built-in <code>Trim</code> only removes spaces;
+  this function accepts any set of characters.
+  Returns <code>""</code> if <code>s</code> consists entirely of characters in the set.
+  Returns <code>s</code> unchanged if <code>chars</code> is empty.
+</p>
+<div class="syntax">Function vt_str_trim_chars(s As String, chars As String) As String</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+  <tr><td>s</td><td>String</td><td>Source string.</td></tr>
+  <tr><td>chars</td><td>String</td><td>Set of characters to strip. Each character in this string is treated as an individual trim candidate.</td></tr>
+</table>
+<pre><em>' Strip decorative border characters:</em>
+Dim clean As String = vt_str_trim_chars("***hello***", "*")
+<em>' clean = "hello"</em>
+
+<em>' Strip spaces and dots from both ends:</em>
+clean = vt_str_trim_chars("  ..hi.. ", " .")
+<em>' clean = "hi"</em></pre>
+
+<!-- vt_str_wordwrap -->
+<h3 id="vt_str_wordwrap">vt_str_wordwrap</h3>
+<p>
+  Insert <code>Chr(10)</code> line breaks into <code>s</code> so that no line exceeds
+  <code>col_width</code> characters. Words are never split &mdash; if a word is longer
+  than <code>col_width</code> it occupies its own line unbroken.
+  Existing <code>Chr(10)</code> and <code>Chr(13)</code> characters in <code>s</code>
+  are preserved and reset the line-length counter; CRLF pairs are collapsed to a
+  single <code>Chr(10)</code>.
+</p>
+<p>
+  The return value is a plain string with embedded newlines. Pass it directly to
+  <a href="#vt_print">vt_print</a>, which handles <code>Chr(10)</code> natively.
+</p>
+<div class="syntax">Function vt_str_wordwrap(s           As String,
+                        col_width   As Long = -1,
+                        first_offset As Long = 0) As String</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  <tr><td>s</td><td>String</td><td><em>none</em></td><td>Source text to wrap.</td></tr>
+  <tr><td>col_width</td><td>Long</td><td>-1</td><td>Maximum line width in characters. <code>-1</code> uses <code>scr_cols</code> if a VT screen is open, otherwise falls back to 80.</td></tr>
+  <tr><td>first_offset</td><td>Long</td><td>0</td><td>Characters already consumed on the first line before the text begins (e.g. the width of an inline label). Subsequent lines always start at column 0.</td></tr>
+</table>
+<div class="note">
+  <strong>No screen required:</strong> <code>col_width = -1</code> falls back to 80 when
+  no VT screen is open, so <code>vt_str_wordwrap</code> is safe to call before
+  <a href="#vt_screen">vt_screen</a> or in headless contexts.
+</div>
+<pre><em>' Wrap a long description inside a 30-char dialog window interior:</em>
+Dim msg As String = "This item restores your health fully and also cures poison."
+vt_print vt_str_wordwrap(msg, 30)
+
+<em>' Label already printed on the same line -- tell the wrapper to account for it:</em>
+vt_print "Description: "
+vt_print vt_str_wordwrap(msg, 40, 13)
+
+<em>' Use screen width automatically (requires open screen):</em>
+vt_print vt_str_wordwrap(msg)</pre>
 
 <hr>
 <p style="font-size:0.85em; color:#555;">
