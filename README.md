@@ -3,7 +3,7 @@
 A self-contained library that gives you a proper DOS-style text screen in a real
 SDL2 window. One include, no SDL2 knowledge required. Feels like QBasic, works like 2026.
 
-![VT demo screenshot](docs/screenshot1.png)
+![VTetris running in fullscreen](docs/screenshot1.png)
 
 ```freebasic
 #include once "vt/vt.bi"
@@ -131,6 +131,87 @@ Mode constants match original QBasic `SCREEN` numbers where applicable.
 - Multiple display pages with PCOPY equivalent
 - Custom BMP font loading at runtime (`vt_loadfont`)
 - Screen save/load in `.vts` format (`vt_bsave` / `vt_bload`)
+
+---
+
+## Extensions
+
+Optional modules shipped with the library. Each is pulled in by a single `#define`
+before the include — zero overhead if unused.
+
+### vt_sound — QBasic-style audio
+
+```freebasic
+#define VT_USE_SOUND
+#include once "vt/vt.bi"
+
+vt_sound 440, 500                                    ' 440 Hz, 500 ms, blocking
+vt_sound 262, 200, VT_WAVE_SQUARE, VT_SOUND_BACKGROUND  ' queue and continue
+VT_BEEP                                              ' convenience macro
+```
+
+Square, triangle, sine and noise waveforms. Blocking or background playback
+with a ~10 second queue buffer. No SDL2_mixer required — SDL2 core audio only.
+
+### vt_math — grid and game math helpers
+
+```freebasic
+#define VT_USE_MATH
+#include once "vt/vt.bi"
+
+lvl_capped = VT_CLAMP(lvl, 1, 20)
+dist       = vt_manhattan(px, py, ex, ey)
+can_see    = vt_los(px, py, ex, ey, @is_wall)
+vt_bresenham_walk x1, y1, x2, y2, @draw_cell
+```
+
+Macros: `VT_MIN`, `VT_MAX`, `VT_CLAMP`, `VT_SIGN`. Functions: `vt_wrap`,
+`vt_lerp`, `vt_approach`, `vt_manhattan`, `vt_chebyshev`, `vt_in_rect`,
+`vt_digits`, `vt_bresenham_walk`, `vt_los`, `vt_mat_rotate_cw/ccw`.
+No SDL2 or open screen required — usable in any FreeBASIC project.
+
+### vt_strings — string utility helpers
+
+```freebasic
+#define VT_USE_STRINGS
+#include once "vt/vt.bi"
+
+vt_print vt_str_pad_left(Str(score), 7, "0")        ' "0001450"
+vt_print vt_str_wordwrap(long_text, 40)              ' wraps to width, Chr(10) delimited
+tok_cnt = vt_str_split(csv_line, ",", parts())       ' split into dynamic array
+```
+
+`vt_str_replace`, `vt_str_split`, `vt_str_pad_left/right`, `vt_str_repeat`,
+`vt_str_count`, `vt_str_starts_with`, `vt_str_ends_with`, `vt_str_trim_chars`,
+`vt_str_wordwrap`. Pure FreeBASIC — no SDL2 or open screen required.
+
+---
+
+## Examples
+
+### VTetris
+
+A complete Tetris implementation included in the repository, built entirely on
+libvt. Demonstrates sound, math and string extensions working together in a
+real game.
+
+```
+examples/vtetris.bas        — the game
+examples/vtetris-bake.bas   — run once to generate the .vts screen assets
+```
+
+Controls: Arrow keys move and rotate, Space hard-drops, P pauses, Esc quits.
+Run `vtetris-bake.bas` once before compiling `vtetris.bas` to generate the
+required `resources/` files.
+
+### ex_strings.bas
+
+Runnable demonstration of every function in the `vt_strings` extension, with
+labelled output and edge-case coverage.
+
+```
+examples/ex_strings.bas
+```
 
 ---
 
