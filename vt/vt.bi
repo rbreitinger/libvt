@@ -166,29 +166,6 @@ Const VT_CP_DISABLED = 0   ' default -- no keys reserved, no mouse events captur
 Const VT_CP_MOUSE    = 1   ' LMB drag selects, RMB copies, MMB pastes (paste: vt_input only)
 Const VT_CP_KBD      = 2   ' Shift+arrows select, Ctrl+INS copies, Shift+INS pastes
 
-#Ifdef VT_USE_SOUND
-    ' -----------------------------------------------------------------------------
-    ' Sound waveform constants  (vt_sound wave param)
-    ' -----------------------------------------------------------------------------
-    Const VT_WAVE_SQUARE   = 0   ' PC speaker / chiptune square wave (default)
-    Const VT_WAVE_TRIANGLE = 1   ' NES triangle channel -- softer, bass feel
-    Const VT_WAVE_SINE     = 2   ' pure sine tone
-    Const VT_WAVE_NOISE    = 3   ' 15-bit LFSR noise -- NES percussion / static
-    
-    ' -----------------------------------------------------------------------------
-    ' Sound blocking constants  (vt_sound blocking param)
-    ' -----------------------------------------------------------------------------
-    Const VT_SOUND_BLOCKING   = 1   ' wait for note to finish, keep window alive (default)
-    Const VT_SOUND_BACKGROUND = 0   ' queue and return immediately
-    
-    ' -----------------------------------------------------------------------------
-    ' Sound tuning constants
-    ' -----------------------------------------------------------------------------
-    Const VT_SND_RATE      = 11025    ' sample rate: Hz, unsigned 8-bit mono
-    Const VT_SND_QUEUE_CAP = 110250   ' max queued bytes (~10 seconds at 11025 Hz)
-    
-    #Define VT_BEEP vt_sound(800, 200)
-#Endif
 ' -----------------------------------------------------------------------------
 ' vt_cell - one character cell on the virtual screen
 ' -----------------------------------------------------------------------------
@@ -315,18 +292,6 @@ End Type
 
 Dim Shared vt_internal As vt_internal_state
 
-#Ifdef VT_USE_SOUND
-    ' -----------------------------------------------------------------------------
-    ' vt_internal_sound_state - audio subsystem state (vt_sound extension)
-    ' -----------------------------------------------------------------------------
-    Type vt_internal_sound_state
-        dev    As SDL_AudioDeviceID   ' 0 = not open
-        ready  As Byte
-    End Type
-    
-    Dim Shared vt_snd As vt_internal_sound_state
-#Endif
-
 #Include Once "vt_font_8x8.bi"
 #Include Once "vt_font_8x14.bi"
 #Include Once "vt_font_8x16.bi"
@@ -340,22 +305,9 @@ Dim Shared vt_internal As vt_internal_state
 #Include Once "vt_bsave.bas"
 #Include Once "vt_copypaste.bas"
 #Include Once "vt_font.bas"
-
 #Ifdef VT_USE_FILE
-    #define VT_FILE_SHOW_HIDDEN   1  ' vt_file_list: include hidden items
-    #define VT_FILE_SHOW_DIRS     2  ' vt_file_list: include subdir names
-    #define VT_FILE_DIRS_ONLY     4  ' vt_file_list: only return subdirs
-    #define VT_FILE_OVERWRITE     8  ' vt_file_copy: allow clobbering dst
-    #define VT_FILE_RECURSIVE    16  ' vt_file_rmdir: delete contents too
-
-    Declare Function vt_file_exists(ByRef path As Const String) As Byte
-    Declare Function vt_file_isdir(ByRef path As Const String) As Byte
-    Declare Function vt_file_copy(ByRef src As Const String, ByRef dst As Const String, flags As Long = 0) As Long
-    Declare Function vt_file_rmdir(ByRef path As Const String, flags As Long = 0) As Long
-    Declare Function vt_file_list(ByRef path As Const String, ByRef pattern As Const String, arr() As String, flags As Long = 0) As Long
     #include once "vt_file.bas"
 #Endif
-
 #Ifdef VT_USE_STRINGS
     #Include Once "vt_strings.bas"
 #Endif
@@ -366,6 +318,7 @@ Dim Shared vt_internal As vt_internal_state
     #Include Once "vt_sound.bas"
 #Endif
 
+' --- undefine internals ---
 ' vt_core.bas
 #Undef vt_internal_shutdown
 #Undef vt_internal_key_push
