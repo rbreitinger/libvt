@@ -2,6 +2,7 @@
 ' vt_core.bas - VT Virtual Text Screen Library
 ' =============================================================================
 Declare Sub      vt_present()
+Declare Sub      vt_on_close(cb As Function() As Byte)
 Declare Sub      vt_shutdown()
 Declare Sub      vt_internal_shutdown()
 Declare Function vt_screen(mode As Long = VT_SCREEN_0, flags As Long = VT_WINDOWED, pages As Long = 1) As Long
@@ -154,9 +155,20 @@ Sub vt_pump()
     While SDL_PollEvent(@evt)
         Select Case evt.type
             Case SDL_QUIT_
-                ' Window closed -- shut down and terminate.
-                vt_internal_shutdown()
-                End
+                If vt_internal.close_cb <> 0 Then
+                    ' Release pump guard so the callback can use VT input freely
+                    pump_active = 0
+                    Dim close_result As Byte = vt_internal.close_cb()
+                    pump_active = 1
+                    If close_result = 0 Then
+                        vt_internal_shutdown()
+                        End
+                    End If
+                    ' close_result = 1: user vetoed, continue normally
+                Else
+                    vt_internal_shutdown()
+                    End
+                End If
 
             Case SDL_KEYDOWN
                 modstate = SDL_GetModState()
@@ -942,6 +954,22 @@ Sub vt_present()
 
     vt_internal.dirty = 0
     SDL_RenderPresent(vt_internal.sdl_renderer)
+End Sub
+
+' -----------------------------------------------------------------------------
+' vt_on_close - register a callback for the window [X] button
+'
+' cb() As Byte:
+'   Return 0  ->  library shuts down and calls End  (same as default)
+'   Return 1  ->  close vetoed; user is responsible for handling it
+'
+' The pump guard is released before calling cb, so VT input functions
+' (vt_inkey, vt_getkey, vt_sleep, etc.) are safe to call inside cb.
+'
+' Pass 0 to restore default auto-close behaviour.
+' -----------------------------------------------------------------------------
+Sub vt_on_close(cb As Function() As Byte)
+    vt_internal.close_cb = cb
 End Sub
 
 ' -----------------------------------------------------------------------------

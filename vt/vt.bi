@@ -292,6 +292,11 @@ Type vt_internal_state
     sel_end_row    As Long
     sel_dragging   As Byte
     cp_paste_pend  As Byte
+    
+    ' --- close callback ---
+    ' If set, called on SDL_QUIT instead of the default shutdown+End.
+    ' Return 0 = proceed with shutdown. Return 1 = veto (user handles it).
+    close_cb As Function() As Byte
 End Type
 
 Dim Shared vt_internal As vt_internal_state
