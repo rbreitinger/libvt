@@ -237,3 +237,5 @@ Function vt_loadfont(fname As String, _
     vt_internal.dirty = 1
     Return 0
 End Function
+
+#Undef vt_internal_build_embedded_tex

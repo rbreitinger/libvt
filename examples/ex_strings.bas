@@ -12,6 +12,7 @@ sub wait_for_key()
     vt_print_center(vt_csrlin(), "-Any key to continue-") 
     vt_print VT_NEWLINE
     vt_sleep()
+    vt_cls()
 end sub
 
 ' -----------------------------------------------------------------------------

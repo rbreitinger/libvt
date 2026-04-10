@@ -2,7 +2,6 @@
 ' vt.bi - VT Virtual Text Screen Library
 ' Usage: #include once "vt/vt.bi"
 ' =============================================================================
-
 #Include Once "SDL2/SDL.bi"
 
 #Define VT_NEWLINE  Chr(10)
@@ -167,6 +166,11 @@ Const VT_CP_MOUSE    = 1   ' LMB drag selects, RMB copies, MMB pastes (paste: vt
 Const VT_CP_KBD      = 2   ' Shift+arrows select, Ctrl+INS copies, Shift+INS pastes
 
 ' -----------------------------------------------------------------------------
+' Sorting Constants
+' -----------------------------------------------------------------------------
+Const VT_ASCENDING = 0, VT_DESCENDING = 1
+
+' -----------------------------------------------------------------------------
 ' vt_cell - one character cell on the virtual screen
 ' -----------------------------------------------------------------------------
 Type vt_cell
@@ -319,7 +323,6 @@ Dim Shared vt_internal As vt_internal_state
 #Endif
 
 ' --- undefine internals ---
-' vt_core.bas
 #Undef vt_internal_shutdown
 #Undef vt_internal_key_push
 #Undef vt_internal_sdl_to_vtscan
@@ -328,29 +331,6 @@ Dim Shared vt_internal As vt_internal_state
 #Undef vt_internal_present_if_dirty
 #Undef vt_internal_pixel_to_cell
 #Undef vt_internal_display_cellptr
-
-' vt_print.bas
-#Undef vt_internal_scroll_up
-#Undef vt_internal_putch
-
-' vt_copypaste.bas
-#Undef vt_internal_cp_build_text
-
-' vt_font.bas
-#Undef vt_internal_build_embedded_tex
-
-#Ifdef VT_USE_SOUND
-    ' vt_sound.bas
-    #Undef vt_internal_sound_init
-    #Undef vt_internal_sound_shutdown
-#Endif
-
-#Ifdef VT_USE_FILE
-    #Undef vt_file_internal_normpath
-    #Undef vt_file_internal_copydir
-#Endif
-
-' vt.bi
 #Undef vt_default_palette
 #Undef vt_font_data_8x8
 #Undef vt_font_data_8x14

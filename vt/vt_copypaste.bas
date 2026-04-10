@@ -88,3 +88,5 @@ Sub vt_copypaste(flags As Long)
     vt_internal.cp_paste_pend = 0
     vt_internal.dirty         = 1
 End Sub
+
+#Undef vt_internal_cp_build_text

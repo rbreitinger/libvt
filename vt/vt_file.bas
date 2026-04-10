@@ -321,3 +321,6 @@ Function vt_file_list(ByRef path As Const String, ByRef pattern As Const String,
 
     Return cnt
 End Function
+
+#Undef vt_file_internal_normpath
+#Undef vt_file_internal_copydir

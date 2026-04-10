@@ -225,3 +225,6 @@ Sub vt_sound_wait()
         Sleep 1, 1
     Loop
 End Sub
+
+#Undef vt_internal_sound_init
+#Undef vt_internal_sound_shutdown

@@ -1,7 +1,6 @@
 ' =============================================================================
 ' vt_core.bas - VT Virtual Text Screen Library
 ' =============================================================================
-
 Declare Sub      vt_present()
 Declare Sub      vt_shutdown()
 Declare Sub      vt_internal_shutdown()

@@ -220,3 +220,6 @@ Sub vt_print_center(row As Long, txt As String)
     vt_locate(row, start_col)
     vt_print(txt)
 End Sub
+
+#Undef vt_internal_scroll_up
+#Undef vt_internal_putch
