@@ -341,7 +341,7 @@ Dim Shared vt_internal As vt_internal_state
 #Include Once "vt_copypaste.bas"
 #Include Once "vt_font.bas"
 
-#ifdef VT_USE_FILE
+#Ifdef VT_USE_FILE
     #define VT_FILE_SHOW_HIDDEN   1  ' vt_file_list: include hidden items
     #define VT_FILE_SHOW_DIRS     2  ' vt_file_list: include subdir names
     #define VT_FILE_DIRS_ONLY     4  ' vt_file_list: only return subdirs
@@ -354,7 +354,7 @@ Dim Shared vt_internal As vt_internal_state
     Declare Function vt_file_rmdir(ByRef path As Const String, flags As Long = 0) As Long
     Declare Function vt_file_list(ByRef path As Const String, ByRef pattern As Const String, arr() As String, flags As Long = 0) As Long
     #include once "vt_file.bas"
-#endif
+#Endif
 
 #Ifdef VT_USE_STRINGS
     #Include Once "vt_strings.bas"
@@ -390,6 +390,11 @@ Dim Shared vt_internal As vt_internal_state
     ' vt_sound.bas
     #Undef vt_internal_sound_init
     #Undef vt_internal_sound_shutdown
+#Endif
+
+#Ifdef VT_USE_FILE
+    #Undef vt_file_internal_normpath
+    #Undef vt_file_internal_copydir
 #Endif
 
 ' vt.bi

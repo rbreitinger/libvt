@@ -35,18 +35,68 @@ Function vt_file_isdir(ByRef path As Const String) As Byte
 End Function
 
 ' -----------------------------------------------------------------------
+' vt_file_internal_normpath(p) As String
+' Normalize a path for the recursion-trap check in vt_file_copy:
+'   - lowercase (Windows is case-insensitive)
+'   - all backslashes -> forward slash
+'   - exactly one trailing slash appended
+' "data"   -> "data/"    "data/backup" -> "data/backup/"
+' The trailing slash prevents "data/" from matching "database/".
+' -----------------------------------------------------------------------
+Function vt_file_internal_normpath(ByRef p As Const String) As String
+    Dim nrm As String
+    Dim idx As Long
+    nrm = LCase(p)
+    For idx = 1 To Len(nrm)
+        If Mid(nrm, idx, 1) = "\" Then Mid(nrm, idx, 1) = "/"
+    Next idx
+    If Right(nrm, 1) <> "/" Then nrm &= "/"
+    Return nrm
+End Function
+
+' forward declaration -- vt_file_internal_copydir and vt_file_copy call each other
+Declare Function vt_file_internal_copydir(ByRef src As Const String, ByRef dst As Const String, flags As Long) As Long
+
+' -----------------------------------------------------------------------
 ' vt_file_copy(src, dst, flags) As Long
-' Copy a file byte-for-byte. Reads entire file into memory.
-' flags : VT_FILE_OVERWRITE   allow clobbering an existing dst
-' returns: 0=ok  -1=src not found  -2=dst exists (no overwrite)  -3=i/o error
+' Copy a file or directory tree.
+'   src is a file -> copy byte-for-byte (reads whole file into memory)
+'   src is a dir  -> recursively recreate directory tree under dst,
+'                    copying every file; existing dst dir is merged into.
+' flags : VT_FILE_OVERWRITE   overwrite existing destination files
+' returns:
+'   0   ok
+'  -1   src not found (neither file nor directory)
+'  -2   dst exists as a file but src is a directory (type mismatch),
+'       OR dst file exists and VT_FILE_OVERWRITE was not set
+'  -3   I/O error (open, read, write, or MkDir failure)
+'  -4   recursion trap: dst is src itself or a subdirectory of src
 ' -----------------------------------------------------------------------
 Function vt_file_copy(ByRef src As Const String, ByRef dst As Const String, flags As Long = 0) As Long
-    Dim buf()   As UByte
-    Dim src_num As Long
-    Dim dst_num As Long
-    Dim fsz     As Long
+    Dim buf()    As UByte
+    Dim src_num  As Long
+    Dim dst_num  As Long
+    Dim fsz      As Long
+    Dim src_norm As String
+    Dim dst_norm As String
 
+    ' --- directory copy branch ---
+    If vt_file_isdir(src) Then
+        ' type mismatch check first: dst is an existing file (not a dir)
+        ' must be before the normpath trap -- a file path can match the src prefix
+        If vt_file_exists(dst) Then Return -2
+        ' recursion trap: dst is src itself or lives inside src
+        src_norm = vt_file_internal_normpath(src)
+        dst_norm = vt_file_internal_normpath(dst)
+        If Len(dst_norm) >= Len(src_norm) Then
+            If Mid(dst_norm, 1, Len(src_norm)) = src_norm Then Return -4
+        End If
+        Return vt_file_internal_copydir(src, dst, flags)
+    End If
+
+    ' --- file copy branch ---
     If vt_file_exists(src) = 0 Then Return -1
+
     If vt_file_exists(dst) Then
         If (flags And VT_FILE_OVERWRITE) = 0 Then Return -2
     End If
@@ -66,6 +116,68 @@ Function vt_file_copy(ByRef src As Const String, ByRef dst As Const String, flag
         Put #dst_num, , buf()
     End If
     Close #dst_num
+
+    Return 0
+End Function
+
+' -----------------------------------------------------------------------
+' vt_file_internal_copydir(src, dst, flags) As Long
+' Recursive worker called by vt_file_copy for directory trees.
+' Collects all entries in one Dir() pass before touching anything
+' (same discipline as vt_file_rmdir) so Dir() state is never corrupted.
+' MkDir dst if it does not exist; merges into dst if it does.
+' VT_FILE_OVERWRITE propagates to per-file vt_file_copy calls.
+' returns: 0=ok  -3=MkDir or file copy failure
+' -----------------------------------------------------------------------
+Function vt_file_internal_copydir(ByRef src As Const String, ByRef dst As Const String, flags As Long) As Long
+    Dim attrib    As Integer
+    Dim scan_mask As Integer
+    Dim itm       As String
+    Dim files()   As String
+    Dim dirs()    As String
+    Dim fcnt      As Long
+    Dim dcnt      As Long
+    Dim idx       As Long
+    Dim ret       As Long
+
+    ' create dst if needed
+    If vt_file_isdir(dst) = 0 Then
+        MkDir dst
+        If vt_file_isdir(dst) = 0 Then Return -3
+    End If
+
+    ' collect all entries in one complete Dir() pass before touching anything
+    fcnt = 0 : dcnt = 0
+    ReDim files(0) : ReDim dirs(0)
+    scan_mask = fbDirectory Or fbReadOnly Or fbHidden Or fbSystem Or fbArchive
+
+    itm = Dir(src & "/*", scan_mask, attrib)
+    Do While itm <> ""
+        If attrib And fbDirectory Then
+            If itm <> "." AndAlso itm <> ".." Then
+                ReDim Preserve dirs(0 To dcnt)
+                dirs(dcnt) = itm
+                dcnt += 1
+            End If
+        Else
+            ReDim Preserve files(0 To fcnt)
+            files(fcnt) = itm
+            fcnt += 1
+        End If
+        itm = Dir("", scan_mask, attrib)
+    Loop
+
+    ' copy files -- -2 means dst file exists without OVERWRITE: skip silently (merge behaviour)
+    For idx = 0 To fcnt - 1
+        ret = vt_file_copy(src & "/" & files(idx), dst & "/" & files(idx), flags)
+        If ret <> 0 AndAlso ret <> -2 Then Return -3
+    Next idx
+
+    ' recurse into subdirectories
+    For idx = 0 To dcnt - 1
+        ret = vt_file_internal_copydir(src & "/" & dirs(idx), dst & "/" & dirs(idx), flags)
+        If ret <> 0 Then Return ret
+    Next idx
 
     Return 0
 End Function
@@ -99,7 +211,7 @@ Function vt_file_rmdir(ByRef path As Const String, flags As Long = 0) As Long
 
         Dim scan_mask As Integer
         scan_mask = fbDirectory Or fbReadOnly Or fbHidden Or fbSystem Or fbArchive
-        
+
         itm = Dir(path & "/*", scan_mask, attrib)
         Do While itm <> ""
             If attrib And fbDirectory Then
@@ -174,22 +286,21 @@ Function vt_file_list(ByRef path As Const String, ByRef pattern As Const String,
     ReDim arr(0)
     cnt = 0
 
-    ' vt_file_list -- replace scan section:
     Dim scan_mask As Integer
     scan_mask = dir_mask   ' dir_mask already built from flags above
-    
+
     itm = Dir(full_pat, scan_mask, attrib)
     Do While itm <> ""
         is_dir = ((attrib And fbDirectory) <> 0)
-    
+
         If is_dir AndAlso (itm = "." OrElse itm = "..") Then
             itm = Dir("", scan_mask, attrib) : Continue Do
         End If
-    
+
         If dirs_only AndAlso (is_dir = 0) Then
             itm = Dir("", scan_mask, attrib) : Continue Do
         End If
-    
+
         ReDim Preserve arr(0 To cnt)
         arr(cnt) = itm
         cnt += 1

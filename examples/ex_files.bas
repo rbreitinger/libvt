@@ -66,15 +66,15 @@ vt_print("  isdir('filetest/sub_b') = " & vt_file_isdir("filetest/sub_b") & "  (
 ' write a couple of test files
 Dim fnum As Long
 fnum = FreeFile()
-Open "filetest/hello.txt"   For Output As #fnum : Print #fnum, "hello world" : Close #fnum
+Open "filetest/hello.txt"        For Output As #fnum : Print #fnum, "hello world" : Close #fnum
 fnum = FreeFile()
-Open "filetest/data.dat"    For Output As #fnum : Print #fnum, "some data"   : Close #fnum
+Open "filetest/data.dat"         For Output As #fnum : Print #fnum, "some data"   : Close #fnum
 fnum = FreeFile()
-Open "filetest/sub_a/nested.txt" For Output As #fnum : Print #fnum, "nested" : Close #fnum
+Open "filetest/sub_a/nested.txt" For Output As #fnum : Print #fnum, "nested"      : Close #fnum
 
 vt_print("  created filetest/hello.txt, filetest/data.dat, filetest/sub_a/nested.txt" & VT_NEWLINE)
-vt_print("  exists('filetest/hello.txt')      = " & vt_file_exists("filetest/hello.txt")      & "  (expect 1)" & VT_NEWLINE)
-vt_print("  exists('filetest/sub_a/nested.txt')= " & vt_file_exists("filetest/sub_a/nested.txt") & "  (expect 1)" & VT_NEWLINE)
+vt_print("  exists('filetest/hello.txt')        = " & vt_file_exists("filetest/hello.txt")        & "  (expect 1)" & VT_NEWLINE)
+vt_print("  exists('filetest/sub_a/nested.txt') = " & vt_file_exists("filetest/sub_a/nested.txt") & "  (expect 1)" & VT_NEWLINE)
 
 vt_color(8, 0) : vt_print(VT_NEWLINE & "  press any key..." & VT_NEWLINE) : vt_color(7, 0)
 vt_present() : vt_sleep(0)
@@ -108,10 +108,10 @@ Next idx
 vt_color(8, 0) : vt_print(VT_NEWLINE & "  press any key..." & VT_NEWLINE) : vt_color(7, 0)
 vt_present() : vt_sleep(0)
 
-' --- vt_file_copy ---
+' --- vt_file_copy (single file) ---
 vt_cls()
 vt_locate(1, 1)
-vt_color(14, 0) : vt_print("vt_file_copy" & VT_NEWLINE)
+vt_color(14, 0) : vt_print("vt_file_copy (single file)" & VT_NEWLINE)
 vt_color(7, 0)
 
 ret = vt_file_copy("filetest/hello.txt", "filetest/hello_copy.txt")
@@ -130,6 +130,42 @@ vt_print("  copy nonexistent src                          ret=" & ret & "  (expe
 vt_color(8, 0) : vt_print(VT_NEWLINE & "  press any key..." & VT_NEWLINE) : vt_color(7, 0)
 vt_present() : vt_sleep(0)
 
+' --- vt_file_copy (directory tree) ---
+vt_cls()
+vt_locate(1, 1)
+vt_color(14, 0) : vt_print("vt_file_copy (directory tree)" & VT_NEWLINE)
+vt_color(7, 0)
+
+ret = vt_file_copy("filetest", "filetest_copy")
+vt_print("  copy dir filetest -> filetest_copy            ret=" & ret & "  (expect 0)"  & VT_NEWLINE)
+vt_print("  isdir('filetest_copy')                       = " & vt_file_isdir("filetest_copy")                        & "  (expect 1)" & VT_NEWLINE)
+vt_print("  exists('filetest_copy/hello.txt')            = " & vt_file_exists("filetest_copy/hello.txt")             & "  (expect 1)" & VT_NEWLINE)
+vt_print("  isdir('filetest_copy/sub_a')                 = " & vt_file_isdir("filetest_copy/sub_a")                  & "  (expect 1)" & VT_NEWLINE)
+vt_print("  exists('filetest_copy/sub_a/nested.txt')     = " & vt_file_exists("filetest_copy/sub_a/nested.txt")      & "  (expect 1)" & VT_NEWLINE)
+vt_print("  isdir('filetest_copy/sub_b')                 = " & vt_file_isdir("filetest_copy/sub_b")                  & "  (expect 1)" & VT_NEWLINE)
+
+vt_print(VT_NEWLINE)
+ret = vt_file_copy("filetest", "filetest_copy")
+vt_print("  copy again, dst exists, no overwrite (skip)   ret=" & ret & "  (expect 0)"  & VT_NEWLINE)
+
+vt_print(VT_NEWLINE)
+ret = vt_file_copy("filetest", "filetest/sub_inside")
+vt_print("  recursion trap (dst inside src)               ret=" & ret & "  (expect -4)" & VT_NEWLINE)
+
+ret = vt_file_copy("filetest", "filetest")
+vt_print("  recursion trap (src == dst)                   ret=" & ret & "  (expect -4)" & VT_NEWLINE)
+
+vt_print(VT_NEWLINE)
+ret = vt_file_copy("filetest", "filetest/hello.txt")
+vt_print("  type mismatch (dir onto existing file)        ret=" & ret & "  (expect -2)" & VT_NEWLINE)
+
+vt_print(VT_NEWLINE)
+ret = vt_file_copy("no_such_dir", "wherever")
+vt_print("  src not found                                 ret=" & ret & "  (expect -1)" & VT_NEWLINE)
+
+vt_color(8, 0) : vt_print(VT_NEWLINE & "  press any key..." & VT_NEWLINE) : vt_color(7, 0)
+vt_present() : vt_sleep(0)
+
 ' --- vt_file_rmdir recursive ---
 vt_cls()
 vt_locate(1, 1)
@@ -141,7 +177,7 @@ vt_print("  rmdir 'filetest', no flag (not empty)         ret=" & ret & "  (expe
 vt_print("  isdir('filetest') still                      = " & vt_file_isdir("filetest") & "  (expect 1)" & VT_NEWLINE)
 
 vt_print(VT_NEWLINE)
-vt_color(12, 0) : vt_print("  WARNING: next step deletes 'filetest' and all contents!" & VT_NEWLINE)
+vt_color(12, 0) : vt_print("  WARNING: next step deletes 'filetest' and 'filetest_copy' and all contents!" & VT_NEWLINE)
 vt_color(8, 0)  : vt_print("  press any key to proceed..." & VT_NEWLINE)
 vt_color(7, 0)
 vt_present() : vt_sleep(0)
@@ -149,6 +185,10 @@ vt_present() : vt_sleep(0)
 ret = vt_file_rmdir("filetest", VT_FILE_RECURSIVE)
 vt_print("  rmdir 'filetest', VT_FILE_RECURSIVE           ret=" & ret & "  (expect 0)"  & VT_NEWLINE)
 vt_print("  isdir('filetest') after                      = " & vt_file_isdir("filetest") & "  (expect 0)" & VT_NEWLINE)
+
+ret = vt_file_rmdir("filetest_copy", VT_FILE_RECURSIVE)
+vt_print("  rmdir 'filetest_copy', VT_FILE_RECURSIVE      ret=" & ret & "  (expect 0)"  & VT_NEWLINE)
+vt_print("  isdir('filetest_copy') after                 = " & vt_file_isdir("filetest_copy") & "  (expect 0)" & VT_NEWLINE)
 
 vt_color(8, 0) : vt_print(VT_NEWLINE & "  all tests done -- press any key to exit." & VT_NEWLINE)
 vt_color(7, 0)
