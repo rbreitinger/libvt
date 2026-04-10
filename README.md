@@ -131,6 +131,8 @@ Mode constants match original QBasic `SCREEN` numbers where applicable.
 - Multiple display pages with PCOPY equivalent
 - Custom BMP font loading at runtime (`vt_loadfont`)
 - Screen save/load in `.vts` format (`vt_bsave` / `vt_bload`)
+- Close-button callback (`vt_on_close`) — intercept the window [X] to guard unsaved data
+- In-place sort (`vt_sort`) with direction or custom comparator, shuffle and permutation apply — all numeric types and String
 
 ---
 
@@ -185,6 +187,32 @@ tok_cnt = vt_str_split(csv_line, ",", parts())       ' split into dynamic array
 `vt_str_count`, `vt_str_starts_with`, `vt_str_ends_with`, `vt_str_trim_chars`,
 `vt_str_wordwrap`. Pure FreeBASIC — no SDL2 or open screen required.
 
+### vt_file — file and directory helpers
+
+```freebasic
+#define VT_USE_FILE
+#include once "vt/vt.bi"
+
+If vt_file_exists("save.vts") Then vt_bload "save.vts"   ' safe load guard
+
+vt_file_copy "config.ini", "config.bak"                   ' backup before overwrite
+vt_file_copy "data", "data_backup", VT_FILE_OVERWRITE     ' recursive tree copy
+
+Dim files() As String
+Dim cnt As Long = vt_file_list("maps", "*.vts", files())  ' directory listing
+For i As Long = 0 To cnt - 1
+    vt_print files(i) & VT_NEWLINE
+Next i
+
+vt_file_rmdir "tmp", VT_FILE_RECURSIVE                    ' delete populated tree
+```
+
+`vt_file_exists`, `vt_file_isdir`, `vt_file_copy` (single file or full recursive
+tree with merge), `vt_file_rmdir` (recursive with explicit opt-in flag),
+`vt_file_list` (wildcard directory scan into a String array, with flags for
+hidden files, directories, or directories only). Pure FreeBASIC — no SDL2 or
+open screen required.
+
 ---
 
 ## Examples
@@ -211,6 +239,16 @@ labelled output and edge-case coverage.
 
 ```
 examples/ex_strings.bas
+```
+
+### ex_close_guard.bas
+
+Demonstrates `vt_on_close` — registering a callback for the window [X] button
+to prevent accidental data loss. Shows both the clean-close path (no dialog)
+and the confirmation dialog path when unsaved changes are present.
+
+```
+examples/ex_close_guard.bas
 ```
 
 ---

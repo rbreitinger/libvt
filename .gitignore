@@ -4,5 +4,5 @@ Thumbs.db
 *.fbs
 *.vts
 vt_status.md
-future_ideas.md
+vt_tui_design.md
 vt_api_wip.html

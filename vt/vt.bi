@@ -6,7 +6,7 @@
 
 #Define VT_NEWLINE  Chr(10)
 
-Const VT_VERSION = "1.1.0"         ' major.minor.patch 
+Const VT_VERSION = "1.2.0"         ' major.minor.patch 
 
 ' -----------------------------------------------------------------------------
 ' Init flags  (combinable with Or)

@@ -144,7 +144,11 @@
         <li><a href="#c-misc">Misc Constants</a></li>
       </ul>
     </li>
-    <li><a href="#s-init">Initialization</a></li>
+    <li><a href="#s-init">Initialization</a>
+      <ul>
+        <li><a href="#vt_on_close">vt_on_close</a></li>
+      </ul>
+    </li>
     <li><a href="#s-display">Display</a></li>
     <li><a href="#s-print">Printing &amp; Cursor</a></li>
     <li><a href="#s-cells">Cell Access</a></li>
@@ -169,6 +173,11 @@
       </ul>
     </li>
     <li><a href="#s-strings">Strings</a> <span class="badge-opt">opt-in</span></li>
+    <li><a href="#s-file">File I/O Helpers</a> <span class="badge-opt">opt-in</span>
+      <ul>
+        <li><a href="#c-fileflags">File Flags</a></li>
+      </ul>
+    </li>
   </ul>
 </div>
 
@@ -337,6 +346,8 @@ End Select</pre>
   <tr><th>Constant</th><th>Description</th></tr>
   <tr><td>VT_NEWLINE</td><td><code>Chr(10)</code> &mdash; newline character for use with <a href="#vt_print">vt_print</a>.</td></tr>
   <tr><td>VT_VIDEO</td><td>Value <code>0</code>. The display page index. Always page 0.</td></tr>
+  <tr><td>VT_ASCENDING</td><td>Value <code>0</code>. Sort direction for <a href="#vt_sort">vt_sort</a>: smallest value first.</td></tr>
+  <tr><td>VT_DESCENDING</td><td>Value <code>1</code>. Sort direction for <a href="#vt_sort">vt_sort</a>: largest value first.</td></tr>
 </table>
 
 <!-- Math Macros -->
@@ -395,6 +406,7 @@ End Select</pre>
   <li><a href="#vt_scrollback">vt_scrollback</a> &mdash; allocate scrollback buffer</li>
   <li><a href="#vt_shutdown">vt_shutdown</a> &mdash; explicit teardown</li>
   <li><a href="#vt_title">vt_title</a> &mdash; set the window title</li>
+  <li><a href="#vt_on_close">vt_on_close</a> &mdash; intercept the [X] close button</li>
 </ul>
 
 <!-- vt_screen -->
@@ -464,6 +476,62 @@ End Select</pre>
   <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
   <tr><td>txt</td><td>String</td><td><em>none</em></td><td>The title bar text.</td></tr>
 </table>
+
+<!-- vt_on_close -->
+<h3 id="vt_on_close">vt_on_close</h3>
+<p>
+  Register a callback function that is invoked when the user clicks the window
+  <strong>[X]</strong> button. Without a callback the default behaviour is to
+  shut down immediately and call <code>End</code> &mdash; the program exits with
+  no chance to intervene. With a callback registered the library calls your
+  function first and acts on the return value.
+</p>
+<div class="syntax">Sub vt_on_close(cb As Function() As Byte)</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+  <tr><td>cb</td><td>Function() As Byte</td><td>
+    Pointer to a <code>Function() As Byte</code>. Pass <code>0</code> to
+    remove the callback and restore the default auto-close behaviour.
+  </td></tr>
+</table>
+<h4>Callback return value</h4>
+<div class="ret">
+  <code>0</code> &mdash; allow the close: library calls <code>vt_shutdown()</code> then <code>End</code>, identical to the default.<br>
+  <code>1</code> &mdash; veto the close: window stays open, the event is discarded, program continues normally.
+</div>
+<div class="note">
+  <strong>VT functions are safe inside the callback.</strong>
+  The SDL event-pump reentrancy guard is released before your callback is
+  invoked and re-acquired afterwards, so <code>vt_inkey</code>,
+  <code>vt_getkey</code>, <code>vt_sleep</code>, <code>vt_present</code>, and
+  all drawing functions work correctly. This means you can draw a confirmation
+  dialog and wait for a keypress directly inside the callback.<br><br>
+  If your callback calls <code>vt_shutdown()</code> and <code>End</code>
+  explicitly, the re-acquire never runs &mdash; that is fine.
+</div>
+<pre><em>' Declare the callback with the exact signature:</em>
+Function on_close() As Byte
+    <em>' Ask the user before closing:</em>
+    vt_color VT_BLACK, VT_LIGHT_GREY
+    vt_locate 25, 1
+    vt_print "  Unsaved changes!  Quit? (Y/N)" &amp; String(48, " ")
+    vt_present()
+
+    Dim ans As String = vt_getchar("YyNn")
+    If LCase(ans) = "y" Then Return 0   <em>' allow close</em>
+
+    <em>' Restore UI and veto:</em>
+    draw_statusbar()
+    vt_present()
+    Return 1
+End Function
+
+<em>' Register after vt_screen:</em>
+vt_screen VT_SCREEN_0
+vt_on_close(@on_close)
+
+<em>' Remove callback (restore default auto-close):</em>
+vt_on_close(0)</pre>
 
 <hr>
 
@@ -1329,6 +1397,9 @@ End If</pre>
 <h2 id="s-misc">Utilities</h2>
 <ul class="section-toc">
   <li><a href="#vt_rnd">vt_rnd</a> &mdash; random number in a range</li>
+  <li><a href="#vt_sort">vt_sort</a> &mdash; generic in-place array sort</li>
+  <li><a href="#vt_sort_apply">vt_sort_apply</a> &mdash; apply a permutation index to an array</li>
+  <li><a href="#vt_sort_shuffle">vt_sort_shuffle</a> &mdash; Fisher-Yates in-place shuffle</li>
 </ul>
 
 <!-- vt_rnd -->
@@ -1351,6 +1422,166 @@ Randomize Timer
 Dim n As Long = vt_rnd(-15, 15)   <em>' -15 to 15</em>
 Dim d As Long = vt_rnd(1, 6)      <em>' die roll</em>
 Dim x As Long = vt_rnd(1, vt_cols())</pre>
+
+<!-- vt_sort -->
+<h3 id="vt_sort">vt_sort</h3>
+<p>
+  Sort a 1D array in-place using Shellsort.
+  Overloaded for all numeric types (<code>Byte</code>, <code>UByte</code>, <code>Short</code>,
+  <code>UShort</code>, <code>Long</code>, <code>ULong</code>, <code>LongInt</code>,
+  <code>ULongInt</code>, <code>Single</code>, <code>Double</code>) and <code>String</code>.
+  The compiler selects the correct overload automatically &mdash; a single call works
+  for every supported type. Arrays with any <code>LBound</code> are handled correctly.
+</p>
+<p>Two call forms are available: a direction constant, or a comparator callback for custom ordering.</p>
+<div class="note">
+  <strong>ZString not supported.</strong>
+  <code>ZString * N</code> cannot be covered by a generic overload because the fixed length
+  <code>N</code> is part of the type in FreeBASIC &mdash; every distinct size would require its
+  own overload, which is not feasible.
+  <code>ZString</code> is a C-interop type; data intended for sorting should be stored as
+  <code>String</code>. If you do have a <code>ZString * N</code> array to sort, use the
+  <a href="#vt_sort_apply">index-sort pattern</a>: sort a <code>Long</code> index array
+  with a comparator that reads the zstring array via the index value, then read results
+  in index order &mdash; no physical rearrangement of the zstring array is needed.
+</div>
+
+<h4>Form 1 &mdash; direction constant</h4>
+<div class="syntax">Sub vt_sort(arr() As &lt;T&gt;, order As Long)</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+  <tr><td>arr()</td><td>any supported 1D array</td><td>Array to sort in-place.</td></tr>
+  <tr><td>order</td><td>Long</td><td><code>VT_ASCENDING</code> (0) or <code>VT_DESCENDING</code> (1).</td></tr>
+</table>
+
+<h4>Form 2 &mdash; comparator callback</h4>
+<div class="syntax">Sub vt_sort(arr() As &lt;T&gt;, cmp As Function(As &lt;T&gt;, As &lt;T&gt;) As Long)</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+  <tr><td>arr()</td><td>any supported 1D array</td><td>Array to sort in-place.</td></tr>
+  <tr><td>cmp</td><td>Function(As &lt;T&gt;, As &lt;T&gt;) As Long</td><td>Returns negative if <code>a</code> comes first, zero if equal, positive if <code>b</code> comes first. Pass with <code>@</code>.</td></tr>
+</table>
+<div class="note">
+  The comparator defines the sort order entirely. To sort descending via a comparator,
+  flip the return sign in your function.
+</div>
+
+<pre><em>' Direction sort:</em>
+Dim nums(4) As Long = {5, 1, 4, 2, 3}
+vt_sort nums(), VT_ASCENDING    <em>' 1 2 3 4 5</em>
+vt_sort nums(), VT_DESCENDING   <em>' 5 4 3 2 1</em>
+
+<em>' String array, alphabetical:</em>
+Dim words(2) As String = {"cherry", "apple", "banana"}
+vt_sort words(), VT_ASCENDING   <em>' apple banana cherry</em>
+
+<em>' Custom comparator: sort strings by character count (shortest first):</em>
+Function cmp_by_length(a As String, b As String) As Long
+    Return Len(a) - Len(b)
+End Function
+
+Dim tags(2) As String = {"hi", "hello", "hey"}
+vt_sort tags(), @cmp_by_length  <em>' hi hey hello</em></pre>
+
+<!-- vt_sort_apply -->
+<h3 id="vt_sort_apply">vt_sort_apply</h3>
+<p>
+  Apply a permutation index to a 1D array, physically rearranging its elements in-place.
+  This is the companion function to the <em>index-sort pattern</em> &mdash; the standard
+  technique for sorting tables stored as parallel arrays.
+</p>
+<p>
+  <code>pidx()</code> values are 0-based offsets from <code>LBound(arr)</code>,
+  exactly matching the index arrays built and sorted by <a href="#vt_sort">vt_sort</a>.
+  The permutation index is consumed by the apply step &mdash; build a fresh index array
+  if you need to apply the same order to additional arrays.
+</p>
+<p>
+  Overloaded for the same types as <a href="#vt_sort">vt_sort</a>.
+  The <code>pidx</code> parameter is always <code>Long</code>.
+</p>
+<div class="syntax">Sub vt_sort_apply(arr() As &lt;T&gt;, pidx() As Long)</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+  <tr><td>arr()</td><td>any supported 1D array</td><td>Array to rearrange in-place.</td></tr>
+  <tr><td>pidx()</td><td>Long array</td><td>Permutation index. Values are 0-based offsets into <code>arr</code>. Produced by sorting an index array with <a href="#vt_sort">vt_sort</a>.</td></tr>
+</table>
+
+<h4>The index-sort pattern (sorting a table of parallel arrays)</h4>
+<p>
+  FreeBASIC tables are often stored as several parallel arrays of equal length &mdash;
+  one per column. Because <a href="#vt_sort">vt_sort</a> operates on a single array,
+  you cannot sort all columns at once directly.
+  The index-sort pattern solves this in three steps without duplicating the data.
+  It also applies naturally to <code>ZString</code> arrays, which
+  <a href="#vt_sort">vt_sort</a> cannot overload directly.
+</p>
+<ol style="margin: 0.4em 0 0.6em 1.8em;">
+  <li>Build a <code>Long</code> index array <code>{0, 1, 2, &hellip;}</code> &mdash; one entry per row.</li>
+  <li>Sort the index array using <a href="#vt_sort">vt_sort</a> with a comparator that reads the real data via the index values.</li>
+  <li>Either <strong>read in index order</strong> (non-destructive view) or call <code>vt_sort_apply</code> on every parallel array to physically rearrange them.</li>
+</ol>
+<div class="note">
+  Because the comparator uses module-level <code>Shared</code> variables, FreeBASIC's
+  lack of closures is not a problem &mdash; the comparator simply accesses the shared
+  arrays directly. This technique works for any array type including
+  <code>ZString * N</code>.
+</div>
+
+<pre><em>' Table stored as parallel arrays:</em>
+Dim Shared g_item(3) As String
+Dim Shared g_qty (3) As Long
+g_item(0) = "eggs"   : g_qty(0) = 5
+g_item(1) = "butter" : g_qty(1) = 2
+g_item(2) = "milk"   : g_qty(2) = 10
+g_item(3) = "bread"  : g_qty(3) = 3
+
+<em>' Index comparators peek into shared arrays via the index value:</em>
+Function cmp_by_qty(a As Long, b As Long) As Long
+    Return g_qty(a) - g_qty(b)
+End Function
+
+<em>' Step 1: build index array.</em>
+Dim idx(3) As Long
+Dim i As Long
+For i = 0 To 3 : idx(i) = i : Next i
+
+<em>' Step 2: sort the index, not the data.</em>
+vt_sort idx(), @cmp_by_qty   <em>' idx = {1,3,0,2} = butter,bread,eggs,milk</em>
+
+<em>' Step 3a: read in index order (original arrays untouched):</em>
+For i = 0 To 3
+    Print g_item(idx(i)); " "; g_qty(idx(i))
+Next i
+
+<em>' Step 3b: physically rearrange both arrays using the same index:</em>
+vt_sort_apply g_item(), idx()
+vt_sort_apply g_qty(),  idx()
+<em>' g_item() and g_qty() are now in qty-ascending order.</em></pre>
+
+<!-- vt_sort_shuffle -->
+<h3 id="vt_sort_shuffle">vt_sort_shuffle</h3>
+<p>
+  Shuffle a 1D array in-place using the Fisher-Yates algorithm, producing an
+  unbiased uniform random permutation. Seeding the RNG with <code>Randomize</code>
+  is the caller's responsibility &mdash; <code>vt_sort_shuffle</code> does not call it.
+  Overloaded for the same types as <a href="#vt_sort">vt_sort</a>.
+</p>
+<div class="syntax">Sub vt_sort_shuffle(arr() As &lt;T&gt;)</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+  <tr><td>arr()</td><td>any supported 1D array</td><td>Array to shuffle in-place.</td></tr>
+</table>
+<pre><em>' Shuffle a deck of cards:</em>
+Randomize Timer
+Dim deck(51) As Long
+Dim i As Long
+For i = 0 To 51 : deck(i) = i : Next i
+vt_sort_shuffle deck()
+
+<em>' Shuffle a string list:</em>
+Dim names(3) As String = {"Alice", "Bob", "Carol", "Dave"}
+vt_sort_shuffle names()</pre>
 
 <hr>
 
@@ -1980,6 +2211,246 @@ vt_print vt_str_wordwrap(msg, 40, 13)
 
 <em>' Use screen width automatically (requires open screen):</em>
 vt_print vt_str_wordwrap(msg)</pre>
+
+<hr>
+
+<!-- ============================================================ -->
+<h2 id="s-file">File I/O Helpers <span class="badge-opt">opt-in</span></h2>
+<p>
+  Fills gaps in FreeBASIC's built-in file and directory handling. Wraps
+  <code>Dir()</code> from <code>dir.bi</code> cleanly, hiding the
+  <code>fbDirectory</code> constant and the multi-call scan idiom from
+  caller code. Functions that duplicate existing FreeBASIC built-ins without
+  adding behaviour (<code>MkDir</code>, <code>RmDir</code>, <code>Kill</code>,
+  <code>Name</code>) are intentionally not wrapped &mdash; use them directly.
+</p>
+<div class="note">
+  <strong>Opt-in:</strong> define <code>VT_USE_FILE</code> <em>before</em> the include.
+  Without it the entire extension is absent at compile time &mdash; zero overhead.
+<pre><em>' Enable file helpers in your project:</em>
+#define VT_USE_FILE
+#include once "vt/vt.bi"</pre>
+  No SDL2 or open VT screen required &mdash; all helpers are pure FreeBASIC
+  and usable in any project.
+</div>
+<div class="note">
+  <strong>Windows Explorer interference:</strong> if Explorer (or any shell tool)
+  has the target directory open, <code>RmDir</code> may fail or
+  <code>vt_file_isdir</code> may briefly return <code>1</code> immediately after
+  deletion due to Explorer holding a filesystem watch handle. This is OS behaviour,
+  not a library bug. Close Explorer or any open file manager window pointing at the
+  target before recursive deletion if reliable return codes are required.
+</div>
+<ul class="section-toc">
+  <li><a href="#vt_file_exists">vt_file_exists</a> &mdash; test whether a file exists</li>
+  <li><a href="#vt_file_isdir">vt_file_isdir</a> &mdash; test whether a path is a directory</li>
+  <li><a href="#vt_file_copy">vt_file_copy</a> &mdash; copy a file or directory tree</li>
+  <li><a href="#vt_file_rmdir">vt_file_rmdir</a> &mdash; remove a directory, optionally recursive</li>
+  <li><a href="#vt_file_list">vt_file_list</a> &mdash; list directory contents into a String array</li>
+</ul>
+
+<!-- VT_FILE_* flags -->
+<h3 id="c-fileflags">File Flags</h3>
+<p>Bit-flags passed to <a href="#vt_file_copy">vt_file_copy</a>,
+<a href="#vt_file_rmdir">vt_file_rmdir</a>, and
+<a href="#vt_file_list">vt_file_list</a>. Combine with <code>Or</code>.</p>
+<table class="const-table">
+  <tr><th>Constant</th><th>Value</th><th>Applies to</th><th>Description</th></tr>
+  <tr><td>VT_FILE_SHOW_HIDDEN</td><td>1</td><td>vt_file_list</td><td>Include hidden items in the listing.</td></tr>
+  <tr><td>VT_FILE_SHOW_DIRS</td><td>2</td><td>vt_file_list</td><td>Include subdirectory names alongside files.</td></tr>
+  <tr><td>VT_FILE_DIRS_ONLY</td><td>4</td><td>vt_file_list</td><td>Return only subdirectory names. Implies <code>VT_FILE_SHOW_DIRS</code>.</td></tr>
+  <tr><td>VT_FILE_OVERWRITE</td><td>8</td><td>vt_file_copy</td><td>Allow the destination file to be overwritten if it already exists.</td></tr>
+  <tr><td>VT_FILE_RECURSIVE</td><td>16</td><td>vt_file_rmdir</td><td>Delete all contents and subdirectories before removing the directory. <strong>Destructive &mdash; no undo.</strong></td></tr>
+</table>
+
+<!-- vt_file_exists -->
+<h3 id="vt_file_exists">vt_file_exists</h3>
+<p>
+  Returns <code>1</code> if <code>path</code> names an existing file,
+  <code>0</code> if the path does not exist or is a directory.
+  Uses <code>Dir()</code> directly &mdash; no <code>vbcompat.bi</code> required.
+</p>
+<div class="syntax">Function vt_file_exists(path As String) As Byte</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+  <tr><td>path</td><td>String</td><td>Path to test. May be relative or absolute.</td></tr>
+</table>
+<h4>Return value</h4>
+<div class="ret">
+  <code>1</code> = file exists<br>
+  <code>0</code> = not found, or path is a directory
+</div>
+<pre><em>' Guard a bload call:</em>
+If vt_file_exists("savegame.vts") Then
+    vt_bload "savegame.vts"
+End If</pre>
+
+<!-- vt_file_isdir -->
+<h3 id="vt_file_isdir">vt_file_isdir</h3>
+<p>
+  Returns <code>1</code> if <code>path</code> is an existing directory,
+  <code>0</code> otherwise. Hides the <code>fbDirectory</code> constant
+  and <code>dir.bi</code> dependency from caller code entirely.
+</p>
+<div class="syntax">Function vt_file_isdir(path As String) As Byte</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+  <tr><td>path</td><td>String</td><td>Path to test. May be relative or absolute.</td></tr>
+</table>
+<h4>Return value</h4>
+<div class="ret">
+  <code>1</code> = path is an existing directory<br>
+  <code>0</code> = not found, or path is a file
+</div>
+<pre><em>' Create output folder only if it does not already exist:</em>
+If vt_file_isdir("output") = 0 Then MkDir "output"</pre>
+
+<!-- vt_file_copy -->
+<h3 id="vt_file_copy">vt_file_copy</h3>
+<p>
+  Copy a file or a full directory tree. The function auto-detects whether
+  <code>src</code> is a file or a directory &mdash; no separate call needed.
+</p>
+<p>
+  <strong>File mode:</strong> the source file is read into memory and written to
+  the destination in a single binary I/O operation. Fails if the destination
+  already exists unless <code>VT_FILE_OVERWRITE</code> is passed.
+</p>
+<p>
+  <strong>Directory mode:</strong> the full directory tree is recreated under
+  <code>dst</code>. If <code>dst</code> does not exist it is created; if it
+  already exists the trees are merged. Individual files that already exist in
+  <code>dst</code> are silently skipped unless <code>VT_FILE_OVERWRITE</code>
+  is set. All entries are collected in a single <code>Dir()</code> pass before
+  anything is written, so the global scan state is never corrupted by recursion.
+</p>
+<div class="note">
+  <strong>Recursion trap:</strong> copying a directory into itself or into one
+  of its own subdirectories is detected and refused with <code>-4</code>.
+  For example <code>vt_file_copy("data", "data/backup")</code> returns
+  <code>-4</code> before any file is touched.
+</div>
+<div class="syntax">Function vt_file_copy(src   As String,
+                      dst   As String,
+                      flags As Long = 0) As Long</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  <tr><td>src</td><td>String</td><td><em>none</em></td><td>Source file or directory path.</td></tr>
+  <tr><td>dst</td><td>String</td><td><em>none</em></td><td>Destination file or directory path.</td></tr>
+  <tr><td>flags</td><td>Long</td><td>0</td><td><code>VT_FILE_OVERWRITE</code> &mdash; overwrite existing destination files.</td></tr>
+</table>
+<h4>Return value</h4>
+<div class="ret">
+  <code>0</code> = success<br>
+  <code>-1</code> = source not found (neither file nor directory)<br>
+  <code>-2</code> = destination file exists without <code>VT_FILE_OVERWRITE</code>,
+                   or <code>dst</code> is an existing file while <code>src</code>
+                   is a directory (type mismatch)<br>
+  <code>-3</code> = I/O error (open, read/write, or <code>MkDir</code> failure)<br>
+  <code>-4</code> = recursion trap: <code>dst</code> is <code>src</code> itself
+                   or lives inside <code>src</code>
+</div>
+<pre><em>' Simple backup before overwriting:</em>
+vt_file_copy "config.ini", "config.bak"
+
+<em>' Overwrite an existing destination file:</em>
+vt_file_copy "save_new.vts", "save_slot1.vts", VT_FILE_OVERWRITE
+
+<em>' Copy a full directory tree:</em>
+vt_file_copy "data", "data_backup"
+
+<em>' Copy tree, overwrite any files that already exist in dst:</em>
+vt_file_copy "data", "data_backup", VT_FILE_OVERWRITE
+
+<em>' Check result:</em>
+Dim ret As Long = vt_file_copy("src.dat", "dst.dat")
+If ret &lt;&gt; 0 Then
+    vt_print "copy failed: " &amp; ret &amp; VT_NEWLINE
+End If</pre>
+
+<!-- vt_file_rmdir -->
+<h3 id="vt_file_rmdir">vt_file_rmdir</h3>
+<p>
+  Remove a directory. Without <code>VT_FILE_RECURSIVE</code> the directory must
+  be empty &mdash; for that common case FreeBASIC's built-in <code>RmDir</code>
+  is sufficient and preferred. Use <code>vt_file_rmdir</code> when recursive
+  deletion of a populated directory tree is needed.
+</p>
+<p>
+  When <code>VT_FILE_RECURSIVE</code> is set, all files and subdirectories are
+  collected in a single <code>Dir()</code> pass before anything is deleted, so
+  the global <code>Dir()</code> scan state is never corrupted by recursive calls.
+  Files are removed with <code>Kill</code>, subdirectories by recursing into
+  <code>vt_file_rmdir</code>, then the now-empty root is removed with
+  <code>RmDir</code>.
+</p>
+<div class="note">
+  <strong>Warning:</strong> <code>VT_FILE_RECURSIVE</code> is permanently
+  destructive. There is no undo. The flag must be passed explicitly &mdash;
+  the default is always safe (empty-dir only).
+</div>
+<div class="syntax">Function vt_file_rmdir(path  As String,
+                       flags As Long = 0) As Long</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  <tr><td>path</td><td>String</td><td><em>none</em></td><td>Path to the directory to remove.</td></tr>
+  <tr><td>flags</td><td>Long</td><td>0</td><td>Optional flags. <code>VT_FILE_RECURSIVE</code> deletes all contents first.</td></tr>
+</table>
+<h4>Return value</h4>
+<div class="ret">
+  <code>0</code> = success<br>
+  <code>-1</code> = path is not an existing directory<br>
+  <code>-2</code> = directory is not empty and <code>VT_FILE_RECURSIVE</code> was not set<br>
+  <code>-3</code> = failed (permissions or partial recursive failure)
+</div>
+<pre><em>' Remove an empty temp directory (prefer plain RmDir for this):</em>
+vt_file_rmdir "tmp_empty"
+
+<em>' Remove a populated directory tree -- explicit opt-in required:</em>
+vt_file_rmdir "build_output", VT_FILE_RECURSIVE</pre>
+
+<!-- vt_file_list -->
+<h3 id="vt_file_list">vt_file_list</h3>
+<p>
+  Scan a directory for items matching <code>pattern</code> and fill
+  <code>arr()</code> with their bare names (no path prefix).
+  The <code>.</code> and <code>..</code> entries are always silently skipped.
+  The array is <code>ReDim</code>'d by this function; the caller only needs to
+  declare <code>Dim arr() As String</code>.
+</p>
+<p>
+  By default only files are returned. Pass <code>VT_FILE_SHOW_DIRS</code> to
+  include subdirectory names alongside files, or <code>VT_FILE_DIRS_ONLY</code>
+  to return only subdirectory names.
+</p>
+<div class="syntax">Function vt_file_list(path    As String,
+                      pattern As String,
+                      arr()   As String,
+                      flags   As Long = 0) As Long</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  <tr><td>path</td><td>String</td><td><em>none</em></td><td>Directory to scan. Pass <code>""</code> to scan the current working directory.</td></tr>
+  <tr><td>pattern</td><td>String</td><td><em>none</em></td><td>Filename pattern, e.g. <code>"*.txt"</code> or <code>"*"</code>. Supports <code>*</code> and <code>?</code> wildcards.</td></tr>
+  <tr><td>arr()</td><td>String array</td><td><em>none</em></td><td>Receives the item names. <code>ReDim</code>'d to <code>0 To count-1</code>.</td></tr>
+  <tr><td>flags</td><td>Long</td><td>0</td><td>Optional combination of <code>VT_FILE_SHOW_HIDDEN</code>, <code>VT_FILE_SHOW_DIRS</code>, <code>VT_FILE_DIRS_ONLY</code>.</td></tr>
+</table>
+<h4>Return value</h4>
+<div class="ret">Number of items placed in <code>arr()</code>. <code>0</code> if nothing matched.</div>
+<pre><em>' List all .txt files in a folder:</em>
+Dim files() As String
+Dim cnt As Long = vt_file_list("notes", "*.txt", files())
+For i As Long = 0 To cnt - 1
+    vt_print files(i) &amp; VT_NEWLINE
+Next i
+
+<em>' List files and subdirectories together:</em>
+cnt = vt_file_list("data", "*", files(), VT_FILE_SHOW_DIRS)
+
+<em>' List only subdirectories:</em>
+cnt = vt_file_list("data", "*", files(), VT_FILE_DIRS_ONLY)
+
+<em>' Scan current directory, include hidden files:</em>
+cnt = vt_file_list("", "*", files(), VT_FILE_SHOW_HIDDEN)</pre>
 
 <hr>
 <p style="font-size:0.85em; color:#555;">
