@@ -11,6 +11,7 @@ Function vt_rnd(lo As Long, hi As Long) As Long
     Return Int(Rnd * (hi - lo + 1)) + lo
 End Function
 
+#Ifdef VT_USE_SORT
 ' ================================================================
 '  vt_sort  –  generic array sort via overloading (shellsort)
 ' ================================================================
@@ -19,7 +20,7 @@ End Function
 '  SHELLSORT_VAL  –  direct value comparison (ASC or DESC)
 '  variables suffixed _ to avoid shadowing caller-side names
 ' ----------------------------------------------------------------
-#macro SHELLSORT_VAL(arr, order, T)
+#Macro SHELLSORT_VAL(arr, order, T)
     dim as long lo_  = lbound(arr)
     dim as long hi_  = ubound(arr)
     dim as long gap_ = (hi_ - lo_ + 1) \ 2
@@ -45,7 +46,7 @@ End Function
         next i_
         gap_ \= 2
     wend
-#endmacro
+#Endmacro
 
 ' ----------------------------------------------------------------
 '  SHELLSORT_CMP  –  comparator callback variant
@@ -53,7 +54,7 @@ End Function
 '             return   0  ?  equal
 '             return > 0  ?  b belongs before a  (swap)
 ' ----------------------------------------------------------------
-#macro SHELLSORT_CMP(arr, cmp, T)
+#Macro SHELLSORT_CMP(arr, cmp, T)
     dim as long lo_  = lbound(arr)
     dim as long hi_  = ubound(arr)
     dim as long gap_ = (hi_ - lo_ + 1) \ 2
@@ -72,7 +73,7 @@ End Function
         next i_
         gap_ \= 2
     wend
-#endmacro
+#Endmacro
 
 ' ================================================================
 '  vt_sort  –  VT_ASCENDING / VT_DESCENDING overloads
@@ -187,7 +188,7 @@ end sub
 '  and sorted by vt_sort.
 ' ================================================================
 
-#macro APPLY_PERM(arr, pidx, T)
+#Macro APPLY_PERM(arr, pidx, T)
     dim as long n_   = ubound(pidx) - lbound(pidx) + 1
     dim as long alo_ = lbound(arr)
     dim as long i_
@@ -199,7 +200,7 @@ end sub
     for i_ = 0 to n_ - 1
         arr(alo_ + i_) = tmp_(pidx(lbound(pidx) + i_))
     next i_
-#endmacro
+#Endmacro
 
 sub vt_sort_apply overload (arr() as byte,     pidx() as long)
     APPLY_PERM(arr, pidx, byte)
@@ -245,7 +246,7 @@ sub vt_sort_apply overload (arr() as string,   pidx() as long)
     APPLY_PERM(arr, pidx, string)
 end sub
 
-#undef APPLY_PERM
+#Undef APPLY_PERM
 
 ' ================================================================
 '  vt_sort_shuffle  --  Fisher-Yates in-place shuffle
@@ -253,13 +254,13 @@ end sub
 '  swap is type-agnostic in FreeBASIC so T is not needed here.
 ' ================================================================
 
-#macro FISHER_YATES(arr)
+#Macro FISHER_YATES(arr)
     dim as long i_, j_
     for i_ = ubound(arr) to lbound(arr) + 1 step -1
         j_ = lbound(arr) + int(rnd * (i_ - lbound(arr) + 1))
         swap arr(i_), arr(j_)
     next i_
-#endmacro
+#Endmacro
 
 sub vt_sort_shuffle overload (arr() as byte)
     FISHER_YATES(arr)
@@ -305,4 +306,5 @@ sub vt_sort_shuffle overload (arr() as string)
     FISHER_YATES(arr)
 end sub
 
-#undef FISHER_YATES
+#Undef FISHER_YATES
+#Endif
