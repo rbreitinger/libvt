@@ -2,6 +2,14 @@
 ' vt_pages.bas - VT Page Management and Scrollback
 ' =============================================================================
 
+' Bugfix: 
+' CopyMemory is a WinAPI macro (RtlCopyMemory under the hood). 
+' On Windows it sneaks in silently because SDL2/SDL.bi ends up pulling windows.bi transitively. 
+' On Linux, SDL2.bi does not pull any Windows headers, so CopyMemory is simply undefined.
+' Hence we will replace CopyMemory by memcpy from the C runtime
+' 
+#Include Once "crt/string.bi" 
+
 ' -----------------------------------------------------------------------------
 ' vt_page - set the active drawing page and the visible display page
 ' work : page index written to by all drawing commands (0..num_pages-1)
@@ -29,7 +37,7 @@ Sub vt_pcopy(src As Long, dst As Long)
     If dst < 0 Or dst >= vt_internal.num_pages Then Exit Sub
     If src = dst Then Exit Sub
     Dim buf_sz As Long = vt_internal.scr_cols * vt_internal.scr_rows * SizeOf(vt_cell)
-    CopyMemory(vt_internal.page_buf(dst), vt_internal.page_buf(src), buf_sz)
+    memcpy(vt_internal.page_buf(dst), vt_internal.page_buf(src), buf_sz)
     vt_internal.dirty = 1
 End Sub
 
