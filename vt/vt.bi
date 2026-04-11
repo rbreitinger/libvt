@@ -327,6 +327,11 @@ Dim Shared vt_internal As vt_internal_state
     #Include Once "vt_sound.bas"
 #Endif
 
+' --- WIP (not commited yet) ---
+#Ifdef VT_USE_TUI
+    #Include Once "vt_tui.bas"
+#Endif
+
 ' --- undefine internals ---
 #Undef vt_internal_shutdown
 #Undef vt_internal_key_push
