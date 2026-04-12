@@ -162,6 +162,11 @@
     <li><a href="#s-fileio">File I/O (.vts)</a></li>
     <li><a href="#s-font">Font</a></li>
     <li><a href="#s-misc">Utilities</a></li>
+    <li><a href="#s-sort">Sort</a> <span class="badge-opt">opt-in</span>
+      <ul>
+        <li><a href="#c-sortconsts">Sort Constants</a></li>
+      </ul>
+    </li>
     <li><a href="#s-math">Math</a> <span class="badge-opt">opt-in</span>
       <ul>
         <li><a href="#c-mathconsts">Math Macros</a></li>
@@ -346,8 +351,6 @@ End Select</pre>
   <tr><th>Constant</th><th>Description</th></tr>
   <tr><td>VT_NEWLINE</td><td><code>Chr(10)</code> &mdash; newline character for use with <a href="#vt_print">vt_print</a>.</td></tr>
   <tr><td>VT_VIDEO</td><td>Value <code>0</code>. The display page index. Always page 0.</td></tr>
-  <tr><td>VT_ASCENDING</td><td>Value <code>0</code>. Sort direction for <a href="#vt_sort">vt_sort</a>: smallest value first.</td></tr>
-  <tr><td>VT_DESCENDING</td><td>Value <code>1</code>. Sort direction for <a href="#vt_sort">vt_sort</a>: largest value first.</td></tr>
 </table>
 
 <!-- Math Macros -->
@@ -390,11 +393,17 @@ End Select</pre>
   <tr><td>VT_SOUND_BLOCKING</td><td>1</td><td>Wait for the note to finish. The window stays alive during the wait. Default.</td></tr>
   <tr><td>VT_SOUND_BACKGROUND</td><td>0</td><td>Queue samples and return immediately. Use <a href="#vt_sound_wait">vt_sound_wait</a> to sync.</td></tr>
 </table>
-<h4>Tuning constants</h4>
+<!-- Sort Constants -->
+<h3 id="c-sortconsts">Sort Constants <span class="badge-opt">opt-in</span></h3>
+<p>
+  Available when <code>#define VT_USE_SORT</code> is placed before
+  <code>#include once "vt/vt.bi"</code>.
+  See the <a href="#s-sort">Sort</a> section for the full function reference.
+</p>
 <table class="const-table">
   <tr><th>Constant</th><th>Value</th><th>Description</th></tr>
-  <tr><td>VT_SND_RATE</td><td>11025</td><td>Sample rate in Hz. Unsigned 8-bit mono.</td></tr>
-  <tr><td>VT_SND_QUEUE_CAP</td><td>110250</td><td>Maximum bytes that may be queued (~10 seconds). Calls that would exceed this are skipped and return <code>-2</code>.</td></tr>
+  <tr><td>VT_ASCENDING</td><td>0</td><td>Sort direction for <a href="#vt_sort">vt_sort</a>: smallest value first.</td></tr>
+  <tr><td>VT_DESCENDING</td><td>1</td><td>Sort direction for <a href="#vt_sort">vt_sort</a>: largest value first.</td></tr>
 </table>
 
 <hr>
@@ -428,12 +437,26 @@ End Select</pre>
   <code>-2</code> = SDL window creation failed<br>
   <code>-3</code> = SDL renderer creation failed<br>
   <code>-4</code> = font texture creation failed<br>
+  <code>-5</code> = unsupported display environment (Linux raw TTY detected &mdash; see note below)<br>
   <code>-6</code> = page buffer memory allocation failed
 </div>
 <div class="note">
   Call <a href="#vt_title">vt_title</a> before <code>vt_screen</code> to set the window title before the window appears.<br>
   Call <a href="#vt_scrollback">vt_scrollback</a> after <code>vt_screen</code> to enable the scrollback buffer.<br>
   Call <a href="#vt_copypaste">vt_copypaste</a> after <code>vt_screen</code> to enable selection/clipboard support.
+</div>
+<div class="note">
+  <strong>Linux raw TTY (<code>-5</code>):</strong> VT requires a graphical session (X11 or Wayland).
+  Running from a raw Linux console &mdash; the TTYs reachable via <kbd>Ctrl+Alt+F1</kbd>&ndash;<kbd>F6</kbd>
+  outside of a desktop session &mdash; is not supported. SDL2 can open a KMS/DRM window in that
+  environment but receives no keyboard or mouse events, causing input functions such as
+  <a href="#vt_sleep">vt_sleep</a> to block indefinitely. VT detects this via the
+  <code>TERM=linux</code> environment variable and returns <code>-5</code> immediately rather
+  than hanging.<br><br>
+  <strong>Workaround:</strong> launch your program from a terminal emulator running inside
+  a graphical session (xterm, lxterminal, xfce4-terminal, etc.). Advanced users can experiment
+  with <code>SDL_VIDEODRIVER=kmsdrm</code> and adding their user to the <code>input</code>
+  group, but this is not an officially supported configuration.
 </div>
 
 <!-- vt_scrollback -->
@@ -1397,9 +1420,6 @@ End If</pre>
 <h2 id="s-misc">Utilities</h2>
 <ul class="section-toc">
   <li><a href="#vt_rnd">vt_rnd</a> &mdash; random number in a range</li>
-  <li><a href="#vt_sort">vt_sort</a> &mdash; generic in-place array sort</li>
-  <li><a href="#vt_sort_apply">vt_sort_apply</a> &mdash; apply a permutation index to an array</li>
-  <li><a href="#vt_sort_shuffle">vt_sort_shuffle</a> &mdash; Fisher-Yates in-place shuffle</li>
 </ul>
 
 <!-- vt_rnd -->
@@ -1422,6 +1442,29 @@ Randomize Timer
 Dim n As Long = vt_rnd(-15, 15)   <em>' -15 to 15</em>
 Dim d As Long = vt_rnd(1, 6)      <em>' die roll</em>
 Dim x As Long = vt_rnd(1, vt_cols())</pre>
+
+<hr>
+
+<!-- ============================================================ -->
+<h2 id="s-sort">Sort <span class="badge-opt">opt-in</span></h2>
+<p>
+  Generic in-place array sorting, permutation application, and Fisher-Yates shuffle.
+  No SDL2 required &mdash; usable with or without a VT screen open.
+</p>
+<div class="note">
+  <strong>Opt-in:</strong> define <code>VT_USE_SORT</code> <em>before</em> the include.
+  Without it the entire extension is absent at compile time &mdash; zero overhead.
+<pre><em>' Enable sort in your project:</em>
+#define VT_USE_SORT
+#include once "vt/vt.bi"</pre>
+  The two direction constants (<a href="#c-sortconsts">VT_ASCENDING, VT_DESCENDING</a>) are
+  also part of this extension and documented in the Constants section.
+</div>
+<ul class="section-toc">
+  <li><a href="#vt_sort">vt_sort</a> &mdash; generic in-place array sort</li>
+  <li><a href="#vt_sort_apply">vt_sort_apply</a> &mdash; apply a permutation index to an array</li>
+  <li><a href="#vt_sort_shuffle">vt_sort_shuffle</a> &mdash; Fisher-Yates in-place shuffle</li>
+</ul>
 
 <!-- vt_sort -->
 <h3 id="vt_sort">vt_sort</h3>

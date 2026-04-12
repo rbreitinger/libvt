@@ -50,6 +50,14 @@ Primary development and testing is done on Windows. Linux has not been
 formally tested, but no Windows-specific code is used — all SDL2 calls,
 FreeBASIC built-ins, and file I/O are cross-platform.
 
+> **Raw TTY not supported.** VT requires a graphical session (X11 or Wayland).
+> Running from a raw Linux console (the TTYs reachable via Ctrl+Alt+F1–F6 outside
+> of a desktop session) is not supported — SDL2 can open a window in that environment
+> but receives no keyboard or mouse events, causing input to hang indefinitely.
+> VT detects this via `TERM=linux` and exits with return code `-5` instead of hanging.
+> Launch your program from a terminal emulator inside a graphical session
+> (xterm, lxterminal, xfce4-terminal, etc.).
+
 ---
 
 No other dependencies. All CP437 fonts are embedded — no external files needed.
@@ -132,7 +140,7 @@ Mode constants match original QBasic `SCREEN` numbers where applicable.
 - Custom BMP font loading at runtime (`vt_loadfont`)
 - Screen save/load in `.vts` format (`vt_bsave` / `vt_bload`)
 - Close-button callback (`vt_on_close`) — intercept the window [X] to guard unsaved data
-- In-place sort (`vt_sort`) with direction or custom comparator, shuffle and permutation apply — all numeric types and String
+- In-place sort (`vt_sort`) with direction or custom comparator, shuffle and permutation apply — all numeric types and String — opt-in via `#define VT_USE_SORT`
 
 ---
 
@@ -153,7 +161,30 @@ VT_BEEP                                              ' convenience macro
 ```
 
 Square, triangle, sine and noise waveforms. Blocking or background playback
-with a ~10 second queue buffer. No SDL2_mixer required — SDL2 core audio only.
+with a ~20 second queue buffer. No SDL2_mixer required — SDL2 core audio only.
+
+### vt_sort — array sorting and shuffling
+
+```freebasic
+#define VT_USE_SORT
+#include once "vt/vt.bi"
+
+Dim nums(4) As Long = {5, 1, 4, 2, 3}
+vt_sort nums(), VT_ASCENDING          ' 1 2 3 4 5
+vt_sort nums(), VT_DESCENDING         ' 5 4 3 2 1
+
+Dim words(2) As String = {"cherry", "apple", "banana"}
+vt_sort words(), VT_ASCENDING         ' apple banana cherry
+
+Randomize Timer
+vt_sort_shuffle nums()                ' Fisher-Yates in-place shuffle
+```
+
+Generic in-place Shellsort overloaded for all numeric types and `String`.
+Two call forms: direction constant (`VT_ASCENDING` / `VT_DESCENDING`) or a custom
+comparator callback for any ordering you need. `vt_sort_apply` applies a permutation
+index to parallel arrays — the standard pattern for sorting multi-column tables.
+No SDL2 or open screen required — usable in any FreeBASIC project.
 
 ### vt_math — grid and game math helpers
 

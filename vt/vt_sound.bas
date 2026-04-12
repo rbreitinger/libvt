@@ -22,7 +22,7 @@ Const VT_SOUND_BACKGROUND = 0   ' queue and return immediately
 ' Sound tuning constants
 ' -----------------------------------------------------------------------------
 Const VT_SND_RATE      = 11025    ' sample rate: Hz, unsigned 8-bit mono
-Const VT_SND_QUEUE_CAP = 110250   ' max queued bytes (~10 seconds at 11025 Hz)
+Const VT_SND_QUEUE_CAP = 220500   ' max queued bytes (~20 seconds at 11025 Hz)
 
 #Define VT_BEEP vt_sound(800, 200)
 

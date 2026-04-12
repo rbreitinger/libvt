@@ -476,6 +476,13 @@ Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Lo
                       fptr As UByte Ptr, fsrc_h As Long, flags As Long, _
                       pages As Long) As Long
 
+    #Ifdef __FB_LINUX__
+    If Environ("TERM") = "linux" Then
+        ' running on a raw TTY - SDL2 input will not function
+        Return -5   ' new error code: unsupported display environment
+    End If
+    #Endif
+    
     If vt_internal.ready Then vt_internal_shutdown()  ' re-init: clean up first
 
     If SDL_Init(SDL_INIT_VIDEO) <> 0 Then Return -1
