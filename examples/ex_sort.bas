@@ -2,10 +2,10 @@
 '  ex_sort.bas  --  vt_sort family demonstration
 '  shows: direction sort, comparator sort, shuffle, apply_perm,
 '         and the index-sort trick for sorting parallel arrays
-'         (the "2D table" pattern)
-'  compile: fbc ex_sort.bas
+'         ("2D table" pattern)
 ' ================================================================
-#include once "../vt/vt.bi"
+#Define VT_USE_SORT
+#Include Once "../vt/vt.bi"
 
 ' ----------------------------------------------------------------
 '  shared table data for the index-sort demo (4 items, idx 0..3)
@@ -85,7 +85,7 @@ end sub
 '  screen 1 -- basic sorts + shuffle
 ' ================================================================
 
-Randomize Timer
+Randomize
 
 vt_title "vt_sort -- example"
 vt_screen VT_SCREEN_0   ' 80x25, 8x16
@@ -154,7 +154,6 @@ vt_color VT_DARK_GREY, VT_BLACK
 vt_locate 23, 2 : vt_print "Next: sorting a table (parallel arrays + index trick)"
 vt_color VT_LIGHT_GREY, VT_BLACK
 vt_locate 25, 2 : vt_print "Press any key..."
-vt_present()
 vt_sleep 0
 
 ' ================================================================
@@ -198,7 +197,7 @@ for i = 0 to TROWS
     show_row(g_item(idx_qty(i)), g_qty(idx_qty(i)), 42, 4 + i)
 next i
 
-' ---- step explanation (left col 2, rows 9-14) ----------------
+' ---- step explanation ----------------
 vt_color VT_DARK_GREY, VT_BLACK
 vt_locate 9, 2 : vt_print "the index-sort pattern:"
 
@@ -217,7 +216,7 @@ vt_color VT_LIGHT_GREY, VT_BLACK  : vt_locate 13, 6 : vt_print "read arr(idx(i))
 vt_color VT_BRIGHT_CYAN, VT_BLACK : vt_locate 14, 2 : vt_print "3b."
 vt_color VT_LIGHT_GREY, VT_BLACK  : vt_locate 14, 6 : vt_print "vt_sort_apply(arr(), idx())"
 
-' ---- sorted by name (right col 42, rows 9-13) ----------------
+' ---- sorted by name ----------------
 vt_color VT_DARK_GREY, VT_BLACK
 vt_locate 9, 42 : vt_print "sorted by name (asc):"
 
@@ -229,7 +228,7 @@ for i = 0 to TROWS
     show_row(g_item(idx_name(i)), g_qty(idx_name(i)), 42, 10 + i)
 next i
 
-' ---- after vt_sort_apply (left col 4, rows 16-20) ------------
+' ---- after vt_sort_apply ------------
 ' physically rearranges both parallel arrays using the qty index.
 ' idx_qty is consumed by apply -- rebuild if further use is needed.
 vt_sort_apply(g_item(), idx_qty())
@@ -244,7 +243,5 @@ next i
 ' ---- footer --------------------------------------------------
 vt_color VT_LIGHT_GREY, VT_BLACK
 vt_locate 25, 2 : vt_print "Press any key to exit..."
-vt_present()
 vt_sleep 0
-
 vt_shutdown()
