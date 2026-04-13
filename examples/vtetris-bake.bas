@@ -10,6 +10,7 @@
 ''  Re-run whenever the layout or colours in vtetris.bas change.
 '' =============================================================================
 #define VT_USE_MATH
+#define VT_USE_STRINGS
 #include once "../vt/vt.bi"
 
 #define fbDirectory &h10   '' Dir() flag for directory check -- not auto-defined in FB
@@ -106,14 +107,16 @@ Sub draw_panel_static()
     vt_locate BOARD_ROW + 20, pc : vt_print "ESC  Quit"
 End Sub
 
+'' NOTE: update_panel() in vtetris-bake.bas must stay identical to this.
+'' Re-run vtetris-bake.bas after any formatting change here.
 Sub update_panel()
     Dim pc As Long = PANEL_COL
     vt_color VT_YELLOW,       VT_BLACK
-    vt_locate BOARD_ROW + 7,  pc : vt_print Space(7 - vt_digits(score))     & score
+    vt_locate BOARD_ROW + 7,  pc : vt_print vt_str_pad_left(LTrim(Str(score)),     7, "0")
     vt_color VT_BRIGHT_CYAN,  VT_BLACK
-    vt_locate BOARD_ROW + 10, pc : vt_print Space(3 - vt_digits(lvl))       & lvl
+    vt_locate BOARD_ROW + 10, pc : vt_print vt_str_pad_left(LTrim(Str(lvl)),       2, "0")
     vt_color VT_BRIGHT_GREEN, VT_BLACK
-    vt_locate BOARD_ROW + 12, pc : vt_print Space(4 - vt_digits(tot_lines)) & tot_lines
+    vt_locate BOARD_ROW + 12, pc : vt_print vt_str_pad_left(LTrim(Str(tot_lines)), 4, "0")
 End Sub
 
 '' =============================================================================

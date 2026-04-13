@@ -54,7 +54,8 @@ FreeBASIC built-ins, and file I/O are cross-platform.
 > Running from a raw Linux console (the TTYs reachable via Ctrl+Alt+F1–F6 outside
 > of a desktop session) is not supported — SDL2 can open a window in that environment
 > but receives no keyboard or mouse events, causing input to hang indefinitely.
-> VT detects this via `TERM=linux` and exits with return code `-5` instead of hanging.
+> VT detects this via `TERM=linux`, prints a clear error message, and exits cleanly
+> instead of hanging.
 > Launch your program from a terminal emulator inside a graphical session
 > (xterm, lxterminal, xfce4-terminal, etc.).
 
@@ -140,7 +141,7 @@ Mode constants match original QBasic `SCREEN` numbers where applicable.
 - Custom BMP font loading at runtime (`vt_loadfont`)
 - Screen save/load in `.vts` format (`vt_bsave` / `vt_bload`)
 - Close-button callback (`vt_on_close`) — intercept the window [X] to guard unsaved data
-- In-place sort (`vt_sort`) with direction or custom comparator, shuffle and permutation apply — all numeric types and String — opt-in via `#define VT_USE_SORT`
+- opt-in extensions on demand, zero overhead if unused
 
 ---
 
@@ -176,7 +177,7 @@ vt_sort nums(), VT_DESCENDING         ' 5 4 3 2 1
 Dim words(2) As String = {"cherry", "apple", "banana"}
 vt_sort words(), VT_ASCENDING         ' apple banana cherry
 
-Randomize Timer
+Randomize
 vt_sort_shuffle nums()                ' Fisher-Yates in-place shuffle
 ```
 
@@ -282,11 +283,14 @@ and the confirmation dialog path when unsaved changes are present.
 examples/ex_close_guard.bas
 ```
 
+### many more examples
+The `examples/` directory contains a good bunch of easy examples for the most commands.
+
 ---
 
 ## API Reference
 
-Full function reference, constants, and parameter details:
+Full function reference, constants, parameter details and alot of example codes:
 **[rbreitinger.github.io/libvt/vt_api.html](https://rbreitinger.github.io/libvt/vt_api.html)**
 
 ---

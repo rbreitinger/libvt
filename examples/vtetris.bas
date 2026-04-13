@@ -207,6 +207,8 @@ Sub draw_ghost(gy As Long)
     Next i
 End Sub
 
+'' NOTE: update_panel() in vtetris-bake.bas must stay identical to this.
+'' Re-run vtetris-bake.bas after any formatting change here.
 Sub update_panel()
     Dim pc As Long = PANEL_COL
     vt_color VT_YELLOW,       VT_BLACK

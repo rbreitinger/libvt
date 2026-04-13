@@ -437,8 +437,7 @@ End Select</pre>
   <code>-2</code> = SDL window creation failed<br>
   <code>-3</code> = SDL renderer creation failed<br>
   <code>-4</code> = font texture creation failed<br>
-  <code>-5</code> = unsupported display environment (Linux raw TTY detected &mdash; see note below)<br>
-  <code>-6</code> = page buffer memory allocation failed
+  <code>-5</code> = page buffer memory allocation failed
 </div>
 <div class="note">
   Call <a href="#vt_title">vt_title</a> before <code>vt_screen</code> to set the window title before the window appears.<br>
@@ -446,17 +445,15 @@ End Select</pre>
   Call <a href="#vt_copypaste">vt_copypaste</a> after <code>vt_screen</code> to enable selection/clipboard support.
 </div>
 <div class="note">
-  <strong>Linux raw TTY (<code>-5</code>):</strong> VT requires a graphical session (X11 or Wayland).
+  <strong>Linux raw TTY:</strong> VT requires a graphical session (X11 or Wayland).
   Running from a raw Linux console &mdash; the TTYs reachable via <kbd>Ctrl+Alt+F1</kbd>&ndash;<kbd>F6</kbd>
   outside of a desktop session &mdash; is not supported. SDL2 can open a KMS/DRM window in that
   environment but receives no keyboard or mouse events, causing input functions such as
   <a href="#vt_sleep">vt_sleep</a> to block indefinitely. VT detects this via the
-  <code>TERM=linux</code> environment variable and returns <code>-5</code> immediately rather
-  than hanging.<br><br>
+  <code>TERM=linux</code> environment variable, prints a clear error message, and terminates
+  the program immediately rather than hanging.<br><br>
   <strong>Workaround:</strong> launch your program from a terminal emulator running inside
-  a graphical session (xterm, lxterminal, xfce4-terminal, etc.). Advanced users can experiment
-  with <code>SDL_VIDEODRIVER=kmsdrm</code> and adding their user to the <code>input</code>
-  group, but this is not an officially supported configuration.
+  a graphical session (xterm, lxterminal, xfce4-terminal, etc.).
 </div>
 
 <!-- vt_scrollback -->

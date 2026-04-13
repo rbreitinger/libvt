@@ -6,7 +6,7 @@
 
 #Define VT_NEWLINE  Chr(10)
 
-Const VT_VERSION = "1.2.2"         ' major.minor.patch 
+Const VT_VERSION = "1.2.3"         ' major.minor.patch 
 
 ' -----------------------------------------------------------------------------
 ' Init flags  (combinable with Or)
@@ -328,6 +328,9 @@ Dim Shared vt_internal As vt_internal_state
 #Endif
 
 ' --- WIP (not commited yet) ---
+#Ifdef VT_USE_NET
+    #Include Once "vt_net.bas"
+#Endif
 #Ifdef VT_USE_TUI
     #Include Once "vt_tui.bas"
 #Endif

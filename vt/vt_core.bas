@@ -478,10 +478,11 @@ Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Lo
 
     #Ifdef __FB_LINUX__
     If Environ("TERM") = "linux" Then
-        ' running on a raw TTY - SDL2 input will not function
-        Return -5   ' new error code: unsupported display environment
+        Print "libvt error: raw TTY detected. SDL2 input will not function."
+        Print "Recompile with #define VT_TTY when that backend is available (WIP)"
+        End
     End If
-    #Endif
+    #EndIf
     
     If vt_internal.ready Then vt_internal_shutdown()  ' re-init: clean up first
 
