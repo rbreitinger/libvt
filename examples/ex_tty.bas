@@ -1,5 +1,5 @@
 #Define VT_TTY
-'#Define VT_USE_ANSI '''windows cmd
+'#Define VT_USE_ANSI '''windows cmd OK
 #Include "../vt/vt.bi"
 
 vt_screen()

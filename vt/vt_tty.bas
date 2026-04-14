@@ -38,9 +38,10 @@ Const VT_TTY_TCSAFLUSH_ = 2
 Const VT_TTY_VTIME_   = 5
 Const VT_TTY_VMIN_    = 6
 
-Declare Function tcgetattr_ Lib "c" Alias "tcgetattr" (fd As Long, t As Any Ptr) As Long
-Declare Function tcsetattr_ Lib "c" Alias "tcsetattr" (fd As Long, act As Long, t As Any Ptr) As Long
+Declare Function tcgetattr_  Lib "c" Alias "tcgetattr" (fd As Long, t As Any Ptr) As Long
+Declare Function tcsetattr_  Lib "c" Alias "tcsetattr" (fd As Long, act As Long, t As Any Ptr) As Long
 Declare Function read_unix   Lib "c" Alias "read"      (fd As Long, buf As Any Ptr, cnt As ULong) As Long
+Declare Function write_unix  Lib "c" Alias "write"     (fd As Long, buf As Any Ptr, cnt As ULong) As Long
 Declare Sub      fflush_     Lib "c" Alias "fflush"    (f As Any Ptr)
 
 Dim Shared vt_tty_old_termios As termios_t
@@ -194,9 +195,14 @@ Function vt_internal_tty_init(mode As Long, flags As Long, pages As Long) As Lon
         raw.c_cc(VT_TTY_VMIN_)  = 0
         raw.c_cc(VT_TTY_VTIME_) = 0
         tcsetattr_(0, VT_TTY_TCSAFLUSH_, @raw)
-        ' clear screen, home cursor, hide text cursor
-        Print !"\x1b[2J\x1b[H\x1b[?25l";
+
+        ' flush any pending libc stdio output before switching to write_unix
         fflush_(0)
+
+        ' clear screen, home cursor, hide text cursor -- use write() directly,
+        ' bypassing libc stdio which may misbehave after OPOST is disabled
+        Dim init_seq As String = !"\x1b[2J\x1b[H\x1b[?25l"
+        write_unix(1, StrPtr(init_seq), CULng(Len(init_seq)))
     #Else
         ' Windows TTY path: Milestone 2
         ' TODO: GetStdHandle(STD_OUTPUT_HANDLE) + SetConsoleMode(ENABLE_VIRTUAL_TERMINAL_PROCESSING)
@@ -206,7 +212,9 @@ Function vt_internal_tty_init(mode As Long, flags As Long, pages As Long) As Lon
     vt_internal.ready   = 1
     vt_internal.backend = 1
 
-    vt_present()
+    ' NOTE: do NOT call vt_present() here.
+    ' Cells are all zeros (CAllocate) -- nothing meaningful to show yet.
+    ' User code calls vt_cls() + vt_present() after vt_screen() returns.
     Return 0
 End Function
 
@@ -240,9 +248,9 @@ Sub vt_internal_tty_shutdown()
     End If
 
     #Ifdef __FB_LINUX__
-        ' show cursor, reset all attributes, restore saved termios
-        Print !"\e[?25h\e[0m";
-        fflush_(0)
+        ' show cursor, reset all attributes -- write() directly, same reason as init
+        Dim shut_seq As String = !"\x1b[?25h\x1b[0m"
+        write_unix(1, StrPtr(shut_seq), CULng(Len(shut_seq)))
         tcsetattr_(0, VT_TTY_TCSAFLUSH_, @vt_tty_old_termios)
     #EndIf
 End Sub
@@ -254,6 +262,7 @@ End Sub
 '             index 8..15 -> 90..97 fg / 100..107 bg (bright)
 ' Direct formula:  fg < 8 -> 30+fg,  else 82+fg  (82+8=90, 82+15=97)
 '                  bg < 8 -> 40+bg,  else 92+bg  (92+8=100, 92+15=107)
+' Uses write_unix(fd=1) directly -- bypasses libc stdio after OPOST disabled.
 ' =============================================================================
 Sub vt_present_tty()
     If vt_internal.ready = 0 Then Exit Sub
@@ -270,14 +279,16 @@ Sub vt_present_tty()
     Dim bg_code As Long
     Dim row_1   As Long
     Dim col_1   As Long
+    Dim cellptr As vt_cell Ptr
+    Dim shadptr As vt_cell Ptr
     ' track last emitted color to skip redundant SGR sequences
     Dim last_fg As Long = -1
     Dim last_bg As Long = -1
     Dim last_bk As Long = -1
 
     For ci = 0 To cols * rows - 1
-        Dim cellptr As vt_cell Ptr = vis_buf + ci
-        Dim shadptr As vt_cell Ptr = vt_tty_shadow + ci
+        cellptr = vis_buf + ci
+        shadptr = vt_tty_shadow + ci
 
         ' skip unchanged cells
         If cellptr->ch = shadptr->ch AndAlso _
@@ -312,8 +323,12 @@ Sub vt_present_tty()
             last_bk = blink_f
         End If
 
-        ' emit raw CP437 byte (correct on raw TTY; terminal emulators vary)
-        outstr = outstr & Chr(cellptr->ch)
+        ' emit the character (space for null/control bytes)
+        If cellptr->ch >= 32 Then
+            outstr = outstr & Chr(cellptr->ch)
+        Else
+            outstr = outstr & " "
+        End If
     Next ci
 
     ' park terminal cursor at VT cursor position (or hide it)
@@ -324,10 +339,14 @@ Sub vt_present_tty()
         outstr = outstr & !"\x1b[?25l"
     End If
 
-    Print outstr;
-    #Ifdef __FB_LINUX__
-        fflush_(0)
-    #EndIf
+    ' write directly via write() syscall -- bypasses libc stdio entirely,
+    ' which avoids misbehaviour after OPOST is disabled on the pty slave
+    If Len(outstr) > 0 Then
+        #Ifdef __FB_LINUX__
+            write_unix(1, StrPtr(outstr), CULng(Len(outstr)))
+        #EndIf
+    End If
+
     vt_internal.dirty = 0
 End Sub
 
