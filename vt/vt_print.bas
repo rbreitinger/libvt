@@ -319,15 +319,42 @@ Sub vt_print(txt As String)
                                             vt_internal.clr_fg = vt_internal.clr_fg Or &h10
                                         Case 25     ' blink off (clear bit 4 of fg)
                                             vt_internal.clr_fg = vt_internal.clr_fg And &hEF
-                                        Case 30 To 37   ' fg color 0..7 (dark)
-                                            ' preserve blink bit, replace color nibble
-                                            vt_internal.clr_fg = (vt_internal.clr_fg And &h10) Or (params(pi) - 30)
-                                        Case 90 To 97   ' fg color 8..15 (bright)
-                                            vt_internal.clr_fg = (vt_internal.clr_fg And &h10) Or (params(pi) - 82)
-                                        Case 40 To 47   ' bg color 0..7
-                                            vt_internal.clr_bg = params(pi) - 40
-                                        Case 100 To 107 ' bg color 8..15
-                                            vt_internal.clr_bg = params(pi) - 92
+                                        ' fg dark -- CGA order, explicit map (arithmetic is wrong)
+                                        Case 30 : vt_internal.clr_fg = (vt_internal.clr_fg And &h10) Or 0
+                                        Case 34 : vt_internal.clr_fg = (vt_internal.clr_fg And &h10) Or 1
+                                        Case 32 : vt_internal.clr_fg = (vt_internal.clr_fg And &h10) Or 2
+                                        Case 36 : vt_internal.clr_fg = (vt_internal.clr_fg And &h10) Or 3
+                                        Case 31 : vt_internal.clr_fg = (vt_internal.clr_fg And &h10) Or 4
+                                        Case 35 : vt_internal.clr_fg = (vt_internal.clr_fg And &h10) Or 5
+                                        Case 33 : vt_internal.clr_fg = (vt_internal.clr_fg And &h10) Or 6
+                                        Case 37 : vt_internal.clr_fg = (vt_internal.clr_fg And &h10) Or 7
+                                        ' fg bright
+                                        Case 90 : vt_internal.clr_fg = (vt_internal.clr_fg And &h10) Or 8
+                                        Case 94 : vt_internal.clr_fg = (vt_internal.clr_fg And &h10) Or 9
+                                        Case 92 : vt_internal.clr_fg = (vt_internal.clr_fg And &h10) Or 10
+                                        Case 96 : vt_internal.clr_fg = (vt_internal.clr_fg And &h10) Or 11
+                                        Case 91 : vt_internal.clr_fg = (vt_internal.clr_fg And &h10) Or 12
+                                        Case 95 : vt_internal.clr_fg = (vt_internal.clr_fg And &h10) Or 13
+                                        Case 93 : vt_internal.clr_fg = (vt_internal.clr_fg And &h10) Or 14
+                                        Case 97 : vt_internal.clr_fg = (vt_internal.clr_fg And &h10) Or 15
+                                        ' bg dark
+                                        Case 40  : vt_internal.clr_bg = 0
+                                        Case 44  : vt_internal.clr_bg = 1
+                                        Case 42  : vt_internal.clr_bg = 2
+                                        Case 46  : vt_internal.clr_bg = 3
+                                        Case 41  : vt_internal.clr_bg = 4
+                                        Case 45  : vt_internal.clr_bg = 5
+                                        Case 43  : vt_internal.clr_bg = 6
+                                        Case 47  : vt_internal.clr_bg = 7
+                                        ' bg bright
+                                        Case 100 : vt_internal.clr_bg = 8
+                                        Case 104 : vt_internal.clr_bg = 9
+                                        Case 102 : vt_internal.clr_bg = 10
+                                        Case 106 : vt_internal.clr_bg = 11
+                                        Case 101 : vt_internal.clr_bg = 12
+                                        Case 105 : vt_internal.clr_bg = 13
+                                        Case 103 : vt_internal.clr_bg = 14
+                                        Case 107 : vt_internal.clr_bg = 15
                                     End Select
                                 Next pi
 

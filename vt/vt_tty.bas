@@ -57,6 +57,9 @@ Dim Shared vt_tty_shadow_buf(11999) As UByte
 Dim Shared vt_tty_shadow            As vt_cell Ptr
 Dim Shared vt_tty_out_buf(131071)   As UByte
 
+' --- color lookup tables: CGA order -> ANSI SGR codes ---
+Static Shared vt_tty_fg_code(15) As UByte = {30, 34, 32, 36, 31, 35, 33, 37, 90, 94, 92, 96, 91, 95, 93, 97}
+Static Shared vt_tty_bg_code(15) As UByte = {40, 44, 42, 46, 41, 45, 43, 47, 100, 104, 102, 106, 101, 105, 103, 107}
 ' =============================================================================
 ' vt_internal_tty_init
 ' =============================================================================
@@ -309,8 +312,9 @@ Sub vt_present_tty()
         fg_raw  = cellptr->fg And &hF
         bg_raw  = cellptr->bg And &hF
         blink_f = (cellptr->fg Shr 4) And 1
-        fg_code = IIf(fg_raw < 8, 30 + fg_raw, 82 + fg_raw)
-        bg_code = IIf(bg_raw < 8, 40 + bg_raw, 92 + bg_raw)
+                
+        fg_code = vt_tty_fg_code(fg_raw)
+        bg_code = vt_tty_bg_code(bg_raw)
 
         If fg_code <> last_fg OrElse bg_code <> last_bg OrElse blink_f <> last_bk Then
             vt_tty_out_buf(out_n) = 27        : out_n += 1
