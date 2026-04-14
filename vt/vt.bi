@@ -2,7 +2,19 @@
 ' vt.bi - VT Virtual Text Screen Library
 ' Usage: #include once "vt/vt.bi"
 ' =============================================================================
-#Include Once "SDL2/SDL.bi"
+
+' NOTE: VT_TTY is WIP + unfinished + experimental!
+#Ifdef VT_TTY
+    #Define VT_USE_ANSI
+    
+    #Ifdef VT_USE_SOUND
+        #Error "VT_USE_SOUND requires SDL2 and is not compatible with VT_TTY mode"
+    #EndIf
+#EndIf
+
+#Ifndef VT_TTY
+    #Include Once "SDL2/SDL.bi"
+#Endif
 
 #Define VT_NEWLINE  Chr(10)
 
@@ -183,12 +195,12 @@ End Type
 ' vt_internal_state - complete internal library state
 ' -----------------------------------------------------------------------------
 Type vt_internal_state
-
-    ' --- SDL handles ---
-    sdl_window   As SDL_Window Ptr
-    sdl_renderer As SDL_Renderer Ptr
-    sdl_texture  As SDL_Texture Ptr
-
+    #Ifndef VT_TTY
+        ' --- SDL handles ---
+        sdl_window   As SDL_Window Ptr
+        sdl_renderer As SDL_Renderer Ptr
+        sdl_texture  As SDL_Texture Ptr
+    #Endif
     ' --- screen geometry ---
     scr_cols    As Long
     scr_rows    As Long
@@ -277,6 +289,7 @@ Type vt_internal_state
     dirty       As Byte
     ready       As Byte   ' 1 = running, 0 = not init
     init_flags  As Long   ' flags passed to vt_screen (fullscreen mode, grab, etc.)
+    backend     As Byte   ' 0 = SDL2  1 = TTY
     
     ' --- copy/paste ---
     ' cp_flags gates all interception. sel_active = 0 means nothing selected.
@@ -300,10 +313,11 @@ Type vt_internal_state
 End Type
 
 Dim Shared vt_internal As vt_internal_state
-
-#Include Once "vt_font_8x8.bi"
-#Include Once "vt_font_8x14.bi"
-#Include Once "vt_font_8x16.bi"
+#Ifndef VT_TTY
+    #Include Once "vt_font_8x8.bi"
+    #Include Once "vt_font_8x14.bi"
+    #Include Once "vt_font_8x16.bi"
+#Endif
 #Include Once "vt_core.bas"
 #Include Once "vt_palette.bas"
 #Include Once "vt_pages.bas"
@@ -313,7 +327,14 @@ Dim Shared vt_internal As vt_internal_state
 #Include Once "vt_mouse.bas"
 #Include Once "vt_bsave.bas"
 #Include Once "vt_copypaste.bas"
-#Include Once "vt_font.bas"
+#Ifndef VT_TTY
+    #Include Once "vt_font.bas"
+#Endif
+
+#Ifdef VT_TTY
+    #Include Once "vt_tty.bas"
+#Endif
+
 #Ifdef VT_USE_FILE
     #include once "vt_file.bas"
 #Endif
@@ -324,7 +345,11 @@ Dim Shared vt_internal As vt_internal_state
     #Include Once "vt_math.bas"
 #Endif
 #Ifdef VT_USE_SOUND
-    #Include Once "vt_sound.bas"
+    #Ifdef VT_TTY
+        #Error "VT_USE_SOUND is not compatible with VT_TTY"
+    #Else
+        #Include Once "vt_sound.bas"
+    #Endif
 #Endif
 
 ' --- WIP (not commited yet) ---

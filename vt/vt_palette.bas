@@ -6,17 +6,25 @@
 ' vt_palette_set / vt_palette_get - bulk palette copy
 ' -----------------------------------------------------------------------------
 Sub vt_palette_set(pal() As UByte)
-    Dim pi As Long
-    For pi = 0 To 47
-        vt_internal.palette(pi) = pal(pi)
-    Next pi
+    #Ifdef VT_TTY
+        exit sub
+    #Else
+        Dim pi As Long
+        For pi = 0 To 47
+            vt_internal.palette(pi) = pal(pi)
+        Next pi
+    #Endif
 End Sub
 
 Sub vt_palette_get(pal() As UByte)
-    Dim pi As Long
-    For pi = 0 To 47
-        pal(pi) = vt_internal.palette(pi)
-    Next pi
+    #Ifdef VT_TTY
+        exit sub
+    #Else
+      Dim pi As Long
+      For pi = 0 To 47
+          pal(pi) = vt_internal.palette(pi)
+      Next pi
+    #Endif
 End Sub
 
 ' -----------------------------------------------------------------------------
@@ -26,20 +34,28 @@ End Sub
 '             omitting them produces 255 (white) because -1 And 255 = 255
 ' -----------------------------------------------------------------------------
 Sub vt_palette(idx As Long = -1, r As Long = -1, g As Long = -1, b As Long = -1)
-    If idx < 0 Or idx > 15 Then
-        vt_palette_set(vt_default_palette())
-        Exit Sub
-    End If
-    vt_internal.palette(idx * 3)     = r And 255
-    vt_internal.palette(idx * 3 + 1) = g And 255
-    vt_internal.palette(idx * 3 + 2) = b And 255
+    #Ifdef VT_TTY
+        exit sub
+    #Else
+      If idx < 0 Or idx > 15 Then
+          vt_palette_set(vt_default_palette())
+          Exit Sub
+      End If
+      vt_internal.palette(idx * 3)     = r And 255
+      vt_internal.palette(idx * 3 + 1) = g And 255
+      vt_internal.palette(idx * 3 + 2) = b And 255
+    #Endif
 End Sub
 
 ' -----------------------------------------------------------------------------
 ' vt_border_color - letterbox colour outside the logical viewport
 ' -----------------------------------------------------------------------------
 Sub vt_border_color(r As Long, g As Long, b As Long)
-    vt_internal.border_r = r And 255
-    vt_internal.border_g = g And 255
-    vt_internal.border_b = b And 255
+    #Ifdef VT_TTY
+        exit sub
+    #Else
+        vt_internal.border_r = r And 255
+        vt_internal.border_g = g And 255
+        vt_internal.border_b = b And 255
+    #Endif
 End Sub
