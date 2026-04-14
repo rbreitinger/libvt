@@ -195,7 +195,7 @@ Function vt_internal_tty_init(mode As Long, flags As Long, pages As Long) As Lon
         raw.c_cc(VT_TTY_VTIME_) = 0
         tcsetattr_(0, VT_TTY_TCSAFLUSH_, @raw)
         ' clear screen, home cursor, hide text cursor
-        Print !"\e[2J\e[H\e[?25l";
+        Print !"\x1b[2J\x1b[H\x1b[?25l";
         fflush_(0)
     #Else
         ' Windows TTY path: Milestone 2
@@ -291,7 +291,7 @@ Sub vt_present_tty()
         ' move cursor to this cell (1-based row;col)
         row_1 = ci \ cols + 1
         col_1 = ci Mod cols + 1
-        outstr = outstr & !"\e[" & row_1 & ";" & col_1 & "H"
+        outstr = outstr & !"\x1b[" & row_1 & ";" & col_1 & "H"
 
         ' decode CGA color to ANSI codes
         fg_raw  = cellptr->fg And &hF
@@ -303,9 +303,9 @@ Sub vt_present_tty()
         ' emit SGR only when color/blink changes from last emitted cell
         If fg_code <> last_fg OrElse bg_code <> last_bg OrElse blink_f <> last_bk Then
             If blink_f Then
-                outstr = outstr & !"\e[0;5;" & fg_code & ";" & bg_code & "m"
+                outstr = outstr & !"\x1b[0;5;" & fg_code & ";" & bg_code & "m"
             Else
-                outstr = outstr & !"\e[0;" & fg_code & ";" & bg_code & "m"
+                outstr = outstr & !"\x1b[0;" & fg_code & ";" & bg_code & "m"
             End If
             last_fg = fg_code
             last_bg = bg_code
@@ -318,10 +318,10 @@ Sub vt_present_tty()
 
     ' park terminal cursor at VT cursor position (or hide it)
     If vt_internal.cur_visible Then
-        outstr = outstr & !"\e[" & vt_internal.cur_row & ";" & vt_internal.cur_col & "H"
-        outstr = outstr & !"\e[?25h"
+        outstr = outstr & !"\x1b[" & vt_internal.cur_row & ";" & vt_internal.cur_col & "H"
+        outstr = outstr & !"\x1b[?25h"
     Else
-        outstr = outstr & !"\e[?25l"
+        outstr = outstr & !"\x1b[?25l"
     End If
 
     Print outstr;

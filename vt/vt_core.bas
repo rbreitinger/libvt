@@ -1043,7 +1043,7 @@ End Sub
 Sub vt_title(txt As String)
     ' Most terminals support OSC title sequence
     #Ifdef VT_TTY
-        Print !"\e]0;" & txt & Chr(7);
+        Print !"\x1b]0;" & txt & Chr(7);
         Exit Sub
     #EndIf
     #Ifndef VT_TTY
