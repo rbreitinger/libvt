@@ -1,7 +1,9 @@
+' NOTE: requires win10+ or linux
+
 #Define VT_TTY
 #Include "../vt/vt.bi"
 
-#if 0 'non ANSI path [ok but wrong colors]
+#if 0 'non ANSI path [ok]
 vt_screen()
 vt_cls()
 vt_color VT_BRIGHT_GREEN

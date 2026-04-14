@@ -1,6 +1,5 @@
 ' =============================================================================
-' vt_tty.bas - VT TTY backend (Milestone 1: Linux termios)
-' Included only when VT_TTY is defined -- zero impact on SDL2 builds.
+' vt_tty.bas - VT TTY backend
 ' =============================================================================
 
 ' --- Linux C API declarations -------------------------------------------------
@@ -46,7 +45,94 @@ Declare Sub      fflush_     Lib "c" Alias "fflush"    (f As Any Ptr)
 
 Dim Shared vt_tty_old_termios As termios_t
 
-#EndIf   ' __FB_LINUX__
+#Else
+' =============================================================================
+' Windows 10+ console API declarations
+' Requires Windows 10 build 1511+ for ENABLE_VIRTUAL_TERMINAL_PROCESSING.
+' vt_internal_tty_init returns -1 on older Windows (SetConsoleMode fails).
+' TODO (later): Win32 Console API fallback for Windows < 10
+'               (WriteConsoleOutput / CHAR_INFO -- essentially a third
+'               backend, VT_WIN32CON, no VT sequences involved)
+' =============================================================================
+
+' std handle ids
+Const VT_TTY_STD_OUTPUT_HANDLE_ = &hFFFFFFF5UL
+Const VT_TTY_STD_INPUT_HANDLE_  = &hFFFFFFF6UL
+
+' output mode flags
+Const VT_TTY_ENABLE_PROC_OUT_   = &h0001UL  ' ENABLE_PROCESSED_OUTPUT
+Const VT_TTY_ENABLE_VT_PROC_    = &h0004UL  ' ENABLE_VIRTUAL_TERMINAL_PROCESSING
+
+' input mode flags (cleared for raw mode)
+Const VT_TTY_ENABLE_PROC_IN_    = &h0001UL  ' ENABLE_PROCESSED_INPUT
+Const VT_TTY_ENABLE_LINE_IN_    = &h0002UL  ' ENABLE_LINE_INPUT
+Const VT_TTY_ENABLE_ECHO_IN_    = &h0004UL  ' ENABLE_ECHO_INPUT
+
+' control key state bits
+Const VT_TTY_SHIFT_PRESSED_     = &h0010UL
+Const VT_TTY_LEFT_CTRL_         = &h0008UL
+Const VT_TTY_RIGHT_CTRL_        = &h0004UL
+
+' INPUT_RECORD event type
+Const VT_TTY_KEY_EVENT_         = 1
+
+' virtual key codes
+Const VT_TTY_VK_BACK_           = &h08
+Const VT_TTY_VK_TAB_            = &h09
+Const VT_TTY_VK_RETURN_         = &h0D
+Const VT_TTY_VK_ESCAPE_         = &h1B
+Const VT_TTY_VK_PRIOR_          = &h21  ' PgUp
+Const VT_TTY_VK_NEXT_           = &h22  ' PgDn
+Const VT_TTY_VK_END_            = &h23
+Const VT_TTY_VK_HOME_           = &h24
+Const VT_TTY_VK_LEFT_           = &h25
+Const VT_TTY_VK_UP_             = &h26
+Const VT_TTY_VK_RIGHT_          = &h27
+Const VT_TTY_VK_DOWN_           = &h28
+Const VT_TTY_VK_INSERT_         = &h2D
+Const VT_TTY_VK_DELETE_         = &h2E
+Const VT_TTY_VK_F1_             = &h70
+Const VT_TTY_VK_F2_             = &h71
+Const VT_TTY_VK_F3_             = &h72
+Const VT_TTY_VK_F4_             = &h73
+Const VT_TTY_VK_F5_             = &h74
+Const VT_TTY_VK_F6_             = &h75
+Const VT_TTY_VK_F7_             = &h76
+Const VT_TTY_VK_F8_             = &h77
+Const VT_TTY_VK_F9_             = &h78
+Const VT_TTY_VK_F10_            = &h79
+Const VT_TTY_VK_F11_            = &h7A
+Const VT_TTY_VK_F12_            = &h7B
+
+' INPUT_RECORD layout for KEY_EVENT (20 bytes total):
+'   EventType(2) + pad(2) + bKeyDown(4) + wRepeatCount(2) +
+'   wVirtualKeyCode(2) + wVirtualScanCode(2) +
+'   uChar/AsciiChar(1) + pad2(1) + dwControlKeyState(4)
+Type vt_tty_input_rec
+    event_type  As UShort
+    pad_        As UShort
+    key_down    As Long
+    repeat_cnt  As UShort
+    vk_code     As UShort
+    vk_scan     As UShort
+    ascii_ch    As UByte
+    pad2_       As UByte
+    ctrl_state  As ULong
+End Type
+
+Declare Function GetStdHandle_    Lib "kernel32" Alias "GetStdHandle"                  (nStdHandle As ULong) As Any Ptr
+Declare Function GetConsoleMode_  Lib "kernel32" Alias "GetConsoleMode"                (hConsole As Any Ptr, ByRef dwMode As ULong) As Long
+Declare Function SetConsoleMode_  Lib "kernel32" Alias "SetConsoleMode"                (hConsole As Any Ptr, dwMode As ULong) As Long
+Declare Function WriteFile_       Lib "kernel32" Alias "WriteFile"                     (hFile As Any Ptr, buf As Any Ptr, nWrite As ULong, ByRef nWritten As ULong, overlapped As Any Ptr) As Long
+Declare Function GetNumInEvts_    Lib "kernel32" Alias "GetNumberOfConsoleInputEvents" (hConsole As Any Ptr, ByRef nEvents As ULong) As Long
+Declare Function ReadConsoleIn_   Lib "kernel32" Alias "ReadConsoleInputA"             (hConsole As Any Ptr, buf As Any Ptr, nLen As ULong, ByRef nRead As ULong) As Long
+
+Dim Shared vt_tty_hout         As Any Ptr
+Dim Shared vt_tty_hin          As Any Ptr
+Dim Shared vt_tty_old_out_mode As ULong
+Dim Shared vt_tty_old_in_mode  As ULong
+
+#EndIf   ' Not __FB_LINUX__
 
 ' -----------------------------------------------------------------------------
 ' BSS buffers -- module level, no malloc, always valid
@@ -60,6 +146,7 @@ Dim Shared vt_tty_out_buf(131071)   As UByte
 ' --- color lookup tables: CGA order -> ANSI SGR codes ---
 Static Shared vt_tty_fg_code(15) As UByte = {30, 34, 32, 36, 31, 35, 33, 37, 90, 94, 92, 96, 91, 95, 93, 97}
 Static Shared vt_tty_bg_code(15) As UByte = {40, 44, 42, 46, 41, 45, 43, 47, 100, 104, 102, 106, 101, 105, 103, 107}
+
 ' =============================================================================
 ' vt_internal_tty_init
 ' =============================================================================
@@ -192,8 +279,22 @@ Function vt_internal_tty_init(mode As Long, flags As Long, pages As Long) As Lon
         Dim init_seq As String = !"\x1b[2J\x1b[H\x1b[?25l"
         write_unix(1, StrPtr(init_seq), CULng(Len(init_seq)))
     #Else
-        ' Windows TTY path: Milestone 2
-        Return -1
+        ' Win10+ path: enable VT output processing
+        ' TODO (later): add Win32 Console API fallback for Windows < 10
+        Dim vt_nw As ULong
+        vt_tty_hout = GetStdHandle_(VT_TTY_STD_OUTPUT_HANDLE_)
+        vt_tty_hin  = GetStdHandle_(VT_TTY_STD_INPUT_HANDLE_)
+        GetConsoleMode_(vt_tty_hout, vt_tty_old_out_mode)
+        GetConsoleMode_(vt_tty_hin,  vt_tty_old_in_mode)
+        ' SetConsoleMode returns 0 on Windows < 10 (flag not supported) -> bail
+        If SetConsoleMode_(vt_tty_hout, VT_TTY_ENABLE_PROC_OUT_ Or VT_TTY_ENABLE_VT_PROC_) = 0 Then
+            Return -1
+        End If
+        ' raw input: clear echo, line buffering, processed input (same as Linux ISIG off)
+        SetConsoleMode_(vt_tty_hin, vt_tty_old_in_mode And Not _
+                        (VT_TTY_ENABLE_ECHO_IN_ Or VT_TTY_ENABLE_LINE_IN_ Or VT_TTY_ENABLE_PROC_IN_))
+        Dim init_seq As String = !"\x1b[2J\x1b[H\x1b[?25l"
+        WriteFile_(vt_tty_hout, StrPtr(init_seq), CULng(Len(init_seq)), vt_nw, 0)
     #EndIf
 
     vt_internal.ready   = 1
@@ -232,6 +333,13 @@ Sub vt_internal_tty_shutdown()
         Dim shut_seq As String = !"\x1b[?25h\x1b[0m"
         write_unix(1, StrPtr(shut_seq), CULng(Len(shut_seq)))
         tcsetattr_(0, VT_TTY_TCSAFLUSH_, @vt_tty_old_termios)
+    #Else
+        ' Win10+ path: restore cursor/colors then restore saved console modes
+        Dim vt_nw     As ULong
+        Dim shut_seq  As String = !"\x1b[?25h\x1b[0m"
+        WriteFile_(vt_tty_hout, StrPtr(shut_seq), CULng(Len(shut_seq)), vt_nw, 0)
+        SetConsoleMode_(vt_tty_hout, vt_tty_old_out_mode)
+        SetConsoleMode_(vt_tty_hin,  vt_tty_old_in_mode)
     #EndIf
 End Sub
 
@@ -254,7 +362,8 @@ End Sub
 ' =============================================================================
 ' vt_present_tty
 ' Diff against shadow buffer, emit ANSI sequences for changed cells only.
-' Uses BSS output buffer + write_unix -- no heap allocation of any kind.
+' Uses BSS output buffer + write_unix (Linux) / WriteFile (Win10+).
+' No heap allocation of any kind.
 ' =============================================================================
 Sub vt_present_tty()
     If vt_internal.ready = 0 Then Exit Sub
@@ -276,6 +385,7 @@ Sub vt_present_tty()
     Dim last_fg As Long = -1
     Dim last_bg As Long = -1
     Dim last_bk As Long = -1
+    Dim vt_nw   As ULong   ' bytes written (Win10+ WriteFile, unused on Linux)
 
     For ci = 0 To cols * rows - 1
         cellptr = vis_buf + ci
@@ -291,12 +401,14 @@ Sub vt_present_tty()
         shadptr->bg = cellptr->bg
 
         ' mid-loop flush: keep 64 bytes headroom for one full cell sequence
-        #Ifdef __FB_LINUX__
-            If out_n > 131008 Then
+        If out_n > 131008 Then
+            #Ifdef __FB_LINUX__
                 write_unix(1, @vt_tty_out_buf(0), CULng(out_n))
-                out_n = 0
-            End If
-        #EndIf
+            #Else
+                WriteFile_(vt_tty_hout, @vt_tty_out_buf(0), CULng(out_n), vt_nw, 0)
+            #EndIf
+            out_n = 0
+        End If
 
         ' CUP: ESC [ row ; col H
         row_1 = ci \ cols + 1
@@ -312,7 +424,7 @@ Sub vt_present_tty()
         fg_raw  = cellptr->fg And &hF
         bg_raw  = cellptr->bg And &hF
         blink_f = (cellptr->fg Shr 4) And 1
-                
+
         fg_code = vt_tty_fg_code(fg_raw)
         bg_code = vt_tty_bg_code(bg_raw)
 
@@ -364,9 +476,13 @@ Sub vt_present_tty()
         vt_tty_out_buf(out_n) = Asc("l")  : out_n += 1
     End If
 
-    #Ifdef __FB_LINUX__
-        If out_n > 0 Then write_unix(1, @vt_tty_out_buf(0), CULng(out_n))
-    #EndIf
+    If out_n > 0 Then
+        #Ifdef __FB_LINUX__
+            write_unix(1, @vt_tty_out_buf(0), CULng(out_n))
+        #Else
+            WriteFile_(vt_tty_hout, @vt_tty_out_buf(0), CULng(out_n), vt_nw, 0)
+        #EndIf
+    End If
 
     vt_internal.dirty = 0
 End Sub
@@ -501,8 +617,72 @@ Sub vt_pump_tty()
 
             End If
         Loop
+
+    #Else
+        ' Win10+ path: structured KEY_EVENT records via ReadConsoleInputA.
+        ' VK codes map directly to VT scancodes -- no escape sequence parsing needed.
+        ' TODO (later): add Win32 Console API fallback for Windows < 10
+        Dim irec    As vt_tty_input_rec
+        Dim nevents As ULong
+        Dim nread   As ULong
+        Dim vtscan  As Long
+        Dim keyrec  As ULong
+        Dim shf     As ULong
+
+        GetNumInEvts_(vt_tty_hin, nevents)
+        If nevents = 0 Then Exit Sub
+
+        Do While nevents > 0
+            ReadConsoleIn_(vt_tty_hin, @irec, 1, nread)
+            nevents -= 1
+
+            ' only process key-down events
+            If irec.event_type <> VT_TTY_KEY_EVENT_ Then Continue Do
+            If irec.key_down = 0 Then Continue Do
+
+            ' shift -> bit 29 in keyrec (matches Linux path)
+            shf = (irec.ctrl_state And VT_TTY_SHIFT_PRESSED_) Shr 4
+
+            ' check vk_code first for all well-known keys, then fall through
+            ' to ascii_ch for printable chars and ctrl combos
+            Select Case irec.vk_code
+                Case VT_TTY_VK_BACK_   : vt_internal_key_push(CULng(VT_KEY_BKSP) Shl 16)
+                Case VT_TTY_VK_TAB_    : vt_internal_key_push((CULng(VT_KEY_TAB)   Shl 16) Or 9UL)
+                Case VT_TTY_VK_RETURN_ : vt_internal_key_push((CULng(VT_KEY_ENTER) Shl 16) Or 13UL)
+                Case VT_TTY_VK_ESCAPE_ : vt_internal_key_push(CULng(VT_KEY_ESC)   Shl 16)
+                Case VT_TTY_VK_PRIOR_  : vt_internal_key_push((CULng(VT_KEY_PGUP)  Shl 16) Or (shf Shl 29))
+                Case VT_TTY_VK_NEXT_   : vt_internal_key_push((CULng(VT_KEY_PGDN)  Shl 16) Or (shf Shl 29))
+                Case VT_TTY_VK_END_    : vt_internal_key_push((CULng(VT_KEY_END)   Shl 16) Or (shf Shl 29))
+                Case VT_TTY_VK_HOME_   : vt_internal_key_push((CULng(VT_KEY_HOME)  Shl 16) Or (shf Shl 29))
+                Case VT_TTY_VK_LEFT_   : vt_internal_key_push((CULng(VT_KEY_LEFT)  Shl 16) Or (shf Shl 29))
+                Case VT_TTY_VK_UP_     : vt_internal_key_push((CULng(VT_KEY_UP)    Shl 16) Or (shf Shl 29))
+                Case VT_TTY_VK_RIGHT_  : vt_internal_key_push((CULng(VT_KEY_RIGHT) Shl 16) Or (shf Shl 29))
+                Case VT_TTY_VK_DOWN_   : vt_internal_key_push((CULng(VT_KEY_DOWN)  Shl 16) Or (shf Shl 29))
+                Case VT_TTY_VK_INSERT_ : vt_internal_key_push((CULng(VT_KEY_INS)   Shl 16) Or (shf Shl 29))
+                Case VT_TTY_VK_DELETE_ : vt_internal_key_push((CULng(VT_KEY_DEL)   Shl 16) Or (shf Shl 29))
+                Case VT_TTY_VK_F1_     : vt_internal_key_push(CULng(VT_KEY_F1)    Shl 16)
+                Case VT_TTY_VK_F2_     : vt_internal_key_push(CULng(VT_KEY_F2)    Shl 16)
+                Case VT_TTY_VK_F3_     : vt_internal_key_push(CULng(VT_KEY_F3)    Shl 16)
+                Case VT_TTY_VK_F4_     : vt_internal_key_push(CULng(VT_KEY_F4)    Shl 16)
+                Case VT_TTY_VK_F5_     : vt_internal_key_push(CULng(VT_KEY_F5)    Shl 16)
+                Case VT_TTY_VK_F6_     : vt_internal_key_push(CULng(VT_KEY_F6)    Shl 16)
+                Case VT_TTY_VK_F7_     : vt_internal_key_push(CULng(VT_KEY_F7)    Shl 16)
+                Case VT_TTY_VK_F8_     : vt_internal_key_push(CULng(VT_KEY_F8)    Shl 16)
+                Case VT_TTY_VK_F9_     : vt_internal_key_push(CULng(VT_KEY_F9)    Shl 16)
+                Case VT_TTY_VK_F10_    : vt_internal_key_push(CULng(VT_KEY_F10)   Shl 16)
+                Case VT_TTY_VK_F11_    : vt_internal_key_push(CULng(VT_KEY_F11)   Shl 16)
+                Case VT_TTY_VK_F12_    : vt_internal_key_push(CULng(VT_KEY_F12)   Shl 16)
+                Case Else
+                    ' printable char or ctrl combo -- use ascii_ch
+                    If irec.ascii_ch >= 32 Then
+                        vt_internal_key_push(CULng(irec.ascii_ch))
+                    ElseIf irec.ascii_ch >= 1 AndAlso irec.ascii_ch <= 26 Then
+                        vt_internal_key_push(CULng(irec.ascii_ch) Or (1UL Shl 30))
+                    End If
+            End Select
+        Loop
+
     #EndIf
-    ' Windows: Milestone 2
 End Sub
 
 #Undef vt_internal_ticks

@@ -1,7 +1,8 @@
 # VT — Virtual Text Screen Library for FreeBASIC
 
 A self-contained library that gives you a proper DOS-style text screen in a real
-SDL2 window. One include, no SDL2 knowledge required. Feels like QBasic, works like 2026.
+SDL2 window — or directly in a terminal, no SDL2 needed. One include, no SDL2
+knowledge required. Feels like QBasic, works like 2026.
 
 ![VTetris running in fullscreen](docs/screenshot1.png)
 
@@ -18,21 +19,86 @@ vt_shutdown
 
 ---
 
+## Backends
+
+VT has two independent rendering backends selected by a `#define` before the include.
+
+### SDL2 backend (default — full feature set)
+
+No `#define` needed. Opens a real SDL2 window with an authentic IBM CP437 font,
+palette, mouse, copy/paste, sound, and every other feature. This is the main mode
+for desktop games and tools.
+
+```freebasic
+#include once "vt/vt.bi"   ' SDL2 backend, all features
+```
+
+Requires `SDL2.dll` (Windows) or `libsdl2` (Linux). See [Requirements](#requirements).
+
+> **SDL2 backend and raw Linux TTY:**
+> The SDL2 backend requires a graphical session (X11 or Wayland). Running it from a
+> raw Linux console (Ctrl+Alt+F1–F6 outside a desktop session) is not supported — VT
+> detects this via `TERM=linux`, prints a clear error, and exits cleanly instead of
+> hanging. Launch your program from a terminal emulator inside a graphical session.
+> If you specifically want raw TTY output, use the `VT_TTY` backend below.
+
+### VT_TTY backend — headless terminal output (experimental)
+
+```freebasic
+#Define VT_TTY
+#include once "vt/vt.bi"   ' TTY backend, no SDL2
+```
+
+Outputs directly to the terminal using ANSI escape sequences. No SDL2 dependency,
+no window required. Useful for ssh sessions, CI, or tools that run in a terminal.
+
+**Platform requirements:**
+| Platform | Status |
+|---|---|
+| Linux (any terminal emulator) | ✅ Tested, fully working |
+| Windows 10 build 1511+ | ✅ Implemented, community testing welcome |
+| Windows < 10 (Win7 etc.) | ⚠️ Graceful no-op — opens console, does nothing, no crash |
+
+**Known limitations of VT_TTY (by design or deferred):**
+- Mouse, copy/paste, and sound are not available (no-op / return -1)
+- `vt_key_held` always returns 0 (no live key-state query in raw TTY)
+- Blink (`VT_BLINK`) is emitted but depends on terminal support — TERM=linux raw
+  console does not implement it
+- CP437 characters >= 128 (box-drawing, shaded blocks etc.) are sent as raw bytes;
+  terminals expect UTF-8 so they show as garbage. UTF-8 translation is a planned
+  future improvement
+- `vt_font_reset` / `vt_loadfont` return -1 silently (no font texture in TTY mode)
+- `VT_USE_SOUND` + `VT_TTY` together produce a compile error (intentional)
+
+### VT_USE_ANSI — ANSI parser for vt_print (SDL2 backend only)
+
+```freebasic
+#Define VT_USE_ANSI
+#include once "vt/vt.bi"   ' SDL2 backend + ANSI escape parser in vt_print
+```
+
+Enables ANSI escape sequence parsing inside `vt_print` while staying on the SDL2
+backend. Useful when your string data already contains ANSI color codes (e.g. from
+a network source or a log file). Supported sequences: SGR color/blink (`ESC[...m`),
+CUP cursor position (`ESC[row;colH`), ED erase display (`ESC[2J`).
+
+> `VT_TTY` implies `VT_USE_ANSI` automatically — you do not need both defines.
+
+---
+
 ## Requirements
+
+### SDL2 backend (default)
 
 - **FreeBASIC 1.10.1**
 - **SDL2** — platform-specific, see below
 
-### Windows
-
-Get **SDL2.dll** from the
+**Windows:** Get **SDL2.dll** from the
 [FreeBASIC library archive](https://github.com/rbreitinger/fb-lib-archive/tree/main/libraries/SDL2/SDL2-2.0.14)
 and place it alongside your compiled executable. If you are running the examples,
 `SDL2.dll` must go inside the `examples/` folder, not the project root.
 
-### Linux
-
-Install SDL2 via your package manager — FreeBASIC links against the system library automatically.
+**Linux:** Install SDL2 via your package manager — FreeBASIC links against the system library automatically.
 
 ```bash
 # Debian / Ubuntu
@@ -50,14 +116,12 @@ Primary development and testing is done on Windows. Linux has not been
 formally tested, but no Windows-specific code is used — all SDL2 calls,
 FreeBASIC built-ins, and file I/O are cross-platform.
 
-> **Raw TTY not supported.** VT requires a graphical session (X11 or Wayland).
-> Running from a raw Linux console (the TTYs reachable via Ctrl+Alt+F1–F6 outside
-> of a desktop session) is not supported — SDL2 can open a window in that environment
-> but receives no keyboard or mouse events, causing input to hang indefinitely.
-> VT detects this via `TERM=linux`, prints a clear error message, and exits cleanly
-> instead of hanging.
-> Launch your program from a terminal emulator inside a graphical session
-> (xterm, lxterminal, xfce4-terminal, etc.).
+### VT_TTY backend
+
+- **FreeBASIC 1.10.1**
+- **No SDL2 required**
+- Linux: any distribution with a terminal emulator
+- Windows: Windows 10 build 1511 or later (earlier versions open a console but do nothing)
 
 ---
 
@@ -90,11 +154,16 @@ Then in any source file:
 
 ## Distributing programs that use VT
 
-### Shipping an executable
+### SDL2 backend — shipping an executable
 
 Your compiled `.exe` has no dependency on the VT source files, but it does require
 **SDL2.dll** at runtime. Place `SDL2.dll` in the same folder as your executable and
 include it in any release archive you distribute.
+
+### VT_TTY backend — shipping an executable
+
+No DLLs required. The compiled executable is self-contained.
+On Windows, it requires Windows 10 build 1511+ to produce any output.
 
 ### Shipping source code
 
@@ -121,11 +190,14 @@ Requires: libvt — https://github.com/rbreitinger/libvt
 | `VT_SCREEN_TILES` | 40 × 25     | 16×16 | 640×400 | Square tiles, game use |
 
 Mode constants match original QBasic `SCREEN` numbers where applicable.
+In `VT_TTY` mode, screen mode constants only affect the logical column/row count —
+the terminal is not resized.
 
 ---
 
 ## Features
 
+### SDL2 backend
 - Authentic IBM CP437 fonts — 8×8, 8×14 and 8×16, all embedded
 - Authentic CGA/DOS 16-colour palette with full palette manipulation
 - All 256 CP437 glyphs — box drawing, shade blocks, symbols, the works
@@ -143,6 +215,13 @@ Mode constants match original QBasic `SCREEN` numbers where applicable.
 - Close-button callback (`vt_on_close`) — intercept the window [X] to guard unsaved data
 - opt-in extensions on demand, zero overhead if unused
 
+### VT_TTY backend
+- Same `vt_print`, `vt_cls`, `vt_color`, `vt_locate`, `vt_input` API as SDL2
+- ANSI SGR color output (correct CGA↔ANSI color mapping)
+- Efficient diff-based rendering — only changed cells are emitted
+- `vt_input` blocking line editor works in TTY mode
+- Zero SDL2 dependency
+
 ---
 
 ## Extensions
@@ -151,6 +230,9 @@ Optional modules shipped with the library. Each is pulled in by a single `#defin
 before the include — zero overhead if unused.
 
 ### vt_sound — QBasic-style audio
+
+> **Not available in VT_TTY mode.** `#define VT_USE_SOUND` + `#define VT_TTY` together
+> produce a compile error.
 
 ```freebasic
 #define VT_USE_SOUND
@@ -297,6 +379,7 @@ Full function reference, constants, parameter details and alot of example codes:
 
 ## Basic Setup
 
+### SDL2 backend
 ```freebasic
 vt_title "Window Title"    ' optional, before or after vt_screen
 vt_screen VT_SCREEN_0      ' open window -- VT_WINDOWED is the default flag
@@ -312,6 +395,24 @@ vt_screen VT_SCREEN_0, VT_WINDOWED Or VT_VSYNC
 ```
 
 To change mode mid-program, call `vt_screen` again — it closes and reopens cleanly.
+
+### VT_TTY backend
+```freebasic
+#Define VT_TTY
+#include once "vt/vt.bi"
+
+vt_screen VT_SCREEN_0   ' sets logical 80x25 grid, initializes terminal
+vt_cls()
+vt_color VT_BRIGHT_GREEN
+vt_locate 1, 1
+vt_print "Hello from TTY!"
+vt_present()
+vt_sleep 0
+vt_shutdown()
+```
+
+Window flags (`VT_WINDOWED`, `VT_FULLSCREEN_ASPECT` etc.) are accepted but
+silently ignored in TTY mode — the terminal is not resized.
 
 ---
 

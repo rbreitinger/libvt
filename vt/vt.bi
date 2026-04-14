@@ -18,7 +18,7 @@
 
 #Define VT_NEWLINE  Chr(10)
 
-Const VT_VERSION = "1.2.3"         ' major.minor.patch 
+Const VT_VERSION = "1.3.3"         ' major.minor.patch 
 
 ' -----------------------------------------------------------------------------
 ' Init flags  (combinable with Or)
@@ -345,11 +345,7 @@ Dim Shared vt_internal As vt_internal_state
     #Include Once "vt_math.bas"
 #Endif
 #Ifdef VT_USE_SOUND
-    #Ifdef VT_TTY
-        #Error "VT_USE_SOUND is not compatible with VT_TTY"
-    #Else
-        #Include Once "vt_sound.bas"
-    #Endif
+    #Include Once "vt_sound.bas"
 #Endif
 
 ' --- WIP (not commited yet) ---

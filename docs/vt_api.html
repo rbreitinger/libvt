@@ -121,17 +121,23 @@
 
 <h1>VT &mdash; Virtual Text Screen Library</h1>
 <p>
-  DOS-style text screen rendered through SDL2. Single include, no SDL knowledge needed.
-  Target: <strong>Windows</strong>, <strong>FreeBASIC 1.10.1</strong>.
-  Requires <strong>SDL2.dll</strong> alongside your executable.
+  DOS-style text screen for FreeBASIC. Two backends: an SDL2 windowed renderer
+  (full feature set) and a headless TTY renderer for direct terminal output (no SDL2 needed).
+  Single include, QBasic-feel API. Target: <strong>Windows</strong>, <strong>Linux</strong>,
+  <strong>FreeBASIC 1.10.1</strong>.
 </p>
-<pre><em>' Include in your project:</em>
+<pre><em>' SDL2 backend (default &mdash; full features, requires SDL2.dll):</em>
+#include once "vt/vt.bi"
+
+<em>' TTY backend (no SDL2, outputs to terminal &mdash; experimental):</em>
+#Define VT_TTY
 #include once "vt/vt.bi"</pre>
 
 <!-- ============================================================ -->
 <h2 id="toc">Table of Contents</h2>
 <div class="toc-col">
   <ul>
+    <li><a href="#s-backends">Backends</a></li>
     <li><a href="#constants">Constants</a>
       <ul>
         <li><a href="#c-screenmodes">Screen Modes</a></li>
@@ -208,7 +214,76 @@ vt_sleep 0   <em>' wait for keypress</em></pre>
 <hr>
 
 <!-- ============================================================ -->
-<h2 id="constants">Constants</h2>
+<h2 id="s-backends">Backends</h2>
+<p>
+  VT selects a rendering backend at compile time via a <code>#Define</code> placed
+  <em>before</em> the include. Without any define the SDL2 backend is used.
+</p>
+
+<h3 id="backend-defines">Backend Defines</h3>
+<table class="const-table">
+  <tr><th>Define</th><th>Backend</th><th>Description</th></tr>
+  <tr><td><em>(none)</em></td><td>SDL2</td><td>Full feature set. Opens an SDL2 window with CP437 font, palette, mouse, sound, copy/paste. Requires SDL2.dll / libsdl2.</td></tr>
+  <tr><td>VT_USE_ANSI</td><td>SDL2 + ANSI parser</td><td>SDL2 backend plus ANSI escape sequence parsing inside <a href="#vt_print">vt_print</a>. Useful when string data already contains ANSI color codes. Supported: SGR (<code>ESC[&hellip;m</code>), CUP (<code>ESC[row;colH</code>), ED (<code>ESC[2J</code>).</td></tr>
+  <tr><td>VT_TTY</td><td>TTY (headless)</td><td>Outputs directly to the terminal via ANSI escape sequences. No SDL2 required. Implies VT_USE_ANSI. <strong>Experimental.</strong></td></tr>
+</table>
+
+<div class="note">
+  <code>VT_TTY</code> implies <code>VT_USE_ANSI</code> automatically &mdash; you do not need both.<br>
+  <code>#define VT_USE_SOUND</code> combined with <code>#define VT_TTY</code> produces a compile error (intentional).
+</div>
+
+<h3 id="backend-tty">VT_TTY — Headless Terminal Backend</h3>
+<p>
+  The TTY backend uses ANSI escape sequences to render the cell grid directly in the
+  calling terminal. It shares the same API as the SDL2 backend; functions that have no
+  TTY equivalent silently return <code>-1</code> or no-op.
+</p>
+
+<h4>Platform support</h4>
+<table class="const-table">
+  <tr><th>Platform</th><th>Status</th></tr>
+  <tr><td>Linux &mdash; any terminal emulator</td><td>Tested, fully working</td></tr>
+  <tr><td>Windows 10 build 1511+</td><td>Implemented &mdash; community testing welcome</td></tr>
+  <tr><td>Windows &lt; 10 (Win7 etc.)</td><td>Graceful no-op: console opens, does nothing, no crash. <code>vt_screen</code> returns <code>-1</code>.</td></tr>
+</table>
+
+<h4>Functions unavailable in TTY mode</h4>
+<table class="const-table">
+  <tr><th>Function / Feature</th><th>Behaviour in TTY mode</th></tr>
+  <tr><td>vt_mouse, vt_getmouse, vt_setmouse, vt_mouselock</td><td>Return -1 / no-op silently</td></tr>
+  <tr><td>vt_copypaste</td><td>No-op silently</td></tr>
+  <tr><td>vt_loadfont, vt_font_reset</td><td>Return -1 silently</td></tr>
+  <tr><td>vt_key_held</td><td>Always returns 0 (no live key-state query in termios / ReadConsoleInput)</td></tr>
+  <tr><td>VT_USE_SOUND + VT_TTY</td><td>Compile error (intentional)</td></tr>
+  <tr><td>VT_BLINK</td><td>Emitted but depends on terminal support &mdash; TERM=linux raw console does not implement it</td></tr>
+  <tr><td>CP437 chars &ge; 128 (box-drawing, shade blocks&hellip;)</td><td>Sent as raw bytes; terminals expect UTF-8, so they show as garbage. UTF-8 translation is a planned future improvement.</td></tr>
+</table>
+
+<h4>Minimal TTY example</h4>
+<pre><em>' Compile with: fbc -d VT_TTY myprogram.bas</em>
+#Define VT_TTY
+#include once "vt/vt.bi"
+
+vt_screen VT_SCREEN_0
+vt_cls()
+vt_color VT_BRIGHT_GREEN
+vt_locate 1, 1
+vt_print "Hello from TTY!"
+vt_color VT_YELLOW
+vt_locate 3, 1
+vt_print "Your name: "
+vt_present()
+Dim s As String = vt_input(20)
+vt_locate 5, 1
+vt_print "Got: " &amp; s
+vt_present()
+vt_sleep 0
+vt_shutdown()</pre>
+
+<hr>
+
+<!-- ============================================================ -->
 
 <!-- Screen Modes -->
 <h3 id="c-screenmodes">Screen Modes</h3>
@@ -432,28 +507,31 @@ End Select</pre>
 </table>
 <h4>Return value</h4>
 <div class="ret">
+  <strong>SDL2 backend:</strong><br>
   <code>0</code> = success<br>
   <code>-1</code> = SDL_Init failed<br>
   <code>-2</code> = SDL window creation failed<br>
   <code>-3</code> = SDL renderer creation failed<br>
   <code>-4</code> = font texture creation failed<br>
-  <code>-5</code> = page buffer memory allocation failed
+  <code>-5</code> = page buffer memory allocation failed<br><br>
+  <strong>VT_TTY backend:</strong><br>
+  <code>0</code> = success<br>
+  <code>-1</code> = Windows &lt; 10: <code>ENABLE_VIRTUAL_TERMINAL_PROCESSING</code> not supported. All subsequent calls silently no-op.<br>
+  <code>-6</code> = page buffer memory allocation failed
 </div>
 <div class="note">
-  Call <a href="#vt_title">vt_title</a> before <code>vt_screen</code> to set the window title before the window appears.<br>
-  Call <a href="#vt_scrollback">vt_scrollback</a> after <code>vt_screen</code> to enable the scrollback buffer.<br>
-  Call <a href="#vt_copypaste">vt_copypaste</a> after <code>vt_screen</code> to enable selection/clipboard support.
+  Call <a href="#vt_title">vt_title</a> before <code>vt_screen</code> to set the window title before the window appears (SDL2 only).<br>
+  Call <a href="#vt_scrollback">vt_scrollback</a> after <code>vt_screen</code> to enable the scrollback buffer (SDL2 only).<br>
+  Call <a href="#vt_copypaste">vt_copypaste</a> after <code>vt_screen</code> to enable selection/clipboard support (SDL2 only).
 </div>
 <div class="note">
-  <strong>Linux raw TTY:</strong> VT requires a graphical session (X11 or Wayland).
+  <strong>SDL2 backend and raw Linux TTY:</strong> the SDL2 backend requires a graphical session (X11 or Wayland).
   Running from a raw Linux console &mdash; the TTYs reachable via <kbd>Ctrl+Alt+F1</kbd>&ndash;<kbd>F6</kbd>
-  outside of a desktop session &mdash; is not supported. SDL2 can open a KMS/DRM window in that
-  environment but receives no keyboard or mouse events, causing input functions such as
-  <a href="#vt_sleep">vt_sleep</a> to block indefinitely. VT detects this via the
+  outside of a desktop session &mdash; is not supported. VT detects this via the
   <code>TERM=linux</code> environment variable, prints a clear error message, and terminates
   the program immediately rather than hanging.<br><br>
-  <strong>Workaround:</strong> launch your program from a terminal emulator running inside
-  a graphical session (xterm, lxterminal, xfce4-terminal, etc.).
+  <strong>Workaround:</strong> launch from a terminal emulator inside a graphical session, or use
+  the <a href="#s-backends">VT_TTY backend</a> which is designed specifically for raw terminal output.
 </div>
 
 <!-- vt_scrollback -->
@@ -2494,8 +2572,8 @@ cnt = vt_file_list("", "*", files(), VT_FILE_SHOW_HIDDEN)</pre>
 
 <hr>
 <p style="font-size:0.85em; color:#555;">
-  VT Virtual Text Screen Library &mdash; API Reference<br>
-  FreeBASIC 1.10.1 / SDL2 / Windows
+  VT Virtual Text Screen Library &mdash; API Reference &mdash; v1.3.3<br>
+  FreeBASIC 1.10.1 / SDL2 + TTY / Windows + Linux
 </p>
 
 </body>
