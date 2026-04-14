@@ -7,14 +7,14 @@
 #Ifdef __FB_LINUX__
 
 Type termios_t
-    c_iflag  As ULong        ' input flags
-    c_oflag  As ULong        ' output flags
-    c_cflag  As ULong        ' control flags
-    c_lflag  As ULong        ' local flags
-    c_line   As UByte        ' line discipline
-    c_cc(18) As UByte        ' control chars  (NCCS=19, indices 0..18)
-    c_ispeed As ULong        ' input speed
-    c_ospeed As ULong        ' output speed
+    c_iflag  As ULong
+    c_oflag  As ULong
+    c_cflag  As ULong
+    c_lflag  As ULong
+    c_line   As UByte
+    c_cc(18) As UByte
+    c_ispeed As ULong
+    c_ospeed As ULong
 End Type
 
 ' c_lflag bits
@@ -54,7 +54,6 @@ Dim Shared vt_tty_shadow As vt_cell Ptr
 
 ' =============================================================================
 ' vt_internal_tty_init
-' mirrors the state setup in vt_init_impl (SDL2 path) plus termios raw mode
 ' =============================================================================
 Function vt_internal_tty_init(mode As Long, flags As Long, pages As Long) As Long
     Dim cols As Long
@@ -67,7 +66,6 @@ Function vt_internal_tty_init(mode As Long, flags As Long, pages As Long) As Lon
 
     If vt_internal.ready Then vt_internal_tty_shutdown()
 
-    ' --- resolve mode -> geometry (mirrors vt_screen select case) ---
     Select Case mode
         Case VT_SCREEN_0     : cols = 80 : rows = 25 : gw = 8  : gh = 16
         Case VT_SCREEN_2     : cols = 80 : rows = 25 : gw = 8  : gh = 8
@@ -85,7 +83,6 @@ Function vt_internal_tty_init(mode As Long, flags As Long, pages As Long) As Lon
     vt_internal.glyph_w  = gw
     vt_internal.glyph_h  = gh
 
-    ' --- page buffers ---
     If pages < 1 Then pages = 1
     If pages > VT_PAGE_SLOTS Then pages = VT_PAGE_SLOTS
     For pg = 0 To VT_PAGE_SLOTS - 1
@@ -107,8 +104,7 @@ Function vt_internal_tty_init(mode As Long, flags As Long, pages As Long) As Lon
     vt_internal.vis_page  = 0
     vt_internal.cells     = vt_internal.page_buf(0)
 
-    ' --- shadow buffer ---
-    ' fg=255 on every cell is invalid -- guarantees full repaint on first present
+    ' fg=255 on every shadow cell forces full repaint on first present
     If vt_tty_shadow <> 0 Then DeAllocate vt_tty_shadow
     vt_tty_shadow = Allocate(cols * rows * SizeOf(vt_cell))
     If vt_tty_shadow = 0 Then
@@ -122,37 +118,30 @@ Function vt_internal_tty_init(mode As Long, flags As Long, pages As Long) As Lon
         vt_tty_shadow[si].fg = 255
     Next si
 
-    ' --- scrollback (user calls vt_scrollback after vt_screen if wanted) ---
     vt_internal.sb_lines  = 0
     vt_internal.sb_used   = 0
     vt_internal.sb_offset = 0
     vt_internal.sb_cells  = 0
 
-    ' --- cursor ---
     vt_internal.cur_col     = 1
     vt_internal.cur_row     = 1
     vt_internal.cur_visible = 1
     vt_internal.cur_ch      = 219
 
-    ' --- colour ---
     vt_internal.clr_fg = VT_LIGHT_GREY
     vt_internal.clr_bg = VT_BLACK
 
-    ' --- scroll region ---
     vt_internal.scroll_on = 1
     vt_internal.view_top  = 1
     vt_internal.view_bot  = rows
 
-    ' --- blink ---
     vt_internal.blink_visible = 1
     vt_internal.blink_tick    = vt_internal_ticks()
 
-    ' --- key repeat ---
     vt_internal.rep_scan    = 0
     vt_internal.rep_initial = VT_KEY_REPEAT_INITIAL
     vt_internal.rep_rate    = VT_KEY_REPEAT_RATE
 
-    ' --- mouse (no-op in TTY mode) ---
     vt_internal.mouse_on    = 0
     vt_internal.mouse_col   = 1
     vt_internal.mouse_row   = 1
@@ -161,7 +150,6 @@ Function vt_internal_tty_init(mode As Long, flags As Long, pages As Long) As Lon
     vt_internal.mouse_wheel = 0
     vt_internal.mouse_lock  = 0
 
-    ' --- copy/paste ---
     vt_internal.cp_flags       = 0
     vt_internal.sel_active     = 0
     vt_internal.sel_anchor_col = 1
@@ -171,7 +159,6 @@ Function vt_internal_tty_init(mode As Long, flags As Long, pages As Long) As Lon
     vt_internal.sel_dragging   = 0
     vt_internal.cp_paste_pend  = 0
 
-    ' --- palette ---
     For pi = 0 To 47
         vt_internal.palette(pi) = vt_default_palette(pi)
     Next pi
@@ -179,19 +166,13 @@ Function vt_internal_tty_init(mode As Long, flags As Long, pages As Long) As Lon
     vt_internal.init_flags = flags
     vt_internal.dirty      = 0
 
-    ' --- platform init ---
     #Ifdef __FB_LINUX__
-        ' save current termios, enter raw mode
         tcgetattr_(0, @vt_tty_old_termios)
         Dim raw As termios_t = vt_tty_old_termios
-        ' disable echo, canonical mode, signals, extended input processing
         raw.c_lflag = raw.c_lflag And Not (VT_TTY_ECHO_ Or VT_TTY_ECHONL_ Or _
                                             VT_TTY_ICANON_ Or VT_TTY_ISIG_ Or VT_TTY_IEXTEN_)
-        ' disable CR->LF translation, software flow control
         raw.c_iflag = raw.c_iflag And Not (VT_TTY_ICRNL_ Or VT_TTY_IXON_)
-        ' disable output processing (we emit explicit ANSI sequences)
         raw.c_oflag = raw.c_oflag And Not VT_TTY_OPOST_
-        ' VMIN=0 VTIME=0: read() returns immediately with whatever is available
         raw.c_cc(VT_TTY_VMIN_)  = 0
         raw.c_cc(VT_TTY_VTIME_) = 0
         tcsetattr_(0, VT_TTY_TCSAFLUSH_, @raw)
@@ -199,13 +180,11 @@ Function vt_internal_tty_init(mode As Long, flags As Long, pages As Long) As Lon
         ' flush any pending libc stdio output before switching to write_unix
         fflush_(0)
 
-        ' clear screen, home cursor, hide text cursor -- use write() directly,
-        ' bypassing libc stdio which may misbehave after OPOST is disabled
+        ' clear screen, home cursor, hide text cursor
         Dim init_seq As String = !"\x1b[2J\x1b[H\x1b[?25l"
         write_unix(1, StrPtr(init_seq), CULng(Len(init_seq)))
     #Else
         ' Windows TTY path: Milestone 2
-        ' TODO: GetStdHandle(STD_OUTPUT_HANDLE) + SetConsoleMode(ENABLE_VIRTUAL_TERMINAL_PROCESSING)
         Return -1
     #EndIf
 
@@ -213,8 +192,7 @@ Function vt_internal_tty_init(mode As Long, flags As Long, pages As Long) As Lon
     vt_internal.backend = 1
 
     ' NOTE: do NOT call vt_present() here.
-    ' Cells are all zeros (CAllocate) -- nothing meaningful to show yet.
-    ' User code calls vt_cls() + vt_present() after vt_screen() returns.
+    ' Cells are zero-filled (CAllocate) -- user calls vt_cls() + vt_present().
     Return 0
 End Function
 
@@ -225,7 +203,6 @@ Sub vt_internal_tty_shutdown()
     If vt_internal.ready = 0 Then Exit Sub
     vt_internal.ready = 0
 
-    ' free page buffers
     Dim sl As Long
     For sl = 0 To VT_PAGE_SLOTS - 1
         If vt_internal.page_buf(sl) <> 0 Then
@@ -235,20 +212,17 @@ Sub vt_internal_tty_shutdown()
     Next sl
     vt_internal.cells = 0
 
-    ' free scrollback
     If vt_internal.sb_cells <> 0 Then
         DeAllocate vt_internal.sb_cells
         vt_internal.sb_cells = 0
     End If
 
-    ' free shadow buffer
     If vt_tty_shadow <> 0 Then
         DeAllocate vt_tty_shadow
         vt_tty_shadow = 0
     End If
 
     #Ifdef __FB_LINUX__
-        ' show cursor, reset all attributes -- write() directly, same reason as init
         Dim shut_seq As String = !"\x1b[?25h\x1b[0m"
         write_unix(1, StrPtr(shut_seq), CULng(Len(shut_seq)))
         tcsetattr_(0, VT_TTY_TCSAFLUSH_, @vt_tty_old_termios)
@@ -256,13 +230,28 @@ Sub vt_internal_tty_shutdown()
 End Sub
 
 ' =============================================================================
+' vt_tty_buf_num - append a decimal integer (1-3 digits) into a byte buffer
+' Used by vt_present_tty to build ANSI sequences without dynamic strings.
+' =============================================================================
+Private Sub vt_tty_buf_num(buf As UByte Ptr, ByRef n As Long, v As Long)
+    If v >= 100 Then
+        buf[n] = Asc("0") + (v \ 100)           : n += 1
+        buf[n] = Asc("0") + ((v Mod 100) \ 10)  : n += 1
+        buf[n] = Asc("0") + (v Mod 10)          : n += 1
+    ElseIf v >= 10 Then
+        buf[n] = Asc("0") + (v \ 10)            : n += 1
+        buf[n] = Asc("0") + (v Mod 10)          : n += 1
+    Else
+        buf[n] = Asc("0") + v                   : n += 1
+    End If
+End Sub
+
+' =============================================================================
 ' vt_present_tty
 ' Diff against shadow buffer, emit ANSI sequences for changed cells only.
-' CGA->ANSI:  index 0..7  -> 30..37 fg / 40..47 bg  (normal)
-'             index 8..15 -> 90..97 fg / 100..107 bg (bright)
-' Direct formula:  fg < 8 -> 30+fg,  else 82+fg  (82+8=90, 82+15=97)
-'                  bg < 8 -> 40+bg,  else 92+bg  (92+8=100, 92+15=107)
-' Uses write_unix(fd=1) directly -- bypasses libc stdio after OPOST disabled.
+' Uses a static byte buffer + write_unix -- no dynamic string allocation.
+' Static buffer is 128KB (BSS), safely covers even 80x50 full repaint (~96KB).
+' A mid-loop flush guard prevents overflow for any future larger modes.
 ' =============================================================================
 Sub vt_present_tty()
     If vt_internal.ready = 0 Then Exit Sub
@@ -270,7 +259,6 @@ Sub vt_present_tty()
     Dim cols    As Long        = vt_internal.scr_cols
     Dim rows    As Long        = vt_internal.scr_rows
     Dim vis_buf As vt_cell Ptr = vt_internal.page_buf(vt_internal.vis_page)
-    Dim outstr  As String      = ""
     Dim ci      As Long
     Dim fg_raw  As UByte
     Dim bg_raw  As UByte
@@ -281,10 +269,14 @@ Sub vt_present_tty()
     Dim col_1   As Long
     Dim cellptr As vt_cell Ptr
     Dim shadptr As vt_cell Ptr
-    ' track last emitted color to skip redundant SGR sequences
     Dim last_fg As Long = -1
     Dim last_bg As Long = -1
     Dim last_bk As Long = -1
+
+    ' static output buffer: lives in BSS, no heap/stack pressure
+    ' 128KB covers 80x50 worst-case full repaint (~96KB) with room to spare
+    Static out_buf(131071) As UByte
+    Dim    out_n   As Long = 0   ' reset each call
 
     For ci = 0 To cols * rows - 1
         cellptr = vis_buf + ci
@@ -299,62 +291,92 @@ Sub vt_present_tty()
         shadptr->fg = cellptr->fg
         shadptr->bg = cellptr->bg
 
-        ' move cursor to this cell (1-based row;col)
+        ' mid-loop flush: leave 64 bytes headroom (largest single cell output)
+        #Ifdef __FB_LINUX__
+            If out_n > 131008 Then
+                write_unix(1, @out_buf(0), CULng(out_n))
+                out_n = 0
+            End If
+        #EndIf
+
+        ' CUP: ESC [ row ; col H
         row_1 = ci \ cols + 1
         col_1 = ci Mod cols + 1
-        outstr = outstr & !"\x1b[" & row_1 & ";" & col_1 & "H"
+        out_buf(out_n) = 27         : out_n += 1   ' ESC
+        out_buf(out_n) = Asc("[")   : out_n += 1
+        vt_tty_buf_num(@out_buf(0), out_n, row_1)
+        out_buf(out_n) = Asc(";")   : out_n += 1
+        vt_tty_buf_num(@out_buf(0), out_n, col_1)
+        out_buf(out_n) = Asc("H")   : out_n += 1
 
-        ' decode CGA color to ANSI codes
+        ' SGR: only when color or blink changes from last emitted cell
         fg_raw  = cellptr->fg And &hF
         bg_raw  = cellptr->bg And &hF
         blink_f = (cellptr->fg Shr 4) And 1
         fg_code = IIf(fg_raw < 8, 30 + fg_raw, 82 + fg_raw)
         bg_code = IIf(bg_raw < 8, 40 + bg_raw, 92 + bg_raw)
 
-        ' emit SGR only when color/blink changes from last emitted cell
         If fg_code <> last_fg OrElse bg_code <> last_bg OrElse blink_f <> last_bk Then
+            ' ESC [ 0 [;5] ; fg ; bg m
+            out_buf(out_n) = 27         : out_n += 1
+            out_buf(out_n) = Asc("[")   : out_n += 1
+            out_buf(out_n) = Asc("0")   : out_n += 1
             If blink_f Then
-                outstr = outstr & !"\x1b[0;5;" & fg_code & ";" & bg_code & "m"
-            Else
-                outstr = outstr & !"\x1b[0;" & fg_code & ";" & bg_code & "m"
+                out_buf(out_n) = Asc(";") : out_n += 1
+                out_buf(out_n) = Asc("5") : out_n += 1
             End If
+            out_buf(out_n) = Asc(";")   : out_n += 1
+            vt_tty_buf_num(@out_buf(0), out_n, fg_code)
+            out_buf(out_n) = Asc(";")   : out_n += 1
+            vt_tty_buf_num(@out_buf(0), out_n, bg_code)
+            out_buf(out_n) = Asc("m")   : out_n += 1
             last_fg = fg_code
             last_bg = bg_code
             last_bk = blink_f
         End If
 
-        ' emit the character (space for null/control bytes)
-        If cellptr->ch >= 32 Then
-            outstr = outstr & Chr(cellptr->ch)
-        Else
-            outstr = outstr & " "
-        End If
+        ' glyph -- emit space for control/null bytes
+        out_buf(out_n) = IIf(cellptr->ch >= 32, cellptr->ch, 32)
+        out_n += 1
+
     Next ci
 
-    ' park terminal cursor at VT cursor position (or hide it)
+    ' park terminal cursor at VT cursor position
+    out_buf(out_n) = 27       : out_n += 1
+    out_buf(out_n) = Asc("[") : out_n += 1
+    vt_tty_buf_num(@out_buf(0), out_n, vt_internal.cur_row)
+    out_buf(out_n) = Asc(";") : out_n += 1
+    vt_tty_buf_num(@out_buf(0), out_n, vt_internal.cur_col)
+    out_buf(out_n) = Asc("H") : out_n += 1
+
     If vt_internal.cur_visible Then
-        outstr = outstr & !"\x1b[" & vt_internal.cur_row & ";" & vt_internal.cur_col & "H"
-        outstr = outstr & !"\x1b[?25h"
+        ' ESC [ ? 2 5 h  (show cursor)
+        out_buf(out_n) = 27       : out_n += 1
+        out_buf(out_n) = Asc("[") : out_n += 1
+        out_buf(out_n) = Asc("?") : out_n += 1
+        out_buf(out_n) = Asc("2") : out_n += 1
+        out_buf(out_n) = Asc("5") : out_n += 1
+        out_buf(out_n) = Asc("h") : out_n += 1
     Else
-        outstr = outstr & !"\x1b[?25l"
+        ' ESC [ ? 2 5 l  (hide cursor)
+        out_buf(out_n) = 27       : out_n += 1
+        out_buf(out_n) = Asc("[") : out_n += 1
+        out_buf(out_n) = Asc("?") : out_n += 1
+        out_buf(out_n) = Asc("2") : out_n += 1
+        out_buf(out_n) = Asc("5") : out_n += 1
+        out_buf(out_n) = Asc("l") : out_n += 1
     End If
 
-    ' write directly via write() syscall -- bypasses libc stdio entirely,
-    ' which avoids misbehaviour after OPOST is disabled on the pty slave
-    If Len(outstr) > 0 Then
-        #Ifdef __FB_LINUX__
-            write_unix(1, StrPtr(outstr), CULng(Len(outstr)))
-        #EndIf
-    End If
+    ' single write() to kernel -- bypasses libc stdio entirely
+    #Ifdef __FB_LINUX__
+        If out_n > 0 Then write_unix(1, @out_buf(0), CULng(out_n))
+    #EndIf
 
     vt_internal.dirty = 0
 End Sub
 
 ' =============================================================================
 ' vt_pump_tty
-' Non-blocking stdin read with VMIN=0/VTIME=0.
-' The raw terminal delivers natural key repeat via repeated bytes -- no manual
-' repeat needed here. Escape sequences arrive as a single atomic read batch.
 ' =============================================================================
 Sub vt_pump_tty()
     If vt_internal.ready = 0 Then Exit Sub
@@ -382,15 +404,12 @@ Sub vt_pump_tty()
             bi += 1
 
             If ch = 27 Then
-                ' --- ESC: lone key or sequence prefix ---
                 If bi >= nb Then
-                    ' nothing follows in this read batch: treat as Escape key
                     vt_internal_key_push(CULng(VT_KEY_ESC) Shl 16)
                     Exit Do
                 End If
 
                 If ibuf(bi) = Asc("[") Then
-                    ' --- CSI: ESC [ param1 ; param2 finalchar ---
                     bi += 1
                     param1 = 0 : param2 = 0 : cur_p = 0 : final_ch = 0
                     Do While bi < nb
@@ -410,9 +429,8 @@ Sub vt_pump_tty()
                         End If
                     Loop
 
-                    If final_ch = 0 Then Exit Do   ' incomplete sequence, drop remainder
+                    If final_ch = 0 Then Exit Do
 
-                    ' Shift modifier: ESC[1;2X
                     sh = IIf(param1 = 1 AndAlso param2 = 2, 1UL, 0UL)
 
                     vtscan = 0
@@ -450,8 +468,7 @@ Sub vt_pump_tty()
                     End If
 
                 ElseIf ibuf(bi) = Asc("O") Then
-                    ' --- SS3: ESC O X  (F1-F4 on some terminals, also Home/End) ---
-                    bi += 1   ' skip 'O'
+                    bi += 1
                     If bi < nb Then
                         sc = ibuf(bi)
                         bi += 1
@@ -472,24 +489,18 @@ Sub vt_pump_tty()
                 End If
 
             ElseIf ch = 127 Then
-                ' DEL byte = Backspace in termios raw mode
                 vt_internal_key_push(CULng(VT_KEY_BKSP) Shl 16)
 
             ElseIf ch = 9 Then
-                ' Tab
                 vt_internal_key_push((CULng(VT_KEY_TAB) Shl 16) Or 9UL)
 
             ElseIf ch = 13 OrElse ch = 10 Then
-                ' Enter (CR or LF -- raw mode may send either)
                 vt_internal_key_push((CULng(VT_KEY_ENTER) Shl 16) Or 13UL)
 
             ElseIf ch >= 1 AndAlso ch <= 26 Then
-                ' Ctrl+A (1) .. Ctrl+Z (26)
-                ' ch itself is the control byte; set Ctrl flag, no vtscan
                 vt_internal_key_push(CULng(ch) Or (1UL Shl 30))
 
             ElseIf ch >= 32 Then
-                ' printable ASCII or high CP437 byte
                 vt_internal_key_push(CULng(ch))
 
             End If
