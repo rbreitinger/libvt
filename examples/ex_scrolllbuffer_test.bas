@@ -1,7 +1,4 @@
-' simple file viewer, that demonstrates scrolling and view print 
-' note that internal hardcoded (ctrl) + shift + PGDN/PGUP always 
-' work to scroll IF scrolling was enabled.
-
+' simple file viewer, that demonstrates scrolling (hardcoded binds) and view print 
 #include once "../vt/vt.bi"
 
 Dim k  As ULong
@@ -19,7 +16,11 @@ vt_setmouse ,,0 ' hide our cursor (trick to entirely hide mouse)
 vt_scroll_enable 0
 vt_locate 25, 1
 vt_color VT_BLACK, VT_LIGHT_GREY
-vt_print_center 25, "(CTRL) + SHIFT + PGDN/PGUP to scroll, ESC to quit"
+#Ifndef VT_TTY
+    vt_print_center 25, "(CTRL) + SHIFT + PGDN/PGUP to scroll, ESC to quit"
+#Else
+    vt_print_center 25, "ALT + . / - to scroll, ESC to quit"
+#Endif
 vt_scroll_enable 1
 
 ' --- restrict scroll region to rows 1-24 ---

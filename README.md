@@ -4,8 +4,6 @@ A self-contained library that gives you a proper DOS-style text screen in a real
 SDL2 window — or directly in a terminal, no SDL2 needed. One include, no SDL2
 knowledge required. Feels like QBasic, works like 2026.
 
-![VTetris running in fullscreen](docs/screenshot1.png)
-
 ```freebasic
 #include once "vt/vt.bi"
 
@@ -327,11 +325,44 @@ tree with merge), `vt_file_rmdir` (recursive with explicit opt-in flag),
 hidden files, directories, or directories only). Pure FreeBASIC — no SDL2 or
 open screen required.
 
+### vt_tui — DOS-style TUI widgets
+
+> Works with both the SDL2 and VT_TTY backends. Automatically pulls in
+> `VT_USE_STRINGS` and `VT_USE_FILE` — no need to define them separately.
+
+```freebasic
+#define VT_USE_TUI
+#include once "vt/vt.bi"
+
+' modal dialog
+If vt_tui_dialog("Quit", "Really quit?", VT_DLG_YESNO) = VT_RET_YES Then End
+
+' file picker
+Dim path As String = vt_tui_file_dialog("Open", "./", "*.bas")
+
+' window chrome + progress bar
+vt_tui_window 5, 3, 50, 10, "Loading", VT_TUI_WIN_SHADOW
+vt_tui_progress 7, 8, 46, loaded, total, VT_TUI_PROG_LABEL
+
+' horizontal menu bar (non-blocking, call each frame)
+vt_tui_menubar_draw 1, groups()
+Dim r As Long = vt_tui_menubar_handle(1, groups(), items(), counts(), k)
+```
+
+One global colour theme (`vt_tui_theme` / `vt_tui_theme_default`), single or
+double-line CP437 borders. Widgets: `vt_tui_window`, `vt_tui_statusbar`,
+`vt_tui_progress`, `vt_tui_dialog`, `vt_tui_input_field`, `vt_tui_listbox`,
+`vt_tui_file_dialog`, `vt_tui_editor`, `vt_tui_menubar_draw/handle`,
+`vt_tui_form_draw/handle`, `vt_tui_hline/vline`, `vt_tui_rect_fill`,
+`vt_tui_mouse_in_rect`. All blocking widgets save and restore the background.
+
 ---
 
 ## Examples
 
 ### VTetris
+
+![VTetris running in fullscreen](docs/screenshot1.png)
 
 A complete Tetris implementation included in the repository, built entirely on
 libvt. Demonstrates sound, math and string extensions working together in a

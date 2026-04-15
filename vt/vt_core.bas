@@ -153,6 +153,7 @@ Sub vt_pump()
         Dim new_row   As Long
         Dim click_col As Long
         Dim click_row As Long
+        Dim sc_raw    As Long
     
         ' --- key repeat ---
         tick = vt_internal_ticks()
@@ -317,6 +318,15 @@ Sub vt_pump()
                         If sym >= SDLK_a AndAlso sym <= SDLK_z Then
                             ascii_ch = CByte(sym - SDLK_a + 1)
                         End If
+                    ElseIf al Then
+                        ' Alt+letter: SDL suppresses SDL_TEXTINPUT while Alt is held,
+                        ' so VT_CHAR would stay 0 in the keyrec without this.
+                        ' Recover the letter from the raw SDL scancode.
+                        ' SDL_SCANCODE_A=4, Asc("a")=97, formula: ch = scancode + 93.
+                        sc_raw = evt.key.keysym.scancode
+                        If sc_raw >= 4 AndAlso sc_raw <= 29 Then
+                            ascii_ch = CByte(sc_raw + 93)
+                        End If
                     End If
     
                     ' only push key and arm repeat when the key was not consumed
@@ -339,6 +349,8 @@ Sub vt_pump()
                     End If
     
                 Case SDL_TEXTINPUT
+                    ' SDL_TEXTINPUT fires for normal printable text (no Alt held).
+                    ' Alt+letter is already handled in SDL_KEYDOWN above.
                     Dim ch As UByte = CPtr(UByte Ptr, @evt.text.text)[0]
                     If ch >= 32 AndAlso ch <> 127 Then
                         keyrec = CULng(ch) Or (CULng(vt_internal.rep_scan) Shl 16)

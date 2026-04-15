@@ -6,7 +6,9 @@
 ''             Space          hard drop     (+2 pts/row)
 ''             P              pause         Esc    quit
 '' =============================================================================
-#define VT_USE_SOUND
+#Ifndef VT_TTY
+    #define VT_USE_SOUND
+#Endif
 #define VT_USE_MATH
 #define VT_USE_STRINGS
 #include once "../vt/vt.bi"
@@ -300,11 +302,13 @@ Sub add_score(nc As Long)
     tot_lines += nc
     lvl = tot_lines \ 10 + 1
     update_panel()
+    #Ifdef VT_USE_SOUND
     If lvl > old_lvl Then   '' level-up fanfare
         vt_sound 523, 80,  VT_WAVE_SQUARE, VT_SOUND_BACKGROUND
         vt_sound 659, 80,  VT_WAVE_SQUARE, VT_SOUND_BACKGROUND
         vt_sound 784, 180, VT_WAVE_SQUARE, VT_SOUND_BACKGROUND
     End If
+    #Endif
 End Sub
 
 '' Gravity drop interval in milliseconds, floor at 50ms
@@ -314,34 +318,44 @@ End Function
 
 '' --- sound helpers -----------------------------------------------------------
 Sub snd_move()
-    vt_sound 440, 25, VT_WAVE_SQUARE, VT_SOUND_BACKGROUND
+    #Ifdef VT_USE_SOUND
+        vt_sound 440, 25, VT_WAVE_SQUARE, VT_SOUND_BACKGROUND
+    #Endif
 End Sub
 
 Sub snd_rotate()
-    vt_sound 550, 25, VT_WAVE_SQUARE, VT_SOUND_BACKGROUND
+    #Ifdef VT_USE_SOUND
+        vt_sound 550, 25, VT_WAVE_SQUARE, VT_SOUND_BACKGROUND
+    #Endif
 End Sub
 
 Sub snd_lock()
-    vt_sound 180, 70, VT_WAVE_TRIANGLE, VT_SOUND_BACKGROUND
+    #Ifdef VT_USE_SOUND
+        vt_sound 180, 70, VT_WAVE_TRIANGLE, VT_SOUND_BACKGROUND
+    #Endif
 End Sub
 
 Sub snd_clear(nc As Long)
-    If nc >= 4 Then   '' Tetris!
-        vt_sound 523,  100, VT_WAVE_SQUARE, VT_SOUND_BACKGROUND
-        vt_sound 659,  100, VT_WAVE_SQUARE, VT_SOUND_BACKGROUND
-        vt_sound 784,  100, VT_WAVE_SQUARE, VT_SOUND_BACKGROUND
-        vt_sound 1047, 400, VT_WAVE_SQUARE, VT_SOUND_BACKGROUND
-    ElseIf nc > 0 Then
-        vt_sound 523, 80,  VT_WAVE_SQUARE, VT_SOUND_BACKGROUND
-        vt_sound 659, 130, VT_WAVE_SQUARE, VT_SOUND_BACKGROUND
-    End If
+    #Ifdef VT_USE_SOUND
+        If nc >= 4 Then   '' Tetris!
+            vt_sound 523,  100, VT_WAVE_SQUARE, VT_SOUND_BACKGROUND
+            vt_sound 659,  100, VT_WAVE_SQUARE, VT_SOUND_BACKGROUND
+            vt_sound 784,  100, VT_WAVE_SQUARE, VT_SOUND_BACKGROUND
+            vt_sound 1047, 400, VT_WAVE_SQUARE, VT_SOUND_BACKGROUND
+        ElseIf nc > 0 Then
+            vt_sound 523, 80,  VT_WAVE_SQUARE, VT_SOUND_BACKGROUND
+            vt_sound 659, 130, VT_WAVE_SQUARE, VT_SOUND_BACKGROUND
+        End If
+    #Endif
 End Sub
 
 Sub snd_gameover()
-    vt_sound 440, 120, VT_WAVE_SQUARE, VT_SOUND_BACKGROUND
-    vt_sound 330, 120, VT_WAVE_SQUARE, VT_SOUND_BACKGROUND
-    vt_sound 220, 200, VT_WAVE_SQUARE, VT_SOUND_BACKGROUND
-    vt_sound 110, 500, VT_WAVE_SQUARE, VT_SOUND_BACKGROUND
+    #Ifdef VT_USE_SOUND
+        vt_sound 440, 120, VT_WAVE_SQUARE, VT_SOUND_BACKGROUND
+        vt_sound 330, 120, VT_WAVE_SQUARE, VT_SOUND_BACKGROUND
+        vt_sound 220, 200, VT_WAVE_SQUARE, VT_SOUND_BACKGROUND
+        vt_sound 110, 500, VT_WAVE_SQUARE, VT_SOUND_BACKGROUND
+    #Endif
 End Sub
 
 '' --- spawn -------------------------------------------------------------------
@@ -550,7 +564,9 @@ Sub run_game()
     '' -- game over screen -----------------------------------------------------
     If want_quit = 0 Then
         snd_gameover()
-        vt_sound_wait()
+        #Ifdef VT_USE_SOUND
+            vt_sound_wait()
+        #Endif
         vt_color VT_BRIGHT_RED, VT_BLACK
         vt_print_center 10, " G A M E   O V E R "
         vt_color VT_YELLOW, VT_BLACK

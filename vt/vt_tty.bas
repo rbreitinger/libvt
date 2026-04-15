@@ -72,6 +72,8 @@ Const VT_TTY_ENABLE_ECHO_IN_    = &h0004UL  ' ENABLE_ECHO_INPUT
 Const VT_TTY_SHIFT_PRESSED_     = &h0010UL
 Const VT_TTY_LEFT_CTRL_         = &h0008UL
 Const VT_TTY_RIGHT_CTRL_        = &h0004UL
+Const VT_TTY_LEFT_ALT_          = &h0002UL
+Const VT_TTY_RIGHT_ALT_         = &h0001UL
 
 ' INPUT_RECORD event type
 Const VT_TTY_KEY_EVENT_         = 1
@@ -382,13 +384,19 @@ Sub vt_present_tty()
     Dim col_1   As Long
     Dim cellptr As vt_cell Ptr
     Dim shadptr As vt_cell Ptr
+    Dim row_0   As Long
+    Dim col_0   As Long
     Dim last_fg As Long = -1
     Dim last_bg As Long = -1
     Dim last_bk As Long = -1
     Dim vt_nw   As ULong   ' bytes written (Win10+ WriteFile, unused on Linux)
 
     For ci = 0 To cols * rows - 1
-        cellptr = vis_buf + ci
+        ' Route through display_cellptr so scrollback content is shown when
+        ' sb_offset > 0. Falls back to vis_buf + ci when no scrollback active.
+        row_0   = ci \ cols
+        col_0   = ci Mod cols
+        cellptr = vt_internal_display_cellptr(col_0, row_0, vis_buf)
         shadptr = vt_tty_shadow + ci
 
         ' skip unchanged cells
@@ -506,6 +514,8 @@ Sub vt_pump_tty()
         Dim cur_p    As Long
         Dim final_ch As UByte
         Dim sh       As ULong
+        Dim ct       As ULong
+        Dim al       As ULong
 
         nb = read_unix(0, @ibuf(0), 32)
         If nb <= 0 Then Exit Sub
@@ -517,8 +527,55 @@ Sub vt_pump_tty()
 
             If ch = 27 Then
                 If bi >= nb Then
-                    vt_internal_key_push(CULng(VT_KEY_ESC) Shl 16)
-                    Exit Do
+                    ' Lone ESC at end of batch.
+                    ' Short yield + retry handles split kernel tty writes --
+                    ' raw VT console Alt+special generates ESC, then the key
+                    ' sequence, as two separate writes to the tty device.
+                    ' Without this, the ESC would be pushed as VT_KEY_ESC and
+                    ' the next read would see the remainder out of context.
+                    Sleep 5, 1
+                    nb = read_unix(0, @ibuf(0), 32)
+                    If nb <= 0 Then
+                        vt_internal_key_push(CULng(VT_KEY_ESC) Shl 16)
+                        Exit Do
+                    End If
+                    ' Got continuation bytes -- fall through to sequence handlers.
+                    bi = 0
+                End If
+
+                ' ESC + printable: Alt+char (meta prefix from kernel or terminal).
+                ' Covers a-z, A-Z, digits, symbols -- everything 32..126 except
+                ' [ (91=CSI start) and O (79=SS3 start) which are sequence headers.
+                ' ESC (27) is the double-ESC case handled separately below.
+                ' Raw VT console scrollback bindings live here because Alt+PgUp/PgDn
+                ' has no entry in the default Linux VT keymap, but Alt+symbol does.
+                If ibuf(bi) >= 32 AndAlso ibuf(bi) <= 126 _
+                   AndAlso ibuf(bi) <> Asc("[") AndAlso ibuf(bi) <> Asc("O") Then
+                    keyrec = CULng(ibuf(bi)) Or (1UL Shl 31)
+                    ' Alt+minus = scroll up (back in history)
+                    ' Alt+period = scroll down (toward current)
+                    ' Works in raw VT console and in terminal emulators that
+                    ' send ESC+symbol (most do). Alt+PgUp/PgDn continues to
+                    ' work in terminal emulators via the ESC[5;3~ CSI path.
+                    If ibuf(bi) = Asc("-") Then vt_scroll(1)
+                    If ibuf(bi) = Asc(".") Then vt_scroll(-1)
+                    vt_internal_key_push(keyrec)
+                    bi += 1
+                    Continue Do
+                End If
+
+                ' ESC+ESC: raw VT console Alt/Meta prefix for special keys.
+                ' e.g. Alt+PgUp on Linux VT console arrives as ESC ESC[5~.
+                ' Terminal emulators encode Alt in param2 instead (ESC[5;3~).
+                ' al starts here; the CSI parser below ORs in the param2 alt bit.
+                al = 0
+                If ibuf(bi) = 27 Then
+                    al = 1
+                    bi += 1
+                    If bi >= nb Then
+                        vt_internal_key_push(CULng(VT_KEY_ESC) Shl 16)
+                        Exit Do
+                    End If
                 End If
 
                 If ibuf(bi) = Asc("[") Then
@@ -543,7 +600,15 @@ Sub vt_pump_tty()
 
                     If final_ch = 0 Then Exit Do
 
-                    sh = IIf(param1 = 1 AndAlso param2 = 2, 1UL, 0UL)
+                    ' VT modifier param encoding: value = 1 + bitmask
+                    ' where bitmask: bit0=shift, bit1=alt, bit2=ctrl.
+                    ' param2=0 means the ; field was absent (no modifier).
+                    ' param2=1 means field present but no bits set (same as absent).
+                    sh = IIf(param2 >= 2 AndAlso ((param2 - 1) And 1) <> 0, 1UL, 0UL)
+                    ct = IIf(param2 >= 2 AndAlso ((param2 - 1) And 4) <> 0, 1UL, 0UL)
+                    ' OR in param2 alt bit -- covers terminal emulators (ESC[5;3~).
+                    ' double-ESC prefix already set al=1 for raw VT console (ESC ESC[5~).
+                    al = al Or IIf(param2 >= 2 AndAlso ((param2 - 1) And 2) <> 0, 1UL, 0UL)
 
                     vtscan = 0
                     Select Case final_ch
@@ -575,7 +640,18 @@ Sub vt_pump_tty()
                     End Select
 
                     If vtscan <> 0 Then
-                        keyrec = (CULng(vtscan) Shl 16) Or (sh Shl 29)
+                        ' Alt+PgUp/PgDn: scrollback. Works via ESC[5;3~ in terminal
+                        ' emulators and via ESC ESC[5~ on raw Linux VT console.
+                        ' Shift+PgUp is intercepted by the host in TTY mode so al
+                        ' is the reliable binding here.
+                        If al Then
+                            If vtscan = VT_KEY_PGUP Then
+                                vt_scroll(1)
+                            ElseIf vtscan = VT_KEY_PGDN Then
+                                vt_scroll(-1)
+                            End If
+                        End If
+                        keyrec = (CULng(vtscan) Shl 16) Or (sh Shl 29) Or (ct Shl 30) Or (al Shl 31)
                         vt_internal_key_push(keyrec)
                     End If
 
@@ -594,7 +670,7 @@ Sub vt_pump_tty()
                             Case Asc("F") : vtscan = VT_KEY_END
                         End Select
                         If vtscan <> 0 Then
-                            vt_internal_key_push(CULng(vtscan) Shl 16)
+                            vt_internal_key_push((CULng(vtscan) Shl 16) Or (al Shl 31))
                         End If
                     End If
 
@@ -628,6 +704,8 @@ Sub vt_pump_tty()
         Dim vtscan  As Long
         Dim keyrec  As ULong
         Dim shf     As ULong
+        Dim ctf     As ULong
+        Dim alf     As ULong
 
         GetNumInEvts_(vt_tty_hin, nevents)
         If nevents = 0 Then Exit Sub
@@ -640,26 +718,35 @@ Sub vt_pump_tty()
             If irec.event_type <> VT_TTY_KEY_EVENT_ Then Continue Do
             If irec.key_down = 0 Then Continue Do
 
-            ' shift -> bit 29 in keyrec (matches Linux path)
+            ' modifier bits -> keyrec flags (matching Linux path bit positions)
+            ' SHIFT_PRESSED=&h10 -> bit 29, LEFT/RIGHT_CTRL -> bit 30, LEFT/RIGHT_ALT -> bit 31
             shf = (irec.ctrl_state And VT_TTY_SHIFT_PRESSED_) Shr 4
+            ctf = IIf((irec.ctrl_state And (VT_TTY_LEFT_CTRL_ Or VT_TTY_RIGHT_CTRL_)) <> 0, 1UL, 0UL)
+            alf = IIf((irec.ctrl_state And (VT_TTY_LEFT_ALT_  Or VT_TTY_RIGHT_ALT_))  <> 0, 1UL, 0UL)
 
             ' check vk_code first for all well-known keys, then fall through
-            ' to ascii_ch for printable chars and ctrl combos
+            ' to ascii_ch for printable chars and ctrl/alt combos
             Select Case irec.vk_code
                 Case VT_TTY_VK_BACK_   : vt_internal_key_push(CULng(VT_KEY_BKSP) Shl 16)
                 Case VT_TTY_VK_TAB_    : vt_internal_key_push((CULng(VT_KEY_TAB)   Shl 16) Or 9UL)
                 Case VT_TTY_VK_RETURN_ : vt_internal_key_push((CULng(VT_KEY_ENTER) Shl 16) Or 13UL)
                 Case VT_TTY_VK_ESCAPE_ : vt_internal_key_push(CULng(VT_KEY_ESC)   Shl 16)
-                Case VT_TTY_VK_PRIOR_  : vt_internal_key_push((CULng(VT_KEY_PGUP)  Shl 16) Or (shf Shl 29))
-                Case VT_TTY_VK_NEXT_   : vt_internal_key_push((CULng(VT_KEY_PGDN)  Shl 16) Or (shf Shl 29))
-                Case VT_TTY_VK_END_    : vt_internal_key_push((CULng(VT_KEY_END)   Shl 16) Or (shf Shl 29))
-                Case VT_TTY_VK_HOME_   : vt_internal_key_push((CULng(VT_KEY_HOME)  Shl 16) Or (shf Shl 29))
-                Case VT_TTY_VK_LEFT_   : vt_internal_key_push((CULng(VT_KEY_LEFT)  Shl 16) Or (shf Shl 29))
-                Case VT_TTY_VK_UP_     : vt_internal_key_push((CULng(VT_KEY_UP)    Shl 16) Or (shf Shl 29))
-                Case VT_TTY_VK_RIGHT_  : vt_internal_key_push((CULng(VT_KEY_RIGHT) Shl 16) Or (shf Shl 29))
-                Case VT_TTY_VK_DOWN_   : vt_internal_key_push((CULng(VT_KEY_DOWN)  Shl 16) Or (shf Shl 29))
-                Case VT_TTY_VK_INSERT_ : vt_internal_key_push((CULng(VT_KEY_INS)   Shl 16) Or (shf Shl 29))
-                Case VT_TTY_VK_DELETE_ : vt_internal_key_push((CULng(VT_KEY_DEL)   Shl 16) Or (shf Shl 29))
+                Case VT_TTY_VK_PRIOR_
+                    ' scrollback: Shift+PgUp, Ctrl+Shift = half-page (mirrors SDL2 path)
+                    If shf Then vt_scroll(IIf(ctf, vt_internal.scr_rows \ 2, 1))
+                    vt_internal_key_push((CULng(VT_KEY_PGUP) Shl 16) Or (shf Shl 29) Or (ctf Shl 30) Or (alf Shl 31))
+                Case VT_TTY_VK_NEXT_
+                    ' scrollback: Shift+PgDn, Ctrl+Shift = half-page (mirrors SDL2 path)
+                    If shf Then vt_scroll(-IIf(ctf, vt_internal.scr_rows \ 2, 1))
+                    vt_internal_key_push((CULng(VT_KEY_PGDN) Shl 16) Or (shf Shl 29) Or (ctf Shl 30) Or (alf Shl 31))
+                Case VT_TTY_VK_END_    : vt_internal_key_push((CULng(VT_KEY_END)   Shl 16) Or (shf Shl 29) Or (ctf Shl 30) Or (alf Shl 31))
+                Case VT_TTY_VK_HOME_   : vt_internal_key_push((CULng(VT_KEY_HOME)  Shl 16) Or (shf Shl 29) Or (ctf Shl 30) Or (alf Shl 31))
+                Case VT_TTY_VK_LEFT_   : vt_internal_key_push((CULng(VT_KEY_LEFT)  Shl 16) Or (shf Shl 29) Or (ctf Shl 30) Or (alf Shl 31))
+                Case VT_TTY_VK_UP_     : vt_internal_key_push((CULng(VT_KEY_UP)    Shl 16) Or (shf Shl 29) Or (ctf Shl 30) Or (alf Shl 31))
+                Case VT_TTY_VK_RIGHT_  : vt_internal_key_push((CULng(VT_KEY_RIGHT) Shl 16) Or (shf Shl 29) Or (ctf Shl 30) Or (alf Shl 31))
+                Case VT_TTY_VK_DOWN_   : vt_internal_key_push((CULng(VT_KEY_DOWN)  Shl 16) Or (shf Shl 29) Or (ctf Shl 30) Or (alf Shl 31))
+                Case VT_TTY_VK_INSERT_ : vt_internal_key_push((CULng(VT_KEY_INS)   Shl 16) Or (shf Shl 29) Or (ctf Shl 30) Or (alf Shl 31))
+                Case VT_TTY_VK_DELETE_ : vt_internal_key_push((CULng(VT_KEY_DEL)   Shl 16) Or (shf Shl 29) Or (ctf Shl 30) Or (alf Shl 31))
                 Case VT_TTY_VK_F1_     : vt_internal_key_push(CULng(VT_KEY_F1)    Shl 16)
                 Case VT_TTY_VK_F2_     : vt_internal_key_push(CULng(VT_KEY_F2)    Shl 16)
                 Case VT_TTY_VK_F3_     : vt_internal_key_push(CULng(VT_KEY_F3)    Shl 16)
@@ -673,9 +760,10 @@ Sub vt_pump_tty()
                 Case VT_TTY_VK_F11_    : vt_internal_key_push(CULng(VT_KEY_F11)   Shl 16)
                 Case VT_TTY_VK_F12_    : vt_internal_key_push(CULng(VT_KEY_F12)   Shl 16)
                 Case Else
-                    ' printable char or ctrl combo -- use ascii_ch
+                    ' printable char or ctrl/alt combo -- use ascii_ch
+                    ' alf folds into bit 31 so VT_ALT(k) works for all callers
                     If irec.ascii_ch >= 32 Then
-                        vt_internal_key_push(CULng(irec.ascii_ch))
+                        vt_internal_key_push(CULng(irec.ascii_ch) Or (alf Shl 31))
                     ElseIf irec.ascii_ch >= 1 AndAlso irec.ascii_ch <= 26 Then
                         vt_internal_key_push(CULng(irec.ascii_ch) Or (1UL Shl 30))
                     End If
