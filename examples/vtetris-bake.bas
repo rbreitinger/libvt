@@ -99,9 +99,9 @@ Sub draw_panel_static()
     vt_color VT_DARK_GREY, VT_BLACK
     vt_locate BOARD_ROW + 13, pc : vt_print String(22, Chr(196))
     vt_locate BOARD_ROW + 14, pc : vt_print "CONTROLS"
-    vt_locate BOARD_ROW + 15, pc : vt_print Chr(27) & Chr(26) & "   Move"
-    vt_locate BOARD_ROW + 16, pc : vt_print Chr(24) & " X  Rotate CW / CCW"
-    vt_locate BOARD_ROW + 17, pc : vt_print Chr(25) & "    Soft drop"
+    vt_locate BOARD_ROW + 15, pc : vt_print Chr(17) & Chr(16) & "   Move"
+    vt_locate BOARD_ROW + 16, pc : vt_print Chr(30) & " X  Rotate CW / CCW"
+    vt_locate BOARD_ROW + 17, pc : vt_print Chr(31) & "    Soft drop"
     vt_locate BOARD_ROW + 18, pc : vt_print "SPC  Hard drop"
     vt_locate BOARD_ROW + 19, pc : vt_print "P    Pause"
     vt_locate BOARD_ROW + 20, pc : vt_print "ESC  Quit"
@@ -161,9 +161,9 @@ vt_print_center 10, "A Tetris showcase for the libvt FreeBASIC library"
 vt_color VT_LIGHT_GREY, VT_BLACK
 vt_print_center 12, "Controls"
 vt_color VT_DARK_GREY, VT_BLACK
-vt_locate 13, 27 : vt_print Chr(27) & Chr(26) & "      Move left / right"
-vt_locate 14, 27 : vt_print Chr(24) & " X     Rotate CW / CCW"
-vt_locate 15, 27 : vt_print Chr(25) & "       Soft drop   (+"  & Chr(49) & " pt/row)"
+vt_locate 13, 27 : vt_print Chr(17) & Chr(16) & "      Move left / right"
+vt_locate 14, 27 : vt_print Chr(30) & " X     Rotate CW / CCW"
+vt_locate 15, 27 : vt_print Chr(31) & "       Soft drop   (+"  & Chr(49) & " pt/row)"
 vt_locate 16, 27 : vt_print "SPACE   Hard drop   (+2 pts/row)"
 vt_locate 17, 27 : vt_print "P       Pause / Resume"
 vt_locate 18, 27 : vt_print "ESC     Quit"

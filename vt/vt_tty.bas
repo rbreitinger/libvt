@@ -458,8 +458,12 @@ Sub vt_present_tty()
             last_bk = blink_f
         End If
 
-        ' glyph -- space for control/null bytes
-        vt_tty_out_buf(out_n) = IIf(cellptr->ch >= 32, cellptr->ch, 32)
+        ' glyph -- pass CP437 drawing chars, block only true terminal control codes
+        Dim glyph As UByte = cellptr->ch
+        Select Case glyph
+            Case 0, 7, 8, 10, 11, 12, 13, 26, 27 : glyph = 32  ' NULL, BEL, BS, LF, VT, FF, CR, ESC -- dangerous
+        End Select
+        vt_tty_out_buf(out_n) = glyph
         out_n += 1
 
     Next ci
