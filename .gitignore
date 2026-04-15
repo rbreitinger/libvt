@@ -4,6 +4,5 @@ Thumbs.db
 *.fbs
 *.vts
 *.bak
-test_*
-int_*.*
 vt_net.bas
+int_*.*

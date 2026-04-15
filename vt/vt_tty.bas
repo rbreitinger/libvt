@@ -278,7 +278,9 @@ Function vt_internal_tty_init(mode As Long, flags As Long, pages As Long) As Lon
         raw.c_cc(VT_TTY_VTIME_) = 0
         tcsetattr_(0, VT_TTY_TCSAFLUSH_, @raw)
         fflush_(0)
-        Dim init_seq As String = !"\x1b[2J\x1b[H\x1b[?25l"
+        ' switch console to 8-bit legacy mode (raw bytes = direct font indices)
+        Dim init_seq As String = !"\x1b[2J\x1b[H\x1b[?25l\x1b%@"
+        'Dim init_seq As String = !"\x1b[2J\x1b[H\x1b[?25l"
         write_unix(1, StrPtr(init_seq), CULng(Len(init_seq)))
     #Else
         ' Win10+ path: enable VT output processing
@@ -332,7 +334,9 @@ Sub vt_internal_tty_shutdown()
     vt_tty_shadow = 0
 
     #Ifdef __FB_LINUX__
-        Dim shut_seq As String = !"\x1b[?25h\x1b[0m"
+        ' Shutdown -- restore UTF-8 mode so subsequent programs (MC etc.) work correctly  
+        Dim shut_seq As String = !"\x1b[?25h\x1b[0m\x1b%G"
+        'Dim shut_seq As String = !"\x1b[?25h\x1b[0m"
         write_unix(1, StrPtr(shut_seq), CULng(Len(shut_seq)))
         tcsetattr_(0, VT_TTY_TCSAFLUSH_, @vt_tty_old_termios)
     #Else
@@ -533,7 +537,7 @@ Sub vt_pump_tty()
                     ' sequence, as two separate writes to the tty device.
                     ' Without this, the ESC would be pushed as VT_KEY_ESC and
                     ' the next read would see the remainder out of context.
-                    Sleep 5, 1
+                    vt_sleep(5)
                     nb = read_unix(0, @ibuf(0), 32)
                     If nb <= 0 Then
                         vt_internal_key_push(CULng(VT_KEY_ESC) Shl 16)
@@ -688,7 +692,10 @@ Sub vt_pump_tty()
             ElseIf ch >= 1 AndAlso ch <= 26 Then
                 vt_internal_key_push(CULng(ch) Or (1UL Shl 30))
 
-            ElseIf ch >= 32 Then
+            ElseIf ch = 32 Then
+                vt_internal_key_push((CULng(VT_KEY_SPACE) Shl 16) Or 32UL)
+                
+            ElseIf ch >= 33 Then
                 vt_internal_key_push(CULng(ch))
 
             End If
