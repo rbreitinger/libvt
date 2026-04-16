@@ -64,7 +64,7 @@ Function vt_internal_tty_init(mode As Long, flags As Long, pages As Long) As Lon
     Dim term_env As String = Environ("TERM")
     If term_env <> "linux" Then
         Print "VT_TTY requires a raw Linux console (TERM=linux). Got: " & term_env
-        Return -1
+        End -1
     End If
     
     Dim cols As Long
