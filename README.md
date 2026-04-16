@@ -109,7 +109,7 @@ zero overhead if unused.
 | Mouse | — | ✅ | ❌ no-op |
 | Copy / paste | — | ✅ | ❌ no-op |
 | Multiple display pages | — | ✅ | ✅ |
-| Custom font loading (`vt_loadfont`) | — | ✅ | ❌ no-op |
+| Custom font loading (`vt_loadfont`) | — | ✅ | ❌ |
 | Screen save/load `.vts` (`vt_bsave/bload`) | — | ✅ | ✅ |
 | Close-button callback (`vt_on_close`) | — | ✅ | — |
 | **Sound** — QBasic-style audio | `VT_USE_SOUND` | ✅ | ❌ compile error |
@@ -118,7 +118,7 @@ zero overhead if unused.
 | **Strings** — split, wrap, pad, replace | `VT_USE_STRINGS` | ✅ | ✅ |
 | **File** — exists, copy, list, rmdir | `VT_USE_FILE` | ✅ | ✅ |
 | **TUI** — DOS-style widgets + menubar | `VT_USE_TUI` | ✅ | ✅ |
-| **Net** — sockets wrapper (wip) | `VT_USE_NET` | ✅ | ✅ |
+| **Net** — sockets wrapper | `VT_USE_NET` | ✅ | ✅ |
 
 `VT_USE_TUI` automatically pulls in `VT_USE_STRINGS` and `VT_USE_FILE`.
 Sort, Math, Strings, File have no SDL2 or open screen dependency — usable in
