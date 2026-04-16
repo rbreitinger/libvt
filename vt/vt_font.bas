@@ -1,6 +1,5 @@
 ' =============================================================================
-' vt_font.bas - VT Virtual Text Screen Library
-' Custom bitmap font loader. Call vt_screen() first.
+' vt_font.bas - Custom bitmap font loader. (not available in VT_TTY!) 
 ' =============================================================================
 
 ' -----------------------------------------------------------------------------

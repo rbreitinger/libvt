@@ -122,14 +122,14 @@
 <h1>VT &mdash; Virtual Text Screen Library</h1>
 <p>
   DOS-style text screen for FreeBASIC. Two backends: an SDL2 windowed renderer
-  (full feature set) and a headless TTY renderer for direct terminal output (no SDL2 needed).
+  (full feature set) and a raw Linux console renderer (no SDL2 needed).
   Single include, QBasic-feel API. Target: <strong>Windows</strong>, <strong>Linux</strong>,
   <strong>FreeBASIC 1.10.1</strong>.
 </p>
 <pre><em>' SDL2 backend (default &mdash; full features, requires SDL2.dll):</em>
 #include once "vt/vt.bi"
 
-<em>' TTY backend (no SDL2, outputs to terminal &mdash; experimental):</em>
+<em>' VT_TTY backend (Linux raw console only, no SDL2):</em>
 #Define VT_TTY
 #include once "vt/vt.bi"</pre>
 
@@ -193,22 +193,9 @@
     <li><a href="#s-tui">TUI Widgets</a> <span class="badge-opt">opt-in</span>
       <ul>
         <li><a href="#c-tuiconsts">TUI Constants</a></li>
-        <li><a href="#vt_tui_theme_default">vt_tui_theme_default / vt_tui_theme</a></li>
-        <li><a href="#vt_tui_rect_fill">vt_tui_rect_fill</a></li>
-        <li><a href="#vt_tui_hline">vt_tui_hline / vt_tui_vline</a></li>
-        <li><a href="#vt_tui_window">vt_tui_window</a></li>
-        <li><a href="#vt_tui_statusbar">vt_tui_statusbar</a></li>
-        <li><a href="#vt_tui_progress">vt_tui_progress</a></li>
-        <li><a href="#vt_tui_mouse_in_rect">vt_tui_mouse_in_rect</a></li>
-        <li><a href="#vt_tui_input_field">vt_tui_input_field</a></li>
-        <li><a href="#vt_tui_listbox">vt_tui_listbox</a></li>
-        <li><a href="#vt_tui_dialog">vt_tui_dialog</a></li>
-        <li><a href="#vt_tui_file_dialog">vt_tui_file_dialog</a></li>
-        <li><a href="#vt_tui_editor">vt_tui_editor</a></li>
-        <li><a href="#vt_tui_menubar_draw">vt_tui_menubar_draw / vt_tui_menubar_handle</a></li>
-        <li><a href="#vt_tui_form_draw">vt_tui_form_draw / vt_tui_form_handle</a></li>
       </ul>
     </li>
+    <li><a href="#s-net">Networking</a> <span class="badge-opt">opt-in</span></li>
   </ul>
 </div>
 
@@ -227,7 +214,6 @@ vt_print_center 12, "Hello, World!"
 
 vt_color VT_LIGHT_GREY, VT_BLACK
 vt_print_center 14, "Press any key..."
-vt_present()
 
 vt_sleep 0   <em>' wait for keypress</em></pre>
 
@@ -245,7 +231,7 @@ vt_sleep 0   <em>' wait for keypress</em></pre>
   <tr><th>Define</th><th>Backend</th><th>Description</th></tr>
   <tr><td><em>(none)</em></td><td>SDL2</td><td>Full feature set. Opens an SDL2 window with CP437 font, palette, mouse, sound, copy/paste. Requires SDL2.dll / libsdl2.</td></tr>
   <tr><td>VT_USE_ANSI</td><td>SDL2 + ANSI parser</td><td>SDL2 backend plus ANSI escape sequence parsing inside <a href="#vt_print">vt_print</a>. Useful when string data already contains ANSI color codes. Supported: SGR (<code>ESC[&hellip;m</code>), CUP (<code>ESC[row;colH</code>), ED (<code>ESC[2J</code>).</td></tr>
-  <tr><td>VT_TTY</td><td>TTY (headless)</td><td>Outputs directly to the terminal via ANSI escape sequences. No SDL2 required. Implies VT_USE_ANSI. <strong>Experimental.</strong></td></tr>
+  <tr><td>VT_TTY</td><td>TTY (Linux raw console)</td><td>Outputs to the raw Linux console (<code>TERM=linux</code>) via ANSI escape sequences. No SDL2 required. Implies VT_USE_ANSI. Linux only &mdash; compile error on other platforms.</td></tr>
 </table>
 
 <div class="note">
@@ -253,20 +239,16 @@ vt_sleep 0   <em>' wait for keypress</em></pre>
   <code>#define VT_USE_SOUND</code> combined with <code>#define VT_TTY</code> produces a compile error (intentional).
 </div>
 
-<h3 id="backend-tty">VT_TTY — Headless Terminal Backend</h3>
+<h3 id="backend-tty">VT_TTY — Linux Raw Console Backend</h3>
 <p>
-  The TTY backend uses ANSI escape sequences to render the cell grid directly in the
-  calling terminal. It shares the same API as the SDL2 backend; functions that have no
-  TTY equivalent silently return <code>-1</code> or no-op.
+  The TTY backend uses ANSI escape sequences to render the cell grid on the raw Linux
+  console (<code>TERM=linux</code>). It shares the same API as the SDL2 backend;
+  functions that have no TTY equivalent silently return <code>-1</code> or no-op.<br><br>
+  <strong>Linux only.</strong> A compile-time <code>#error</code> is raised on non-Linux platforms.
+  A runtime check in <code>vt_screen</code> verifies <code>TERM=linux</code> and returns
+  <code>-1</code> with a clear error message if the program is launched inside a graphical
+  session or terminal emulator instead of a raw console.
 </p>
-
-<h4>Platform support</h4>
-<table class="const-table">
-  <tr><th>Platform</th><th>Status</th></tr>
-  <tr><td>Linux &mdash; any terminal emulator</td><td>Tested, fully working</td></tr>
-  <tr><td>Windows 10 build 1511+</td><td>Implemented &mdash; community testing welcome</td></tr>
-  <tr><td>Windows &lt; 10 (Win7 etc.)</td><td>Graceful no-op: console opens, does nothing, no crash. <code>vt_screen</code> returns <code>-1</code>.</td></tr>
-</table>
 
 <h4>Functions unavailable in TTY mode</h4>
 <table class="const-table">
@@ -274,10 +256,10 @@ vt_sleep 0   <em>' wait for keypress</em></pre>
   <tr><td>vt_mouse, vt_getmouse, vt_setmouse, vt_mouselock</td><td>Return -1 / no-op silently</td></tr>
   <tr><td>vt_copypaste</td><td>No-op silently</td></tr>
   <tr><td>vt_loadfont, vt_font_reset</td><td>Return -1 silently</td></tr>
-  <tr><td>vt_key_held</td><td>Always returns 0 (no live key-state query in termios / ReadConsoleInput)</td></tr>
+  <tr><td>vt_key_held</td><td>Always returns 0 (no live key-state query in termios raw mode)</td></tr>
   <tr><td>VT_USE_SOUND + VT_TTY</td><td>Compile error (intentional)</td></tr>
   <tr><td>VT_BLINK</td><td>Emitted but depends on terminal support &mdash; TERM=linux raw console does not implement it</td></tr>
-  <tr><td>CP437 chars &ge; 128 (box-drawing, shade blocks&hellip;)</td><td>Sent as raw bytes; terminals expect UTF-8, so they show as garbage. UTF-8 translation is a planned future improvement.</td></tr>
+  <tr><td>CP437 chars &ge; 128 (box-drawing, shade blocks&hellip;)</td><td>Sent as raw bytes &mdash; works correctly on raw Linux console which uses CP437 font by default. Would show as garbage in UTF-8 terminal emulators, but those are not a supported target.</td></tr>
 </table>
 
 <h4>Minimal TTY example</h4>
@@ -293,11 +275,9 @@ vt_print "Hello from TTY!"
 vt_color VT_YELLOW
 vt_locate 3, 1
 vt_print "Your name: "
-vt_present()
 Dim s As String = vt_input(20)
 vt_locate 5, 1
 vt_print "Got: " &amp; s
-vt_present()
 vt_sleep 0
 vt_shutdown()</pre>
 
@@ -616,7 +596,7 @@ End Select</pre>
   <code>-5</code> = page buffer memory allocation failed<br><br>
   <strong>VT_TTY backend:</strong><br>
   <code>0</code> = success<br>
-  <code>-1</code> = Windows &lt; 10: <code>ENABLE_VIRTUAL_TERMINAL_PROCESSING</code> not supported. All subsequent calls silently no-op.<br>
+  <code>-1</code> = <code>TERM</code> is not <code>linux</code>: not running on a raw Linux console. All subsequent calls silently no-op.<br>
   <code>-6</code> = page buffer memory allocation failed
 </div>
 <div class="note">
@@ -714,8 +694,7 @@ Function on_close() As Byte
     vt_color VT_BLACK, VT_LIGHT_GREY
     vt_locate 25, 1
     vt_print "  Unsaved changes!  Quit? (Y/N)" &amp; String(48, " ")
-    vt_present()
-
+    
     Dim ans As String = vt_getchar("YyNn")
     If LCase(ans) = "y" Then Return 0   <em>' allow close</em>
 
@@ -1029,80 +1008,47 @@ End If</pre>
   <tr>
     <th>Key</th>
     <th>SDL2<br><small>(windowed / fullscreen)</small></th>
-    <th>VT_TTY<br><small>terminal emulator<br>(XFCE, xterm&hellip;)</small></th>
     <th>VT_TTY<br><small>raw Linux console<br>(Ctrl+Alt+F1&ndash;F6)</small></th>
-    <th>VT_TTY<br><small>Windows 10+<br>console</small></th>
   </tr>
   <tr>
     <td><kbd>Shift+PgUp</kbd></td>
     <td>&#x2713; scroll back 1 line</td>
-    <td>&#x2717; intercepted by terminal</td>
     <td>&#x2717; intercepted by kernel</td>
-    <td>&#x2713; scroll back 1 line</td>
   </tr>
   <tr>
     <td><kbd>Shift+PgDn</kbd></td>
     <td>&#x2713; scroll forward 1 line</td>
-    <td>&#x2717; intercepted by terminal</td>
     <td>&#x2717; intercepted by kernel</td>
-    <td>&#x2713; scroll forward 1 line</td>
   </tr>
   <tr>
     <td><kbd>Ctrl+Shift+PgUp</kbd></td>
     <td>&#x2713; scroll back &frac12; page</td>
-    <td>&#x2717; intercepted by terminal</td>
     <td>&#x2717; intercepted by kernel</td>
-    <td>&#x2713; scroll back &frac12; page</td>
   </tr>
   <tr>
     <td><kbd>Ctrl+Shift+PgDn</kbd></td>
     <td>&#x2713; scroll forward &frac12; page</td>
-    <td>&#x2717; intercepted by terminal</td>
     <td>&#x2717; intercepted by kernel</td>
-    <td>&#x2713; scroll forward &frac12; page</td>
-  </tr>
-  <tr>
-    <td><kbd>Alt+PgUp</kbd></td>
-    <td>&mdash;</td>
-    <td>&#x2713; scroll back 1 line</td>
-    <td>&#x2717; unbound in default keymap</td>
-    <td>&mdash;</td>
-  </tr>
-  <tr>
-    <td><kbd>Alt+PgDn</kbd></td>
-    <td>&mdash;</td>
-    <td>&#x2713; scroll forward 1 line</td>
-    <td>&#x2717; unbound in default keymap</td>
-    <td>&mdash;</td>
   </tr>
   <tr>
     <td><kbd>Alt+&ndash;</kbd> (minus)</td>
     <td>&mdash;</td>
     <td>&#x2713; scroll back 1 line</td>
-    <td>&#x2713; scroll back 1 line</td>
-    <td>&mdash;</td>
   </tr>
   <tr>
     <td><kbd>Alt+.</kbd> (period)</td>
     <td>&mdash;</td>
     <td>&#x2713; scroll forward 1 line</td>
-    <td>&#x2713; scroll forward 1 line</td>
-    <td>&mdash;</td>
   </tr>
 </table>
 
 <div class="note">
-  <strong>Why different bindings?</strong><br>
-  On Linux the SDL2 backend owns its own window and input queue, so
-  <kbd>Shift+PgUp</kbd> reaches VT directly. In a terminal emulator, the terminal
-  itself intercepts <kbd>Shift+PgUp</kbd> for its own scrollback, so VT uses
-  <kbd>Alt+PgUp</kbd> instead (sent as <code>ESC[5;3~</code>).
-  On a raw Linux virtual console (<kbd>Ctrl+Alt+F1</kbd>&ndash;<kbd>F6</kbd>),
-  both <kbd>Shift+PgUp</kbd> and <kbd>Alt+PgUp</kbd> are consumed by the kernel
-  VT driver before reaching the program &mdash; but <kbd>Alt+&ndash;</kbd> and
-  <kbd>Alt+.</kbd> are present in the default Linux keymap
-  (<code>Meta_minus</code> / <code>Meta_period</code>) and pass through cleanly,
-  making them the universal raw-TTY scrollback binding that works everywhere.
+  On the SDL2 backend, <kbd>Shift+PgUp</kbd> reaches VT directly since it owns its
+  own window and input queue. On the raw Linux console, both <kbd>Shift+PgUp</kbd>
+  and <kbd>Alt+PgUp</kbd> are consumed by the kernel VT driver before reaching the
+  program. <kbd>Alt+&ndash;</kbd> and <kbd>Alt+.</kbd> are present in the default
+  Linux keymap (<code>Meta_minus</code> / <code>Meta_period</code>) and pass through
+  cleanly &mdash; these are the reliable TTY scrollback bindings.
 </div>
 
 <h3 id="hk-copypaste">Copy / Paste</h3>
@@ -1135,14 +1081,9 @@ End If</pre>
         VT recovers the letter from the raw SDL scancode in the key-down event.</td>
   </tr>
   <tr>
-    <td>VT_TTY Linux</td>
-    <td>Terminal sends <code>ESC</code> + letter byte.
+    <td>VT_TTY</td>
+    <td>Raw Linux console sends <code>ESC</code> + letter byte.
         VT's escape-sequence parser intercepts this and sets the Alt bit.</td>
-  </tr>
-  <tr>
-    <td>VT_TTY Windows</td>
-    <td><code>LEFT_ALT_PRESSED</code> / <code>RIGHT_ALT_PRESSED</code> flags
-        in the Win32 <code>KEY_EVENT_RECORD</code>. Folded into bit 31 of the keyrec.</td>
   </tr>
 </table>
 <div class="note">
@@ -1325,7 +1266,6 @@ vt_palette</pre>
 <div class="ret">Single-character String containing the accepted character.</div>
 <pre><em>' Accept only Y or N:</em>
 vt_print "Continue? (Y/N) "
-vt_present()
 Dim ans As String = UCase(vt_getchar("YyNn"))</pre>
 
 <!-- vt_getkey -->
@@ -1357,8 +1297,7 @@ Do
     Dim k As ULong = vt_inkey()
     If VT_SCAN(k) = VT_KEY_ESC Then Exit Do
     <em>' ... update and draw ...</em>
-    vt_present()
-    Sleep 16, 1
+    vt_sleep 16
 Loop</pre>
 
 <!-- vt_input -->
@@ -1395,7 +1334,6 @@ Loop</pre>
 Dim esc As Byte
 vt_locate 10, 1
 vt_print "Enter amount: "
-vt_present()
 Dim amount As String = vt_input(8, "0", "0123456789.", @esc)
 If esc Then
     vt_print "Cancelled" & VT_NEWLINE
@@ -3037,7 +2975,6 @@ vt_tui_statusbar 25, " F1=Help  F10=Menu  Esc=Quit"</pre>
 <pre><em>' Progress bar updating inside a loop:</em>
 For i As Long = 0 To 100
     vt_tui_progress 5, 10, 40, i, 100, VT_TUI_PROG_LABEL
-    vt_present()
     vt_sleep 20
 Next i</pre>
 
@@ -3398,7 +3335,6 @@ Do
         End Select
     End If
 
-    vt_present()
     vt_sleep 10
 Loop</pre>
 
@@ -3495,7 +3431,6 @@ Do
     vt_locate 10, 5 : vt_print "Password:"
     vt_tui_form_draw   fitems(), focused
     result = vt_tui_form_handle(fitems(), focused, k)
-    vt_present()
     vt_sleep 10
 Loop While result = VT_FORM_PENDING
 
@@ -3503,10 +3438,437 @@ If result = VT_RET_OK Then
     vt_print "User: " &amp; fitems(0).val &amp; VT_NEWLINE
 End If</pre>
 
+<!-- ============================================================ -->
+<h2 id="s-net">Networking <span class="badge-opt">opt-in</span></h2>
+<p>
+  TCP and UDP socket layer built on OS-native sockets: Winsock2 on Windows, POSIX on Linux.
+  No external DLL is required &mdash; the Winsock2 import library (<code>ws2_32</code>)
+  ships with FreeBASIC on Windows and POSIX sockets are always available on Linux.
+  Enable with:
+</p>
+<pre>#Define VT_USE_NET
+#include once "vt/vt.bi"</pre>
+<ul class="section-toc">
+  <li><a href="#vt_net_init">vt_net_init / vt_net_shutdown</a> &mdash; start / stop subsystem</li>
+  <li><a href="#vt_net_resolve">vt_net_resolve / vt_net_ip_str</a> &mdash; hostname lookup and IP formatting</li>
+  <li><a href="#vt_net_open">vt_net_open / vt_net_close</a> &mdash; create / destroy a socket</li>
+  <li><a href="#vt_net_nonblocking">vt_net_nonblocking</a> &mdash; toggle blocking mode</li>
+  <li><a href="#vt_net_connect">vt_net_connect</a> &mdash; TCP client connect</li>
+  <li><a href="#vt_net_bind">vt_net_bind / vt_net_listen / vt_net_accept</a> &mdash; TCP server setup</li>
+  <li><a href="#vt_net_send">vt_net_send / vt_net_recv</a> &mdash; TCP send and receive</li>
+  <li><a href="#vt_net_send_udp">vt_net_send_udp / vt_net_recv_udp</a> &mdash; UDP send and receive</li>
+  <li><a href="#vt_net_ready">vt_net_ready</a> &mdash; poll a socket (select wrapper)</li>
+  <li><a href="#vt_net_local_addr">vt_net_local_addr</a> &mdash; query local endpoint</li>
+</ul>
+
+<!-- ------------------------------------------------------------------ -->
+<h3 id="vt_net_init">vt_net_init / vt_net_shutdown</h3>
+<p>
+  Initialise and tear down the networking subsystem.
+  <code>vt_net_init</code> must be called once before any other <code>vt_net_*</code> function.
+  On Linux both calls are no-ops; on Windows <code>vt_net_init</code> calls
+  <code>WSAStartup</code> and <code>vt_net_shutdown</code> calls <code>WSACleanup</code>.
+</p>
+<div class="syntax">Function vt_net_init() As Long
+
+Sub vt_net_shutdown()</div>
+<h4>Return value (<code>vt_net_init</code>)</h4>
+<div class="ret">
+  <code>0</code> on success.<br>
+  <code>-1</code> if Winsock initialisation failed (Windows only).
+</div>
+<pre>If vt_net_init() &lt;&gt; 0 Then
+    vt_print "Network init failed." &amp; VT_NEWLINE
+    End
+End If
+' ... program ...
+vt_net_shutdown()</pre>
+
+<!-- ------------------------------------------------------------------ -->
+<h3 id="vt_net_resolve">vt_net_resolve / vt_net_ip_str</h3>
+<p>
+  Convert between host names and packed IP values.
+  <code>vt_net_resolve</code> accepts both dotted-decimal strings (<code>"192.168.0.1"</code>)
+  and DNS host names (<code>"example.com"</code>) and returns the IP as a packed <code>Long</code>
+  in network byte order &mdash; the format expected by every other <code>vt_net_*</code> function.
+  <code>vt_net_ip_str</code> converts a packed value back to a human-readable dotted-decimal string.
+</p>
+<div class="syntax">Function vt_net_resolve(hostname As ZString Ptr) As Long
+
+Function vt_net_ip_str(ip As Long) As String</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+  <tr><td>hostname</td><td>ZString Ptr</td><td>Dotted-decimal IP string or DNS host name to resolve.</td></tr>
+  <tr><td>ip</td><td>Long</td><td>Packed IP in network byte order, as returned by <code>vt_net_resolve</code>.</td></tr>
+</table>
+<h4>Return values</h4>
+<div class="ret">
+  <code>vt_net_resolve</code>: packed IP on success, <code>0</code> on failure (unknown host or bad address).<br>
+  <code>vt_net_ip_str</code>: dotted-decimal string (e.g. <code>"93.184.216.34"</code>), or empty string on failure.
+</div>
+<pre>Dim ip As Long = vt_net_resolve("example.com")
+If ip = 0 Then
+    vt_print "Could not resolve host." &amp; VT_NEWLINE
+Else
+    vt_print "Resolved: " &amp; vt_net_ip_str(ip) &amp; VT_NEWLINE
+End If</pre>
+
+<!-- ------------------------------------------------------------------ -->
+<h3 id="vt_net_open">vt_net_open / vt_net_close</h3>
+<p>
+  Create and destroy a socket.
+  Pass <code>udp = 1</code> for a UDP datagram socket; the default creates a TCP stream socket.
+  After use, always pass the handle to <code>vt_net_close</code> to release OS resources.
+</p>
+<div class="syntax">Function vt_net_open(udp As Byte = 0) As SOCKET
+
+Sub vt_net_close(sock As SOCKET)</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+  <tr><td>udp</td><td>Byte</td><td><code>0</code> = TCP stream socket (default). <code>1</code> = UDP datagram socket.</td></tr>
+  <tr><td>sock</td><td>SOCKET</td><td>Socket handle to close and release.</td></tr>
+</table>
+<h4>Return value (<code>vt_net_open</code>)</h4>
+<div class="ret">
+  A valid <code>SOCKET</code> handle on success.<br>
+  <code>INVALID_SOCKET</code> if the OS could not allocate the socket.
+</div>
+<div class="note">
+  <code>SOCKET</code> is a <code>Long</code> on Linux and an opaque platform type on Windows.
+  Always treat it as opaque and only compare against <code>INVALID_SOCKET</code>.
+</div>
+<pre>Dim sock As SOCKET = vt_net_open()
+If sock = INVALID_SOCKET Then
+    vt_print "Cannot create socket." &amp; VT_NEWLINE
+    End
+End If
+' ... use sock ...
+vt_net_close(sock)</pre>
+
+<!-- ------------------------------------------------------------------ -->
+<h3 id="vt_net_nonblocking">vt_net_nonblocking</h3>
+<p>
+  Toggle non-blocking mode on a socket.
+  In non-blocking mode <code>vt_net_connect</code>, <code>vt_net_send</code>, and
+  <code>vt_net_recv</code> return immediately even when the operation cannot yet complete.
+  Combine with <a href="#vt_net_ready">vt_net_ready</a> to integrate network I/O into a
+  frame-rate game loop without stalling.
+</p>
+<div class="syntax">Sub vt_net_nonblocking(sock As SOCKET, state As Byte)</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+  <tr><td>sock</td><td>SOCKET</td><td>Target socket handle.</td></tr>
+  <tr><td>state</td><td>Byte</td><td><code>1</code> = enable non-blocking mode. <code>0</code> = restore blocking mode.</td></tr>
+</table>
+<pre>' Switch to non-blocking before connect so the game loop stays responsive:
+vt_net_nonblocking sock, 1</pre>
+
+<!-- ------------------------------------------------------------------ -->
+<h3 id="vt_net_connect">vt_net_connect</h3>
+<p>
+  Connect a TCP socket to a remote host.
+  The Nagle algorithm is disabled automatically (<code>TCP_NODELAY</code>) to minimise
+  send latency, which is desirable for interactive game traffic.
+  If the socket is in non-blocking mode (see <a href="#vt_net_nonblocking">vt_net_nonblocking</a>),
+  the call returns immediately with <code>0</code> while the connection is in progress;
+  use <a href="#vt_net_ready">vt_net_ready</a> with <code>for_write = 1</code> to detect
+  when the connection has been established.
+</p>
+<div class="syntax">Function vt_net_connect(sock As SOCKET, ip As Long, port As Long) As Long</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+  <tr><td>sock</td><td>SOCKET</td><td>An open TCP socket (from <code>vt_net_open(0)</code>).</td></tr>
+  <tr><td>ip</td><td>Long</td><td>Remote IP in network byte order, from <a href="#vt_net_resolve">vt_net_resolve</a>.</td></tr>
+  <tr><td>port</td><td>Long</td><td>Remote port in host byte order (e.g. <code>80</code>, <code>7000</code>).</td></tr>
+</table>
+<h4>Return value</h4>
+<div class="ret">
+  <code>1</code> on success (blocking mode) or connection accepted immediately.<br>
+  <code>0</code> on failure, or when a non-blocking connection is still in progress.
+</div>
+<pre>Dim sock As SOCKET = vt_net_open()
+Dim ip   As Long   = vt_net_resolve("example.com")
+If vt_net_connect(sock, ip, 80) = 0 Then
+    vt_print "Connection failed." &amp; VT_NEWLINE
+    vt_net_close(sock)
+    End
+End If</pre>
+
+<!-- ------------------------------------------------------------------ -->
+<h3 id="vt_net_bind">vt_net_bind / vt_net_listen / vt_net_accept</h3>
+<p>
+  Server-side TCP setup. Typical sequence: <code>vt_net_bind</code> assigns a local port,
+  <code>vt_net_listen</code> begins queuing incoming connections, then <code>vt_net_accept</code>
+  is called in a loop to obtain a new socket for each client.
+  <code>vt_net_bind</code> is also used for UDP sockets that need a fixed local port.
+</p>
+<div class="syntax">Function vt_net_bind(sock    As SOCKET,
+                      port    As Long,
+                      ip      As ULong = INADDR_ANY) As Long
+
+Function vt_net_listen(sock    As SOCKET,
+                        backlog As Long = SOMAXCONN) As Long
+
+Function vt_net_accept(sock        As SOCKET,
+                        remote_ip   As Long Ptr = 0,
+                        remote_port As Long Ptr = 0) As SOCKET</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+  <tr><td>sock</td><td>SOCKET</td><td>The server / listening socket.</td></tr>
+  <tr><td>port</td><td>Long</td><td>Local port to bind to, in host byte order.</td></tr>
+  <tr><td>ip</td><td>ULong</td><td>Local interface IP in network byte order. Default <code>INADDR_ANY</code> binds to all interfaces.</td></tr>
+  <tr><td>backlog</td><td>Long</td><td>Maximum pending connections queued before the OS starts refusing. Default <code>SOMAXCONN</code> (OS maximum).</td></tr>
+  <tr><td>remote_ip</td><td>Long Ptr</td><td>If non-null, receives the client's IP (network byte order) when a connection is accepted.</td></tr>
+  <tr><td>remote_port</td><td>Long Ptr</td><td>If non-null, receives the client's port (host byte order) when a connection is accepted.</td></tr>
+</table>
+<h4>Return values</h4>
+<div class="ret">
+  <code>vt_net_bind</code>, <code>vt_net_listen</code>: <code>1</code> on success, <code>0</code> on failure.<br>
+  <code>vt_net_accept</code>: a new <code>SOCKET</code> handle for the accepted connection,
+  or <code>INVALID_SOCKET</code> if no connection is pending (non-blocking socket) or on error.
+</div>
+<div class="note">
+  <code>TCP_NODELAY</code> is set automatically on every socket returned by <code>vt_net_accept</code>,
+  matching the behaviour of <a href="#vt_net_connect">vt_net_connect</a>.
+  Manage each accepted socket independently and close it with <a href="#vt_net_open">vt_net_close</a>
+  when the client disconnects.
+</div>
+<pre>Dim srv  As SOCKET = vt_net_open()
+vt_net_bind   srv, 7000
+vt_net_listen srv
+
+vt_print "Waiting for connection..." &amp; VT_NEWLINE
+vt_present()
+
+Dim client As SOCKET
+Dim cip    As Long
+Dim cport  As Long
+Do
+    client = vt_net_accept(srv, @cip, @cport)
+Loop While client = INVALID_SOCKET
+
+vt_print "Client: " &amp; vt_net_ip_str(cip) &amp; ":" &amp; cport &amp; VT_NEWLINE</pre>
+
+<!-- ------------------------------------------------------------------ -->
+<h3 id="vt_net_send">vt_net_send / vt_net_recv</h3>
+<p>
+  Send and receive data on a connected TCP socket.
+  Both functions map directly to the OS <code>send</code> and <code>recv</code> calls.
+  In blocking mode <code>vt_net_recv</code> waits until data arrives or the connection closes;
+  call <a href="#vt_net_ready">vt_net_ready</a> first to avoid stalling the game loop.
+</p>
+<div class="syntax">Function vt_net_send(sock   As SOCKET,
+                     buf    As ZString Ptr,
+                     nbytes As Long) As Long
+
+Function vt_net_recv(sock   As SOCKET,
+                     buf    As ZString Ptr,
+                     nbytes As Long) As Long</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+  <tr><td>sock</td><td>SOCKET</td><td>Connected TCP socket.</td></tr>
+  <tr><td>buf</td><td>ZString Ptr</td><td>Pointer to the data buffer to send from or receive into.</td></tr>
+  <tr><td>nbytes</td><td>Long</td><td>Number of bytes to send, or the maximum bytes the receive buffer can hold.</td></tr>
+</table>
+<h4>Return values</h4>
+<div class="ret">
+  <code>vt_net_send</code>: number of bytes actually sent, or <code>&le; 0</code> on error or disconnection.<br>
+  <code>vt_net_recv</code>: number of bytes received. <code>0</code> means the peer closed the connection gracefully; <code>&lt; 0</code> is an error.
+</div>
+<div class="note">
+  A single <code>vt_net_send</code> call may send fewer bytes than requested &mdash;
+  a robust send loop should retry until the full byte count has been delivered.
+  <code>vt_net_recv</code> may similarly return fewer bytes than <code>nbytes</code>
+  even when more data is on the way; reassemble as needed.
+</div>
+<pre>Dim msg    As String     = "Hello, server!"
+Dim rxbuf  As ZString * 257
+Dim n      As Long
+
+n = vt_net_send(sock, StrPtr(msg), Len(msg))
+If n &lt;= 0 Then vt_print "Send error." &amp; VT_NEWLINE
+
+n = vt_net_recv(sock, @rxbuf, 256)
+If n &gt; 0 Then
+    rxbuf[n] = 0
+    vt_print "Received: " &amp; rxbuf &amp; VT_NEWLINE
+ElseIf n = 0 Then
+    vt_print "Server closed connection." &amp; VT_NEWLINE
+End If</pre>
+
+<!-- ------------------------------------------------------------------ -->
+<h3 id="vt_net_send_udp">vt_net_send_udp / vt_net_recv_udp</h3>
+<p>
+  Send and receive UDP datagrams.
+  A UDP socket does not need to be connected; each send call specifies the destination
+  explicitly. To receive, the socket should first be bound to a local port with
+  <a href="#vt_net_bind">vt_net_bind</a>.
+</p>
+<div class="syntax">Function vt_net_send_udp(sock   As SOCKET,
+                         ip     As Long,
+                         port   As Long,
+                         buf    As ZString Ptr,
+                         nbytes As Long) As Long
+
+Function vt_net_recv_udp(sock          As SOCKET,
+                          ByRef src_ip   As Long,
+                          ByRef src_port As Long,
+                          buf            As ZString Ptr,
+                          nbytes         As Long) As Long</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+  <tr><td>sock</td><td>SOCKET</td><td>An open UDP socket (from <code>vt_net_open(1)</code>).</td></tr>
+  <tr><td>ip</td><td>Long</td><td>Destination IP in network byte order.</td></tr>
+  <tr><td>port</td><td>Long</td><td>Destination port in host byte order.</td></tr>
+  <tr><td>src_ip</td><td>Long (ByRef)</td><td>Receives the sender's IP in network byte order.</td></tr>
+  <tr><td>src_port</td><td>Long (ByRef)</td><td>Receives the sender's port in host byte order.</td></tr>
+  <tr><td>buf</td><td>ZString Ptr</td><td>Pointer to the data buffer to send from or receive into.</td></tr>
+  <tr><td>nbytes</td><td>Long</td><td>Bytes to send, or the maximum bytes the receive buffer can hold.</td></tr>
+</table>
+<h4>Return values</h4>
+<div class="ret">
+  <code>vt_net_send_udp</code>: bytes sent, or <code>&le; 0</code> on error.<br>
+  <code>vt_net_recv_udp</code>: bytes received, or <code>&le; 0</code> on error.
+</div>
+<div class="note">
+  UDP datagrams are delivered in full or not at all; there is no partial-read scenario.
+  If the receive buffer is smaller than the incoming datagram the excess bytes are
+  discarded silently. Delivery is not ordered or guaranteed.
+</div>
+<pre>Dim udp_sock As SOCKET = vt_net_open(1)
+Dim srv_ip   As Long   = vt_net_resolve("192.168.1.10")
+Dim msg      As String = "ping"
+
+vt_net_send_udp udp_sock, srv_ip, 9999, StrPtr(msg), Len(msg)
+
+Dim rxbuf  As ZString * 257
+Dim sip    As Long
+Dim sport  As Long
+Dim n      As Long = vt_net_recv_udp(udp_sock, sip, sport, @rxbuf, 256)
+If n &gt; 0 Then
+    vt_print "Reply from " &amp; vt_net_ip_str(sip) &amp; ":" &amp; sport &amp; VT_NEWLINE
+End If
+vt_net_close(udp_sock)</pre>
+
+<!-- ------------------------------------------------------------------ -->
+<h3 id="vt_net_ready">vt_net_ready</h3>
+<p>
+  Non-blocking readiness poll on a single socket using <code>select()</code>.
+  Use this before <code>vt_net_recv</code> or <code>vt_net_accept</code> in a game loop
+  to avoid blocking the frame. Pass <code>timeout_ms = 0</code> for an instant check,
+  or <code>timeout_ms = -1</code> to block until the socket is ready.
+</p>
+<div class="syntax">Function vt_net_ready(sock       As SOCKET,
+                      for_write  As Byte = 0,
+                      timeout_ms As Long = 0) As Long</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+  <tr><td>sock</td><td>SOCKET</td><td>Socket to poll.</td></tr>
+  <tr><td>for_write</td><td>Byte</td><td><code>0</code> = check whether data is available to read (default). <code>1</code> = check whether the send buffer has space.</td></tr>
+  <tr><td>timeout_ms</td><td>Long</td><td>Timeout in milliseconds. <code>0</code> = return immediately. <code>-1</code> = block until the socket is ready.</td></tr>
+</table>
+<h4>Return value</h4>
+<div class="ret">
+  <code>1</code> if the socket is ready for the requested operation.<br>
+  <code>0</code> if the timeout expired with no activity.<br>
+  <code>-1</code> on error.
+</div>
+<pre>' Non-blocking receive in a game loop:
+Dim rxbuf     As ZString * 257
+Dim connected As Long = 1
+Dim k         As ULong
+Dim n         As Long
+Do
+    k = vt_inkey()
+
+    If vt_net_ready(sock) Then
+        n = vt_net_recv(sock, @rxbuf, 256)
+        If n &gt; 0 Then
+            rxbuf[n] = 0
+            ' process rxbuf
+        ElseIf n = 0 Then
+            connected = 0  ' server closed the connection
+        End If
+    End If
+
+    ' ... draw frame, handle input ...
+    vt_sleep 16
+Loop While connected</pre>
+
+<!-- ------------------------------------------------------------------ -->
+<h3 id="vt_net_local_addr">vt_net_local_addr</h3>
+<p>
+  Query the local IP address and port that the OS has assigned to a socket.
+  Useful after <a href="#vt_net_connect">vt_net_connect</a> to discover the ephemeral port
+  chosen by the OS, or after <a href="#vt_net_bind">vt_net_bind</a> to confirm the binding.
+</p>
+<div class="syntax">Function vt_net_local_addr(sock          As SOCKET,
+                           ByRef local_ip   As Long,
+                           ByRef local_port As Long) As Long</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+  <tr><td>sock</td><td>SOCKET</td><td>A bound or connected socket.</td></tr>
+  <tr><td>local_ip</td><td>Long (ByRef)</td><td>Receives the local IP in network byte order.</td></tr>
+  <tr><td>local_port</td><td>Long (ByRef)</td><td>Receives the local port in host byte order.</td></tr>
+</table>
+<h4>Return value</h4>
+<div class="ret">
+  <code>1</code> on success, <code>0</code> on failure.
+</div>
+<pre>Dim lip   As Long
+Dim lport As Long
+If vt_net_local_addr(sock, lip, lport) Then
+    vt_print "Local: " &amp; vt_net_ip_str(lip) &amp; ":" &amp; lport &amp; VT_NEWLINE
+End If</pre>
+
+<!-- ------------------------------------------------------------------ -->
+<h4>Complete example &mdash; TCP echo client</h4>
+<pre>#Define VT_USE_NET
+#include once "vt/vt.bi"
+
+vt_screen VT_SCREEN_0
+If vt_net_init() &lt;&gt; 0 Then
+    vt_print "Network init failed." &amp; VT_NEWLINE
+    vt_sleep 0
+    End
+End If
+
+Dim sock  As SOCKET = vt_net_open()
+Dim ip    As Long   = vt_net_resolve("127.0.0.1")
+
+If vt_net_connect(sock, ip, 7) = 0 Then
+    vt_print "Cannot connect to echo server on port 7." &amp; VT_NEWLINE
+    vt_net_close(sock)
+    vt_net_shutdown()
+    vt_sleep 0
+    End
+End If
+
+Dim msg   As String     = "Hello echo!"
+Dim rxbuf As ZString * 257
+Dim n     As Long
+
+vt_net_send sock, StrPtr(msg), Len(msg)
+
+If vt_net_ready(sock, 0, 2000) Then
+    n = vt_net_recv(sock, @rxbuf, 256)
+    If n &gt; 0 Then
+        rxbuf[n] = 0
+        vt_print "Echo reply: " &amp; rxbuf &amp; VT_NEWLINE
+    End If
+Else
+    vt_print "No reply within 2 seconds." &amp; VT_NEWLINE
+End If
+
+vt_net_close(sock)
+vt_net_shutdown()
+vt_sleep 0
+vt_shutdown</pre>
+
 <hr>
 <p style="font-size:0.85em; color:#555;">
-  VT Virtual Text Screen Library &mdash; API Reference &mdash; v1.3.4<br>
-  FreeBASIC 1.10.1 / SDL2 + TTY / Windows + Linux
+  VT Virtual Text Screen Library &mdash; API Reference &mdash; v1.3.6<br>
+  FreeBASIC 1.10.1 / SDL2 + VT_TTY (Linux raw console) / Windows + Linux
 </p>
 
 </body>

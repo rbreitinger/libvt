@@ -1,8 +1,5 @@
 ' =============================================================================
-' vt_tui.bas - TUI extension for the VT Virtual Text Screen Library
-' Opt-in: #define VT_USE_TUI before #include "vt/vt.bi"
-' Forces vt_strings.bas and vt_file.bas via #include once (idempotent).
-' All shared internal state uses the vt_internal_tui_ prefix.
+' vt_tui.bas - TUI opt-in extension for the VT Virtual Text Screen Library
 ' =============================================================================
 
 #Include Once "vt_strings.bas"
@@ -168,10 +165,6 @@ End Sub
 Sub vt_internal_tui_autoinit()
     If vt_internal_tui_inited = 0 Then vt_tui_theme_default()
 End Sub
-
-' =============================================================================
-' Internal helpers
-' =============================================================================
 
 ' -----------------------------------------------------------------------------
 ' vt_internal_tui_save_rect
@@ -2225,7 +2218,7 @@ menu_done:
 End Function
 
 ' =============================================================================
-' Internal form helpers
+' FORMS 
 ' =============================================================================
 
 ' -----------------------------------------------------------------------------

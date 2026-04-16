@@ -1,6 +1,5 @@
 ' =============================================================================
-' vt_bsave.bas - VT Virtual Text Screen Library
-' vt_bsave / vt_bload -- save and load screen cell buffers to/from .vts files
+' vt_bsave.bas : save and load screen cell buffers to/from .vts files
 ' =============================================================================
 Function vt_bsave(fname As String) As Long
     If vt_internal.ready = 0 Then Return -1

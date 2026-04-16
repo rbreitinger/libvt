@@ -13,7 +13,7 @@ End Function
 
 #Ifdef VT_USE_SORT
 ' ================================================================
-'  vt_sort  –  generic array sort via overloading (shellsort)
+'  vt_sort : opt-in generic array sort via overloading (shellsort)
 ' ================================================================
 
 ' ----------------------------------------------------------------

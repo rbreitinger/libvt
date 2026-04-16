@@ -1,21 +1,19 @@
-' vt_file.bas
-' Simple file/directory helpers for libvt.
-' Opt-in: #define VT_USE_FILE before #include once "vt/vt.bi"
 ' -----------------------------------------------------------------------
+' vt_file.bas : opt-in file/directory helpers for libvt.
+' -----------------------------------------------------------------------
+#Include Once "dir.bi"
 
-#define VT_FILE_SHOW_HIDDEN   1  ' vt_file_list: include hidden items
-#define VT_FILE_SHOW_DIRS     2  ' vt_file_list: include subdir names
-#define VT_FILE_DIRS_ONLY     4  ' vt_file_list: only return subdirs
-#define VT_FILE_OVERWRITE     8  ' vt_file_copy: allow clobbering dst
-#define VT_FILE_RECURSIVE    16  ' vt_file_rmdir: delete contents too
+#Define VT_FILE_SHOW_HIDDEN   1  ' vt_file_list: include hidden items
+#Define VT_FILE_SHOW_DIRS     2  ' vt_file_list: include subdir names
+#Define VT_FILE_DIRS_ONLY     4  ' vt_file_list: only return subdirs
+#Define VT_FILE_OVERWRITE     8  ' vt_file_copy: allow clobbering dst
+#Define VT_FILE_RECURSIVE    16  ' vt_file_rmdir: delete contents too
 
 Declare Function vt_file_exists(ByRef path As Const String) As Byte
 Declare Function vt_file_isdir(ByRef path As Const String) As Byte
 Declare Function vt_file_copy(ByRef src As Const String, ByRef dst As Const String, flags As Long = 0) As Long
 Declare Function vt_file_rmdir(ByRef path As Const String, flags As Long = 0) As Long
 Declare Function vt_file_list(ByRef path As Const String, ByRef pattern As Const String, arr() As String, flags As Long = 0) As Long
-
-#include once "dir.bi"
 
 ' -----------------------------------------------------------------------
 ' vt_file_exists(path) As Byte

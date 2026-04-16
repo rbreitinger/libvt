@@ -1,7 +1,5 @@
 ' =============================================================================
-' vt_strings.bas  --  String Utility Extension for libvt
-' opt-in: #define VT_USE_STRINGS  before  #include once "vt/vt.bi"
-' Pure FreeBASIC -- no SDL2 or open VT screen required.
+' vt_strings.bas : opt-in String Utility Extension for libvt
 ' =============================================================================
 
 ' -----------------------------------------------------------------------------

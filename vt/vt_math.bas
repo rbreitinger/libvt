@@ -1,12 +1,8 @@
 '===============================================================================
-' vt_math.bas  --  VT Math Extension
-' opt-in: #define VT_USE_MATH before #include "vt/vt.bi"
-' no dependencies, no VT screen required -- pure math helpers
+' vt_math.bas : opt-in Math Helpers Extension
 '===============================================================================
 
 '-------------------------------------------------------------------------------
-' Macros
-'
 ' VT_MIN(a, b)          smaller of two values
 ' VT_MAX(a, b)          larger of two values
 ' VT_CLAMP(v, lo, hi)   clamp v to [lo..hi]

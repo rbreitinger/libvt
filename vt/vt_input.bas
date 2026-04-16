@@ -1,6 +1,5 @@
 ' =============================================================================
-' vt_input.bas - VT Virtual Text Screen Library
-' vt_input : single-line blocking text editor
+' vt_input.bas : single-line blocking text editor
 ' =============================================================================
 Function vt_input(max_len As Long = -1, initial As String = "", allowed As String = "", cancelled As Byte Ptr = 0) As String
     If vt_internal.ready = 0 Then Return ""

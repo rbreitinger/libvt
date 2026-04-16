@@ -8,7 +8,7 @@
 ' On Linux, SDL2.bi does not pull any Windows headers, so CopyMemory is simply undefined.
 ' Hence we will replace CopyMemory by memcpy from the C runtime
 ' 
-#include once "crt/mem.bi"
+#Include Once "crt/mem.bi"
 
 ' -----------------------------------------------------------------------------
 ' vt_page - set the active drawing page and the visible display page

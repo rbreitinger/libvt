@@ -133,8 +133,7 @@ Sub vt_pump()
     #Ifdef VT_TTY
         vt_pump_tty()
         Exit Sub
-    #EndIf
-    #Ifndef VT_TTY
+    #Else
         If vt_internal.ready = 0 Then Exit Sub
     
         Static pump_active As Byte
@@ -485,8 +484,7 @@ Sub vt_internal_shutdown()
     #Ifdef VT_TTY
         vt_internal_tty_shutdown()
         Exit Sub
-    #EndIf
-    #Ifndef VT_TTY
+    #Else
         If vt_internal.ready = 0 Then Exit Sub
         vt_internal.ready = 0
     
@@ -699,9 +697,7 @@ Function vt_screen(mode As Long, flags As Long, pages As Long) As Long
     #Ifdef VT_TTY
         vt_internal.backend = 1
         Return vt_internal_tty_init(mode, flags, pages)
-    #EndIf
-    
-    #Ifndef VT_TTY
+    #Else
         Dim cols   As Long
         Dim rows   As Long
         Dim gw     As Long
@@ -782,9 +778,7 @@ Sub vt_present()
     #Ifdef VT_TTY
         vt_present_tty()
         Exit Sub
-    #EndIf
-    
-    #Ifndef VT_TTY
+    #Else
         If vt_internal.ready = 0 Then Exit Sub
         vt_pump()
     
@@ -1053,12 +1047,9 @@ End Sub
 ' vt_title - set the window title
 ' -----------------------------------------------------------------------------
 Sub vt_title(txt As String)
-    ' Most terminals support OSC title sequence
     #Ifdef VT_TTY
-        Print !"\x1b]0;" & txt & Chr(7);
         Exit Sub
-    #EndIf
-    #Ifndef VT_TTY
+    #Else
         vt_internal.win_title = txt
         If vt_internal.ready Then
             SDL_SetWindowTitle(vt_internal.sdl_window, txt)

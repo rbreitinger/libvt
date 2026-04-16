@@ -2,23 +2,24 @@
 ' vt.bi - VT Virtual Text Screen Library
 ' Usage: #include once "vt/vt.bi"
 ' =============================================================================
-
-' NOTE: VT_TTY is WIP + unfinished + experimental!
 #Ifdef VT_TTY
-    #Define VT_USE_ANSI
+    #Ifndef __FB_LINUX__
+        #Error "VT_TTY is Linux raw console only. On Windows, use the SDL2 backend."
+    #Endif
     
     #Ifdef VT_USE_SOUND
-        #Error "VT_USE_SOUND requires SDL2 and is not compatible with VT_TTY mode"
+        #Error "VT_USE_SOUND requires SDL2 and is not compatible with VT_TTY mode."
     #EndIf
+    
+    #Define VT_USE_ANSI
+#Else
+    #Include Once "SDL2/SDL.bi"
 #EndIf
 
-#Ifndef VT_TTY
-    #Include Once "SDL2/SDL.bi"
-#Endif
-
 #Define VT_NEWLINE  Chr(10)
+#Define VT_LF       VT_NEWLINE
 
-Const VT_VERSION = "1.3.5"         ' major.minor.patch 
+Const VT_VERSION = "1.3.6"         ' major.minor.patch 
 
 ' -----------------------------------------------------------------------------
 ' Init flags  (combinable with Or)
@@ -347,13 +348,11 @@ Dim Shared vt_internal As vt_internal_state
 #Ifdef VT_USE_SOUND
     #Include Once "vt_sound.bas"
 #Endif
-
-' --- WIP (not commited yet) ---
-#Ifdef VT_USE_NET
-    #Include Once "vt_net.bas"
-#Endif
 #Ifdef VT_USE_TUI
     #Include Once "vt_tui.bas"
+#Endif
+#Ifdef VT_USE_NET
+    #Include Once "vt_net.bas"
 #Endif
 
 ' --- undefine internals ---
