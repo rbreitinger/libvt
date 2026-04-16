@@ -33,7 +33,7 @@
         #Define SOCKET_ERROR -1
     #Endif
 
-    Type SOCKET As Long
+    Type SOCKET_T As Long
 #Endif
 
 ' -----------------------------------------------------------------------------
@@ -111,7 +111,7 @@ End Function
 ' udp: 0 = TCP (default), 1 = UDP
 ' Returns socket handle, or INVALID_SOCKET on failure.
 ' -----------------------------------------------------------------------------
-Function vt_net_open(udp As Byte = 0) As SOCKET
+Function vt_net_open(udp As Byte = 0) As SOCKET_T
     Dim proto   As Long = Iif(udp, IPPROTO_UDP, IPPROTO_TCP)
     Dim stype   As Long = Iif(udp, SOCK_DGRAM,  SOCK_STREAM)
     #Ifdef __FB_WIN32__
@@ -124,7 +124,7 @@ End Function
 ' -----------------------------------------------------------------------------
 ' vt_net_close -- close a socket and release its handle
 ' -----------------------------------------------------------------------------
-Sub vt_net_close(sock As SOCKET)
+Sub vt_net_close(sock As SOCKET_T)
     #Ifdef __FB_WIN32__
         closesocket(sock)
     #Else
@@ -136,7 +136,7 @@ End Sub
 ' vt_net_nonblocking -- toggle non-blocking mode on a socket
 ' state: 1 = non-blocking, 0 = blocking
 ' -----------------------------------------------------------------------------
-Sub vt_net_nonblocking(sock As SOCKET, state As Byte)
+Sub vt_net_nonblocking(sock As SOCKET_T, state As Byte)
     Dim nb As Ulong = Iif(state, 1, 0)
     #Ifdef __FB_WIN32__
         ioctlsocket(sock, FIONBIO, @nb)
@@ -151,7 +151,7 @@ End Sub
 ' Disables Nagle algorithm (TCP_NODELAY) for low-latency sends.
 ' Returns 1 on success, 0 on failure.
 ' -----------------------------------------------------------------------------
-Function vt_net_connect(sock As SOCKET, ip As Long, port As Long) As Long
+Function vt_net_connect(sock As SOCKET_T, ip As Long, port As Long) As Long
     Dim sa      As sockaddr_in
     Dim nodelay As Long = 1
     sa.sin_family      = AF_INET
@@ -166,7 +166,7 @@ End Function
 ' ip: local interface to bind to, defaults to INADDR_ANY (all interfaces).
 ' Returns 1 on success, 0 on failure.
 ' -----------------------------------------------------------------------------
-Function vt_net_bind(sock As SOCKET, port As Long, ip As Ulong = INADDR_ANY) As Long
+Function vt_net_bind(sock As SOCKET_T, port As Long, ip As Ulong = INADDR_ANY) As Long
     Dim sa As sockaddr_in
     sa.sin_family      = AF_INET
     sa.sin_port        = htons(port)
@@ -179,7 +179,7 @@ End Function
 ' backlog: max queued incoming connections (default: SOMAXCONN)
 ' Returns 1 on success, 0 on failure.
 ' -----------------------------------------------------------------------------
-Function vt_net_listen(sock As SOCKET, backlog As Long = SOMAXCONN) As Long
+Function vt_net_listen(sock As SOCKET_T, backlog As Long = SOMAXCONN) As Long
     Return Iif(listen(sock, backlog) <> SOCKET_ERROR, 1, 0)
 End Function
 
@@ -188,11 +188,11 @@ End Function
 ' Fills remote_ip and remote_port with the client's address if non-null.
 ' Returns a new socket handle for the connection, or INVALID_SOCKET on failure.
 ' -----------------------------------------------------------------------------
-Function vt_net_accept(sock As SOCKET, remote_ip As Long Ptr = 0, remote_port As Long Ptr = 0) As SOCKET
+Function vt_net_accept(sock As SOCKET_T, remote_ip As Long Ptr = 0, remote_port As Long Ptr = 0) As SOCKET_T
     Dim sa      As sockaddr_in
     Dim salen   As Long = Sizeof(sockaddr_in)
     Dim nodelay As Long = 1
-    Dim rsock   As SOCKET
+    Dim rsock   As SOCKET_T
 
     setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, Cptr(Any Ptr, @nodelay), Sizeof(nodelay))
     rsock = accept(sock, Cptr(sockaddr Ptr, @sa), @salen)
@@ -208,7 +208,7 @@ End Function
 ' vt_net_send -- send bytes over a connected TCP socket
 ' Returns bytes sent, or <= 0 on error / disconnection.
 ' -----------------------------------------------------------------------------
-Function vt_net_send(sock As SOCKET, buf As ZString Ptr, nbytes As Long) As Long
+Function vt_net_send(sock As SOCKET_T, buf As ZString Ptr, nbytes As Long) As Long
     Return send(sock, buf, nbytes, 0)
 End Function
 
@@ -216,7 +216,7 @@ End Function
 ' vt_net_recv -- receive bytes from a connected TCP socket
 ' Returns bytes received, 0 = connection closed gracefully, < 0 = error.
 ' -----------------------------------------------------------------------------
-Function vt_net_recv(sock As SOCKET, buf As ZString Ptr, nbytes As Long) As Long
+Function vt_net_recv(sock As SOCKET_T, buf As ZString Ptr, nbytes As Long) As Long
     Return recv(sock, buf, nbytes, 0)
 End Function
 
@@ -224,7 +224,7 @@ End Function
 ' vt_net_send_udp -- send a UDP datagram to ip:port
 ' Returns bytes sent, or <= 0 on error.
 ' -----------------------------------------------------------------------------
-Function vt_net_send_udp(sock As SOCKET, ip As Long, port As Long, buf As ZString Ptr, nbytes As Long) As Long
+Function vt_net_send_udp(sock As SOCKET_T, ip As Long, port As Long, buf As ZString Ptr, nbytes As Long) As Long
     Dim sa As sockaddr_in
     sa.sin_family      = AF_INET
     sa.sin_port        = htons(port)
@@ -237,7 +237,7 @@ End Function
 ' Fills src_ip and src_port with the sender's address.
 ' Returns bytes received, or <= 0 on error.
 ' -----------------------------------------------------------------------------
-Function vt_net_recv_udp(sock As SOCKET, Byref src_ip As Long, Byref src_port As Long, buf As ZString Ptr, nbytes As Long) As Long
+Function vt_net_recv_udp(sock As SOCKET_T, Byref src_ip As Long, Byref src_port As Long, buf As ZString Ptr, nbytes As Long) As Long
     Dim sa      As sockaddr_in
     Dim salen   As Long = Sizeof(sockaddr_in)
     Dim result  As Long
@@ -254,7 +254,7 @@ End Function
 ' timeout_ms: 0 = return immediately, -1 = block until ready
 ' Returns 1 if ready, 0 if timed out, -1 on error.
 ' -----------------------------------------------------------------------------
-Function vt_net_ready(sock As SOCKET, for_write As Byte = 0, timeout_ms As Long = 0) As Long
+Function vt_net_ready(sock As SOCKET_T, for_write As Byte = 0, timeout_ms As Long = 0) As Long
     Dim tv      As timeval
     Dim tvp     As timeval Ptr
     Dim tSock   As fd_set
@@ -280,7 +280,7 @@ End Function
 ' Useful after connect() to discover the ephemeral port assigned by the OS.
 ' Returns 1 on success, 0 on failure.
 ' -----------------------------------------------------------------------------
-Function vt_net_local_addr(sock As SOCKET, Byref local_ip As Long, Byref local_port As Long) As Long
+Function vt_net_local_addr(sock As SOCKET_T, Byref local_ip As Long, Byref local_port As Long) As Long
     Dim sa      As sockaddr_in
     Dim salen   As Long = Sizeof(sockaddr_in)
     Dim result  As Long
