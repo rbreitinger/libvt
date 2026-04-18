@@ -8,9 +8,7 @@
 
 #Ifdef VT_TTY
     #Ifndef __FB_LINUX__
-        #Ifndef VT_TTY_PERMISSIVE
-            #Error "VT_TTY is Linux raw console only. On Windows, use the SDL2 backend."
-        #Endif
+        #Error "VT_TTY is Linux raw console only. On Windows, use the SDL2 backend."
     #Endif
     
     #Ifdef VT_USE_SOUND
