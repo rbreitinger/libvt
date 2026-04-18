@@ -2,9 +2,15 @@
 ' vt.bi - VT Virtual Text Screen Library
 ' Usage: #include once "vt/vt.bi"
 ' =============================================================================
+#Ifdef VT_TTY_PERMISSIVE
+    #Define VT_TTY
+#Endif
+
 #Ifdef VT_TTY
     #Ifndef __FB_LINUX__
-        #Error "VT_TTY is Linux raw console only. On Windows, use the SDL2 backend."
+        #Ifndef VT_TTY_PERMISSIVE
+            #Error "VT_TTY is Linux raw console only. On Windows, use the SDL2 backend."
+        #Endif
     #Endif
     
     #Ifdef VT_USE_SOUND

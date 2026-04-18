@@ -61,12 +61,17 @@ Static Shared vt_tty_bg_code(15) As UByte = {40, 44, 42, 46, 41, 45, 43, 47, 100
 ' =============================================================================
 Function vt_internal_tty_init(mode As Long, flags As Long, pages As Long) As Long
     
+    
     Dim term_env As String = Environ("TERM")
     If term_env <> "linux" Then
-        Print "VT_TTY requires a raw Linux console (TERM=linux). Got: " & term_env
-        End -1
+        #Ifndef VT_TTY_PERMISSIVE
+            Print "VT_TTY requires a raw Linux console (TERM=linux). Got: " & term_env
+            End -1
+        #Else
+            Print "WARN: VT_TTY backend may behave unexpected in a graphical Terminal"
+        #Endif
     End If
-    
+        
     Dim cols As Long
     Dim rows As Long
     Dim gw   As Long
