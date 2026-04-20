@@ -1,5 +1,5 @@
 ' =============================================================================
-' vt_tty.bas - VT TTY backend for raw linux TTY
+' vt_tty.bas - VT TTY backend for (raw) linux TTY
 ' =============================================================================
 
 ' Linux C API declarations

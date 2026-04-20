@@ -3,25 +3,14 @@
 ' Generates waveform samples and queues them via SDL_QueueAudio.
 ' =============================================================================
 
-' -----------------------------------------------------------------------------
-' Sound waveform constants  (vt_sound wave param)
-' -----------------------------------------------------------------------------
-Const VT_WAVE_SQUARE   = 0   ' PC speaker / chiptune square wave (default)
-Const VT_WAVE_TRIANGLE = 1   ' NES triangle channel -- softer, bass feel
-Const VT_WAVE_SINE     = 2   ' pure sine tone
-Const VT_WAVE_NOISE    = 3   ' 15-bit LFSR noise -- NES percussion / static
-
-' -----------------------------------------------------------------------------
-' Sound blocking constants  (vt_sound blocking param)
-' -----------------------------------------------------------------------------
-Const VT_SOUND_BLOCKING   = 1   ' wait for note to finish, keep window alive (default)
-Const VT_SOUND_BACKGROUND = 0   ' queue and return immediately
-
-' -----------------------------------------------------------------------------
-' Sound tuning constants
-' -----------------------------------------------------------------------------
-Const VT_SND_RATE      = 11025    ' sample rate: Hz, unsigned 8-bit mono
-Const VT_SND_QUEUE_CAP = 220500   ' max queued bytes (~20 seconds at 11025 Hz)
+Const VT_WAVE_SQUARE      = 0       ' PC speaker / chiptune square wave (default)
+Const VT_WAVE_TRIANGLE    = 1       ' NES triangle channel -- softer, bass feel
+Const VT_WAVE_SINE        = 2       ' pure sine tone
+Const VT_WAVE_NOISE       = 3       ' 15-bit LFSR noise -- NES percussion / static
+Const VT_SOUND_BLOCKING   = 1       ' wait for note to finish, keep window alive (default)
+Const VT_SOUND_BACKGROUND = 0       ' queue and return immediately
+Const VT_SND_RATE         = 11025   ' sample rate: Hz, unsigned 8-bit mono
+Const VT_SND_QUEUE_CAP    = 220500  ' max queued bytes (~20 seconds at 11025 Hz)
 
 #Define VT_BEEP vt_sound(800, 200)
 

@@ -1,7 +1,6 @@
 ' =============================================================================
 ' vt_tui.bas - TUI opt-in extension for the VT Virtual Text Screen Library
 ' =============================================================================
-
 #Include Once "vt_strings.bas"
 #Include Once "vt_file.bas"
 
@@ -50,8 +49,10 @@ Const VT_TUI_ED_READONLY  = 1   ' vt_tui_editor: view/scroll only, no editing
 ' =============================================================================
 ' Form item kinds
 ' =============================================================================
-Const VT_FORM_INPUT   = 0   ' single-line text input
-Const VT_FORM_BUTTON  = 1   ' push button
+Const VT_FORM_INPUT    = 0   ' single-line text input
+Const VT_FORM_BUTTON   = 1   ' push button
+Const VT_FORM_CHECKBOX = 2  ' toggleable  [ ] / [x]
+Const VT_FORM_RADIO    = 3  ' radio in group  ( ) / (*)
 
 ' Form return codes (vt_tui_form_handle)
 Const VT_FORM_PENDING = -2  ' still editing -- call again next frame
@@ -107,6 +108,9 @@ Type vt_tui_form_item
     max_len  As Long    ' input: max chars allowed (0 = use wid); button: unused
     cpos     As Long    ' internal: byte cursor offset -- managed by form_handle
     view_off As Long    ' internal: horizontal scroll offset -- managed by form_handle
+    checked  As Byte    ' checkbox/radio: 0=unchecked, 1=checked. unused for input/button.
+    group_id As Long    ' radio only: items with same group_id are mutually exclusive.
+                        ' 0 = no group (use for checkboxes). unused for input/button.
 End Type
 
 ' -----------------------------------------------------------------------------
@@ -2222,6 +2226,30 @@ End Function
 ' =============================================================================
 
 ' -----------------------------------------------------------------------------
+' vt_internal_tui_form_radio_select
+' Sets checked=1 on cur_item and clears all other RADIO items sharing the same
+' group_id. group_id=0 is treated as "no group" -- only the item itself is set.
+' -----------------------------------------------------------------------------
+Sub vt_internal_tui_form_radio_select(items() As vt_tui_form_item, _
+                                       item_base As Long, item_count As Long, _
+                                       cur_item As Long)
+    Dim i   As Long
+    Dim gid As Long
+    gid = items(cur_item).group_id
+    If gid = 0 Then
+        items(cur_item).checked = 1
+        Exit Sub
+    End If
+    For i = 0 To item_count - 1
+        If items(item_base + i).kind = VT_FORM_RADIO AndAlso _
+           items(item_base + i).group_id = gid Then
+            items(item_base + i).checked = 0
+        End If
+    Next i
+    items(cur_item).checked = 1
+End Sub
+
+' -----------------------------------------------------------------------------
 ' vt_internal_tui_form_scroll
 ' Recalculates view_off after cpos changes in an input item so the cursor
 ' always stays inside the visible window. Call after every cpos mutation.
@@ -2268,6 +2296,10 @@ Sub vt_tui_form_draw(items() As vt_tui_form_item, ByRef focused As Long)
     Dim dbg        As UByte
     Dim draw_len   As Long
     Dim vis_cpos   As Long
+    Dim glyph_fg   As UByte
+    Dim glyph_bg   As UByte
+    Dim lbl_len    As Long
+    Dim lbl_c      As Long
 
     VT_TUI_GUARD_SUB
     vt_internal_tui_autoinit()
@@ -2308,7 +2340,45 @@ Sub vt_tui_form_draw(items() As vt_tui_form_item, ByRef focused As Long)
                     vt_internal_tui_draw_button(items(item_base + i).x, items(item_base + i).y, _
                                                 items(item_base + i).val, bfg, bbg)
                 End If
+            
+            Case VT_FORM_CHECKBOX
+                cel = vt_internal.cells + (items(item_base + i).y - 1) * vt_internal.scr_cols _
+                                        + (items(item_base + i).x - 1)
+                If i = focused Then
+                    glyph_fg = VT_TUI_INVERT_FG(dfg) : glyph_bg = VT_TUI_INVERT_BG(dbg)
+                Else
+                    glyph_fg = dfg : glyph_bg = dbg
+                End If
+                cel[0].ch = Asc("[")  : cel[0].fg = glyph_fg : cel[0].bg = glyph_bg
+                cel[1].ch = IIf(items(item_base + i).checked, Asc("x"), 32)
+                cel[1].fg = glyph_fg : cel[1].bg = glyph_bg
+                cel[2].ch = Asc("]")  : cel[2].fg = glyph_fg : cel[2].bg = glyph_bg
+                cel[3].ch = 32        : cel[3].fg = glyph_fg : cel[3].bg = glyph_bg
+                lbl_len = Len(items(item_base + i).val)
+                For lbl_c = 0 To lbl_len - 1
+                    cel[4 + lbl_c].ch = items(item_base + i).val[lbl_c]
+                    cel[4 + lbl_c].fg = glyph_fg : cel[4 + lbl_c].bg = glyph_bg
+                Next lbl_c
 
+            Case VT_FORM_RADIO
+                cel = vt_internal.cells + (items(item_base + i).y - 1) * vt_internal.scr_cols _
+                                        + (items(item_base + i).x - 1)
+                If i = focused Then
+                    glyph_fg = VT_TUI_INVERT_FG(dfg) : glyph_bg = VT_TUI_INVERT_BG(dbg)
+                Else
+                    glyph_fg = dfg : glyph_bg = dbg
+                End If
+                cel[0].ch = Asc("(")  : cel[0].fg = glyph_fg : cel[0].bg = glyph_bg
+                cel[1].ch = IIf(items(item_base + i).checked, Asc("*"), 32)
+                cel[1].fg = glyph_fg : cel[1].bg = glyph_bg
+                cel[2].ch = Asc(")")  : cel[2].fg = glyph_fg : cel[2].bg = glyph_bg
+                cel[3].ch = 32        : cel[3].fg = glyph_fg : cel[3].bg = glyph_bg
+                lbl_len = Len(items(item_base + i).val)
+                For lbl_c = 0 To lbl_len - 1
+                    cel[4 + lbl_c].ch = items(item_base + i).val[lbl_c]
+                    cel[4 + lbl_c].fg = glyph_fg : cel[4 + lbl_c].bg = glyph_bg
+                Next lbl_c
+                
         End Select
     Next i
 
@@ -2407,7 +2477,25 @@ Function vt_tui_form_handle(items() As vt_tui_form_item, ByRef focused As Long, 
                                             btn_wid, 1) Then
                         Return items(item_base + i).ret
                     End If
+                
+                Case VT_FORM_CHECKBOX
+                    If vt_tui_mouse_in_rect(items(item_base + i).x, items(item_base + i).y, _
+                                            Len(items(item_base + i).val) + 4, 1) Then
+                        focused  = i
+                        cur_item = item_base + focused
+                        items(cur_item).checked = 1 - items(cur_item).checked
+                        Exit For
+                    End If
 
+                Case VT_FORM_RADIO
+                    If vt_tui_mouse_in_rect(items(item_base + i).x, items(item_base + i).y, _
+                                            Len(items(item_base + i).val) + 4, 1) Then
+                        focused  = i
+                        cur_item = item_base + focused
+                        vt_internal_tui_form_radio_select(items(), item_base, item_count, cur_item)
+                        Exit For
+                    End If
+                    
             End Select
         Next i
     End If
@@ -2528,6 +2616,68 @@ Function vt_tui_form_handle(items() As vt_tui_form_item, ByRef focused As Long, 
                     cur_item = item_base + focused
                     If items(cur_item).kind = VT_FORM_INPUT Then
                         vt_internal_tui_form_enter_input(items(cur_item))
+                    End If
+
+            End Select
+            
+        ' =====================================================================
+        Case VT_FORM_CHECKBOX
+        ' =====================================================================
+            Select Case sc
+                Case VT_KEY_ENTER
+                    items(cur_item).checked = 1 - items(cur_item).checked
+
+                Case VT_KEY_LEFT
+                    new_focus = focused - 1
+                    If new_focus < 0 Then new_focus = item_count - 1
+                    focused  = new_focus
+                    cur_item = item_base + focused
+                    If items(cur_item).kind = VT_FORM_INPUT Then
+                        vt_internal_tui_form_enter_input(items(cur_item))
+                    End If
+
+                Case VT_KEY_RIGHT
+                    new_focus = focused + 1
+                    If new_focus >= item_count Then new_focus = 0
+                    focused  = new_focus
+                    cur_item = item_base + focused
+                    If items(cur_item).kind = VT_FORM_INPUT Then
+                        vt_internal_tui_form_enter_input(items(cur_item))
+                    End If
+
+                Case Else
+                    If ch = 32 Then items(cur_item).checked = 1 - items(cur_item).checked
+
+            End Select
+
+        ' =====================================================================
+        Case VT_FORM_RADIO
+        ' =====================================================================
+            Select Case sc
+                Case VT_KEY_ENTER
+                    vt_internal_tui_form_radio_select(items(), item_base, item_count, cur_item)
+
+                Case VT_KEY_LEFT
+                    new_focus = focused - 1
+                    If new_focus < 0 Then new_focus = item_count - 1
+                    focused  = new_focus
+                    cur_item = item_base + focused
+                    If items(cur_item).kind = VT_FORM_INPUT Then
+                        vt_internal_tui_form_enter_input(items(cur_item))
+                    End If
+
+                Case VT_KEY_RIGHT
+                    new_focus = focused + 1
+                    If new_focus >= item_count Then new_focus = 0
+                    focused  = new_focus
+                    cur_item = item_base + focused
+                    If items(cur_item).kind = VT_FORM_INPUT Then
+                        vt_internal_tui_form_enter_input(items(cur_item))
+                    End If
+
+                Case Else
+                    If ch = 32 Then
+                        vt_internal_tui_form_radio_select(items(), item_base, item_count, cur_item)
                     End If
 
             End Select

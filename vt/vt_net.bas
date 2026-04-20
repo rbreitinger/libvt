@@ -1,6 +1,5 @@
 ' =============================================================================
-' vt_net.bas -- opt-in TCP/UDP networking extension for libvt
-' pure OS sockets (Winsock2 on Windows, POSIX on Linux).
+' vt_net.bas -- opt-in TCP/UDP (Winsock2 on Windows, POSIX on Linux) for libvt
 ' =============================================================================
 #Ifdef __FB_WIN32__
     #Undef Integer
