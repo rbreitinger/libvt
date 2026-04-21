@@ -1,4 +1,4 @@
-' test_tui_input.bas -- vt_tui_input_field scenarios [full pass]
+' ex_tui_input.bas -- vt_tui_input_field scenarios
 #define VT_USE_TUI
 #include once "../vt/vt.bi"
 

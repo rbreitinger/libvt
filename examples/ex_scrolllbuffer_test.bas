@@ -16,11 +16,7 @@ vt_setmouse ,,0 ' hide our cursor (trick to entirely hide mouse)
 vt_scroll_enable 0
 vt_locate 25, 1
 vt_color VT_BLACK, VT_LIGHT_GREY
-#Ifndef VT_TTY
-    vt_print_center 25, "(CTRL) + SHIFT + PGDN/PGUP to scroll, ESC to quit"
-#Else
-    vt_print_center 25, "ALT + . / - to scroll, ESC to quit"
-#Endif
+vt_print_center 25, "(CTRL) + SHIFT + PGDN/PGUP to scroll, ESC to quit"
 vt_scroll_enable 1
 
 ' --- restrict scroll region to rows 1-24 ---

@@ -1,4 +1,4 @@
-' test_tui_editor.bas -- vt_tui_editor scenarios [passed]
+' ex_tui_editor.bas -- vt_tui_editor scenarios
 #define VT_USE_TUI
 #include once "../vt/vt.bi"
 

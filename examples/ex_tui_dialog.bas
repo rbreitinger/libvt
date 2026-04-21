@@ -1,4 +1,4 @@
-' test_tui_dialog.bas -- vt_tui_dialog scenarios [pass]
+' ex_tui_dialog.bas -- vt_tui_dialog scenarios
 #define VT_USE_TUI
 #include once "../vt/vt.bi"
 

@@ -53,37 +53,33 @@ Function vt_input(max_len As Long = -1, initial As String = "", allowed As Strin
         Do
             k = vt_inkey()
             If k <> 0 Then Exit Do
-            #Ifndef VT_TTY
-                If vt_internal.cp_paste_pend Then Exit Do
-            #Endif
+              If vt_internal.cp_paste_pend Then Exit Do
             Sleep 10, 1
         Loop
 
         ' --- paste injection ---
-        #Ifndef VT_TTY
-            If vt_internal.cp_paste_pend Then
-                vt_internal.cp_paste_pend = 0
-                clip_ptr = SDL_GetClipboardText()
-                If clip_ptr <> 0 Then
-                    clip_str = *clip_ptr
-                    SDL_free(clip_ptr)
-                    For pi = 0 To Len(clip_str) - 1
-                        pch = clip_str[pi]
-                        ' accept printable ASCII only -- CR/LF and high bytes silently dropped
-                        If pch >= 32 AndAlso pch <= 126 Then
-                            If Len(buf) < eff_max Then
-                                If allowed = "" OrElse InStr(allowed, Chr(pch)) > 0 Then
-                                    buf  = Left(buf, epos) & Chr(pch) & Mid(buf, epos + 1)
-                                    epos += 1
-                                End If
+        If vt_internal.cp_paste_pend Then
+            vt_internal.cp_paste_pend = 0
+            clip_ptr = SDL_GetClipboardText()
+            If clip_ptr <> 0 Then
+                clip_str = *clip_ptr
+                SDL_free(clip_ptr)
+                For pi = 0 To Len(clip_str) - 1
+                    pch = clip_str[pi]
+                    ' accept printable ASCII only -- CR/LF and high bytes silently dropped
+                    If pch >= 32 AndAlso pch <= 126 Then
+                        If Len(buf) < eff_max Then
+                            If allowed = "" OrElse InStr(allowed, Chr(pch)) > 0 Then
+                                buf  = Left(buf, epos) & Chr(pch) & Mid(buf, epos + 1)
+                                epos += 1
                             End If
                         End If
-                    Next pi
-                End If
-                Continue Do   ' redraw with pasted content before waiting for next key
+                    End If
+                Next pi
             End If
-        #Endif
-        
+            Continue Do   ' redraw with pasted content before waiting for next key
+        End If
+
         sc = VT_SCAN(k)
         ch = VT_CHAR(k)
 

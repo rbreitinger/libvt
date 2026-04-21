@@ -1,4 +1,4 @@
-' test_tui_filedlg.bas -- vt_tui_file_dialog scenarios [passed]
+' ex_tui_filedlg.bas -- vt_tui_file_dialog scenarios
 #define VT_USE_TUI
 #include once "../vt/vt.bi"
 

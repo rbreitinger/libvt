@@ -2,28 +2,12 @@
 ' vt.bi - VT Virtual Text Screen Library
 ' Usage: #include once "vt/vt.bi"
 ' =============================================================================
-#Ifdef VT_TTY_PERMISSIVE
-    #Define VT_TTY
-#Endif
-
-#Ifdef VT_TTY
-    #Ifndef __FB_LINUX__
-        #Error "VT_TTY is Linux raw console only. On Windows, use the SDL2 backend."
-    #Endif
-    
-    #Ifdef VT_USE_SOUND
-        #Error "VT_USE_SOUND requires SDL2 and is not compatible with VT_TTY mode."
-    #EndIf
-    
-    #Define VT_USE_ANSI
-#Else
-    #Include Once "SDL2/SDL.bi"
-#EndIf
+#Include Once "SDL2/SDL.bi"
 
 #Define VT_NEWLINE  Chr(10)
 #Define VT_LF       VT_NEWLINE     ' short alias
 
-Const VT_VERSION = "1.3.9"         ' major.minor.patch 
+Const VT_VERSION = "1.4.0"         ' major.minor.patch 
 
 ' -----------------------------------------------------------------------------
 ' Init flags  (combinable with Or)
@@ -200,12 +184,11 @@ End Type
 ' vt_internal_state - complete internal library state
 ' -----------------------------------------------------------------------------
 Type vt_internal_state
-    #Ifndef VT_TTY
-        ' --- SDL handles ---
-        sdl_window   As SDL_Window Ptr
-        sdl_renderer As SDL_Renderer Ptr
-        sdl_texture  As SDL_Texture Ptr
-    #Endif
+    ' --- SDL handles ---
+    sdl_window   As SDL_Window Ptr
+    sdl_renderer As SDL_Renderer Ptr
+    sdl_texture  As SDL_Texture Ptr
+
     ' --- screen geometry ---
     scr_cols    As Long
     scr_rows    As Long
@@ -294,8 +277,7 @@ Type vt_internal_state
     dirty       As Byte
     ready       As Byte   ' 1 = running, 0 = not init
     init_flags  As Long   ' flags passed to vt_screen (fullscreen mode, grab, etc.)
-    backend     As Byte   ' 0 = SDL2  1 = TTY
-    
+        
     ' --- copy/paste ---
     ' cp_flags gates all interception. sel_active = 0 means nothing selected.
     ' Anchor is where the selection started; end moves as user extends it.
@@ -318,11 +300,9 @@ Type vt_internal_state
 End Type
 
 Dim Shared vt_internal As vt_internal_state
-#Ifndef VT_TTY
-    #Include Once "vt_font_8x8.bi"
-    #Include Once "vt_font_8x14.bi"
-    #Include Once "vt_font_8x16.bi"
-#Endif
+#Include Once "vt_font_8x8.bi"
+#Include Once "vt_font_8x14.bi"
+#Include Once "vt_font_8x16.bi"
 #Include Once "vt_core.bas"
 #Include Once "vt_palette.bas"
 #Include Once "vt_pages.bas"
@@ -332,13 +312,7 @@ Dim Shared vt_internal As vt_internal_state
 #Include Once "vt_mouse.bas"
 #Include Once "vt_bsave.bas"
 #Include Once "vt_copypaste.bas"
-#Ifndef VT_TTY
-    #Include Once "vt_font.bas"
-#Endif
-
-#Ifdef VT_TTY
-    #Include Once "vt_tty.bas"
-#Endif
+#Include Once "vt_font.bas"
 
 #Ifdef VT_USE_FILE
     #include once "vt_file.bas"

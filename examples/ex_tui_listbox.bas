@@ -1,4 +1,4 @@
-' test_tui_listbox.bas -- vt_tui_listbox scenarios [fully passed]
+' ex_tui_listbox.bas -- vt_tui_listbox scenarios
 #define VT_USE_TUI
 #include once "../vt/vt.bi"
 

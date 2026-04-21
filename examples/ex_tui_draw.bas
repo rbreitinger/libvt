@@ -1,4 +1,4 @@
-' test_tui_draw.bas -- passive drawing widgets [pass]
+' ex_tui_draw.bas -- passive drawing widgets
 #define VT_USE_TUI
 #include once "../vt/vt.bi"
 

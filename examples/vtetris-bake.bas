@@ -13,7 +13,7 @@
 #define VT_USE_STRINGS
 #include once "../vt/vt.bi"
 
-#define fbDirectory &h10   '' Dir() flag for directory check -- not auto-defined in FB
+#define fbDirectory &h10   '' Dir() flag for directory check from 'dir.bi'
 
 '' --- layout constants (must match vtetris.bas) --------------------------------
 Const BOARD_W   = 10

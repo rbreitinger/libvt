@@ -1,5 +1,5 @@
 ' =============================================================================
-' vt_sound.bas : opt-in Sound Extension (not available in VT_TTY!)
+' vt_sound.bas : opt-in Sound Extension
 ' Generates waveform samples and queues them via SDL_QueueAudio.
 ' =============================================================================
 

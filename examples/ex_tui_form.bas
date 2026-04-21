@@ -1,5 +1,5 @@
 ' =============================================================================
-' tui_form_test.bas
+' ex_tui_form.bas
 ' Tests: menubar, vt_tui_form_draw/handle, dialog, statusbar.
 ' Exercises background save/restore across all three popup types.
 '

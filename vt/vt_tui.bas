@@ -1921,7 +1921,6 @@ End Sub
 ' items()   -- flat array of all items, in group order
 ' counts()  -- item count per group, parallel to groups()
 ' Alt+first-letter opens a group. The letter is read from VT_CHAR(k) --
-' vt_core (SDL2) and vt_tty (Linux/Windows) both set it in the keyrec.
 ' =============================================================================
 Function vt_tui_menubar_handle(row As Long, groups() As String, _
                                items() As String, counts() As Long, _
@@ -1987,8 +1986,8 @@ Function vt_tui_menubar_handle(row As Long, groups() As String, _
     triggered = 0
     open_grp  = 0
 
-    ' Alt + first letter: VT_CHAR(k) holds the letter because vt_core (SDL2)
-    ' and vt_tty (Linux/Windows) both encode it in the keyrec before delivery.
+    ' Alt + first letter: VT_CHAR(k) holds the letter because vt_core
+    ' encodes it in the keyrec before delivery.
     If VT_ALT(k) <> 0 Then
         alt_ch = VT_CHAR(k)
         If alt_ch >= 65 AndAlso alt_ch <= 90 Then alt_ch += 32  ' normalize to lowercase

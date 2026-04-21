@@ -1,4 +1,4 @@
-' test_tui_menu.bas -- menubar test [fully pass]
+' ex_tui_menu.bas -- menubar test
 #define VT_USE_TUI
 #include once "../vt/vt.bi"
 
