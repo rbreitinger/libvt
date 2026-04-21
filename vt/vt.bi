@@ -147,7 +147,7 @@ Static Shared vt_default_palette(47) As UByte = { _
 ' Internal tuning constants
 ' -----------------------------------------------------------------------------
 Const VT_KEY_BUFFER_SIZE    = 64
-Const VT_BLINK_MS           = 533
+Const VT_BLINK_MS           = 200
 Const VT_PAGE_SLOTS         = 8    ' max allocatable pages (0=VT_VIDEO, 1..7 work pages)
 Const VT_KEY_REPEAT_INITIAL = 400
 Const VT_KEY_REPEAT_RATE    = 30

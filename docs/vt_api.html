@@ -130,7 +130,6 @@
 <h2 id="toc">Table of Contents</h2>
 <div class="toc-col">
   <ul>
-    <li><a href="#s-backends">Backends</a></li>
     <li><a href="#constants">Constants</a>
       <ul>
         <li><a href="#c-screenmodes">Screen Modes</a></li>
@@ -444,7 +443,7 @@ End Select</pre>
   <tr><td>VT_TUI_PROG_LABEL</td><td>1</td><td><a href="#vt_tui_progress">vt_tui_progress</a></td><td>Print a centred <code>nn%</code> label on the bar.</td></tr>
   <tr><td>VT_TUI_FD_DIRS</td><td>1</td><td><a href="#vt_tui_file_dialog">vt_tui_file_dialog</a></td><td>Defined but redundant &mdash; directories are always included in the listing.</td></tr>
   <tr><td>VT_TUI_FD_DIRSONLY</td><td>2</td><td><a href="#vt_tui_file_dialog">vt_tui_file_dialog</a></td><td>Show only subdirectories. Enter or OK on a directory entry confirms it.</td></tr>
-  <tr><td>VT_TUI_ED_READONLY</td><td>1</td><td><a href="#vt_tui_editor">vt_tui_editor</a></td><td>View and scroll only &mdash; no editing. Text cursor is hidden.</td></tr>
+  <tr><td>VT_TUI_ED_READONLY</td><td>1</td><td><a href="#vt_tui_editor_draw">vt_tui_editor_draw / vt_tui_editor_handle</a></td><td>View and scroll only &mdash; no editing. Text cursor is hidden.</td></tr>
 </table>
 
 <h4>Form item kinds &mdash; used in the <a href="#vt_tui_form_draw">vt_tui_form_item</a> type</h4>
@@ -462,6 +461,12 @@ End Select</pre>
   <tr><td>VT_FORM_PENDING</td><td>-2</td><td>Form is still active &mdash; call again next frame.</td></tr>
   <tr><td>VT_FORM_CANCEL</td><td>-1</td><td>Escape was pressed &mdash; discard changes.</td></tr>
   <tr><td><em>button .ret value (&ge; 0)</em></td><td>&mdash;</td><td>An activated button's <code>.ret</code> value, e.g. <code>VT_RET_OK</code>.</td></tr>
+</table>
+
+<h4>Form flags &mdash; <code>flags</code> parameter of <a href="#vt_tui_form_draw">vt_tui_form_handle</a></h4>
+<table class="const-table">
+  <tr><th>Constant</th><th>Value</th><th>Description</th></tr>
+  <tr><td>VT_FORM_NO_ESC</td><td>1</td><td>Escape does nothing &mdash; forces an explicit button choice. Caller must provide another exit path.</td></tr>
 </table>
 
 <h4>Menu return value extraction macros</h4>
@@ -489,6 +494,38 @@ Select Case VT_TUI_MENU_GROUP(r)
             Case 2 : <em>' Copy</em>
         End Select
 End Select</pre>
+
+<h4>Keymap action constants &mdash; <code>VT_TUI_ACT_*</code></h4>
+<p>
+  Used with <a href="#vt_tui_keymap_default">vt_tui_keymap</a> to remap individual
+  widget navigation bindings. The macro <code>VT_TUI_KEY_IS(k, act)</code> is the
+  correct way to test a key against an action slot &mdash; never compare scancodes
+  directly, as that bypasses remapping and modifier masking.
+</p>
+<table class="const-table">
+  <tr><th>Constant</th><th>Default key</th><th>Role</th></tr>
+  <tr><td>VT_TUI_ACT_NEXT</td><td>Tab</td><td>Focus forward through items.</td></tr>
+  <tr><td>VT_TUI_ACT_PREV</td><td>Shift+Tab</td><td>Focus backward.</td></tr>
+  <tr><td>VT_TUI_ACT_CANCEL</td><td>Escape</td><td>Cancel / close widget.</td></tr>
+  <tr><td>VT_TUI_ACT_UP</td><td>Up arrow</td><td>List / editor: move up one line.</td></tr>
+  <tr><td>VT_TUI_ACT_DOWN</td><td>Down arrow</td><td>List / editor: move down one line.</td></tr>
+  <tr><td>VT_TUI_ACT_LEFT</td><td>Left arrow</td><td>Input: cursor left. Button: adjacent focus.</td></tr>
+  <tr><td>VT_TUI_ACT_RIGHT</td><td>Right arrow</td><td>Input: cursor right. Button: adjacent focus.</td></tr>
+  <tr><td>VT_TUI_ACT_PGUP</td><td>PgUp</td><td>Scroll / navigate by one page.</td></tr>
+  <tr><td>VT_TUI_ACT_PGDN</td><td>PgDn</td><td>Scroll / navigate by one page.</td></tr>
+  <tr><td>VT_TUI_ACT_HOME</td><td>Home</td><td>Jump to start.</td></tr>
+  <tr><td>VT_TUI_ACT_END</td><td>End</td><td>Jump to end.</td></tr>
+  <tr><td>VT_TUI_ACT_COUNT</td><td>&mdash;</td><td>Sentinel &mdash; array size, not a valid action.</td></tr>
+</table>
+<p>
+  Helper macros for building and testing packed key values:
+</p>
+<table class="const-table">
+  <tr><th>Macro</th><th>Description</th></tr>
+  <tr><td><code>VT_TUI_KEY_MASK</code></td><td>ULong mask that selects scancode bits and modifier bits, excluding the char byte and the repeat flag. Used internally by <code>VT_TUI_KEY_IS</code>.</td></tr>
+  <tr><td><code>VT_TUI_MKKEY(scan, sh, ct, al)</code></td><td>Build a packed ULong from a scancode constant and Shift / Ctrl / Alt flags (0 or 1). Suitable for storing in a keymap slot or passing to <code>vt_tui_keymap</code>.</td></tr>
+  <tr><td><code>VT_TUI_KEY_IS(k, act)</code></td><td>True when key <code>k</code> (from <code>vt_inkey</code>) matches the keymap slot for action <code>act</code>. Always use this &mdash; never compare scancodes directly.</td></tr>
+</table>
 
 <hr>
 
@@ -747,7 +784,36 @@ vt_color VT_CYAN, VT_BLACK
 vt_print "Line one" & VT_NEWLINE & "Line two"
 vt_present()</pre>
 
-<!-- vt_print_center -->
+<h4>ANSI escape sequence opt-in <span class="badge-opt">opt-in</span></h4>
+<p>
+  When <code>#Define VT_USE_ANSI</code> is placed before
+  <code>#include once &quot;vt/vt.bi&quot;</code>,
+  <code>vt_print</code> parses ANSI / VT100 escape sequences before writing
+  to the cell buffer. Unknown final characters are emitted as raw CP437 glyphs
+  rather than silently dropped, making debugging easier.
+  Without <code>VT_USE_ANSI</code>, <code>vt_print</code> does a plain byte
+  feed with CRLF collapse only.
+</p>
+<p>Supported sequences:</p>
+<table class="const-table">
+  <tr><th>Sequence</th><th>Name</th><th>Action</th></tr>
+  <tr><td><code>ESC [ &lt;params&gt; m</code></td><td>SGR</td><td>Set colour and blink attributes. Params follow standard ANSI SGR numbering.</td></tr>
+  <tr><td><code>ESC [ row ; col H</code><br><code>ESC [ row ; col f</code></td><td>CUP</td><td>Position cursor (1-based). Omitted values default to 1.</td></tr>
+  <tr><td><code>ESC [ 2 J</code></td><td>ED</td><td>Clear screen. Only param&nbsp;2 is supported in this release.</td></tr>
+</table>
+<div class="note">
+  Use <code>Chr(27)</code> or <code>!&quot;\x1b&quot;</code> to embed escape in a string literal.
+  Do <strong>not</strong> use <code>!&quot;\e&quot;</code> &mdash; FreeBASIC silently drops <code>\e</code> in
+  bang-strings.
+</div>
+<pre>#Define VT_USE_ANSI
+#include once "vt/vt.bi"
+
+<em>' SGR: red on black, then reset</em>
+vt_print !"\x1b[31mHello\x1b[0m World"
+
+<em>' CUP: move to row 5, col 10, then print</em>
+vt_print !"\x1b[5;10HPositioned here"</pre>
 <h3 id="vt_print_center">vt_print_center</h3>
 <p>
   Print a string horizontally centered on the given screen row.
@@ -2652,26 +2718,26 @@ cnt = vt_file_list("", "*", files(), VT_FILE_SHOW_HIDDEN)</pre>
 
 <ul class="section-toc">
   <li><a href="#vt_tui_theme_default">vt_tui_theme_default / vt_tui_theme</a> &mdash; set the colour theme</li>
+  <li><a href="#vt_tui_keymap_default">vt_tui_keymap_default / vt_tui_keymap</a> &mdash; remap widget navigation keys</li>
   <li><a href="#vt_tui_rect_fill">vt_tui_rect_fill</a> &mdash; fill a rectangle with a character and colour</li>
   <li><a href="#vt_tui_hline">vt_tui_hline / vt_tui_vline</a> &mdash; CP437 separator lines</li>
   <li><a href="#vt_tui_window">vt_tui_window</a> &mdash; window chrome (border + title bar)</li>
   <li><a href="#vt_tui_statusbar">vt_tui_statusbar</a> &mdash; status / hint bar row</li>
   <li><a href="#vt_tui_progress">vt_tui_progress</a> &mdash; horizontal progress bar</li>
   <li><a href="#vt_tui_mouse_in_rect">vt_tui_mouse_in_rect</a> &mdash; mouse hit-test helper</li>
-  <li><a href="#vt_tui_input_field">vt_tui_input_field</a> &mdash; blocking single-line text input</li>
-  <li><a href="#vt_tui_listbox">vt_tui_listbox</a> &mdash; blocking scrollable item list</li>
   <li><a href="#vt_tui_dialog">vt_tui_dialog</a> &mdash; blocking modal dialog</li>
   <li><a href="#vt_tui_file_dialog">vt_tui_file_dialog</a> &mdash; blocking file / directory picker</li>
-  <li><a href="#vt_tui_editor">vt_tui_editor</a> &mdash; blocking multi-line editor / viewer</li>
+  <li><a href="#vt_tui_listbox_draw">vt_tui_listbox_draw / vt_tui_listbox_handle</a> &mdash; non-blocking scrollable list</li>
+  <li><a href="#vt_tui_editor_draw">vt_tui_editor_draw / vt_tui_editor_handle</a> &mdash; non-blocking multi-line editor / viewer</li>
   <li><a href="#vt_tui_menubar_draw">vt_tui_menubar_draw / vt_tui_menubar_handle</a> &mdash; horizontal menu bar</li>
   <li><a href="#vt_tui_form_draw">vt_tui_form_draw / vt_tui_form_handle</a> &mdash; non-blocking form widget</li>
 </ul>
 
 <div class="note">
-  <strong>Theme auto-init:</strong> if neither <code>vt_tui_theme</code> nor
-  <code>vt_tui_theme_default</code> is called before the first draw call, the
-  default DOS/BIOS theme is applied automatically. You will never see
-  all-black-on-black by accident.
+  <strong>Auto-init:</strong> if neither the theme functions nor the keymap functions
+  are called before the first draw call, both the default DOS/BIOS theme and the
+  default Windows-style keymap are applied automatically. You will never see
+  all-black-on-black or unbound navigation keys by accident.
 </div>
 
 <!-- ------------------------------------------------------------------ -->
@@ -2888,73 +2954,83 @@ If vt_tui_mouse_in_rect(wx + ww - 4, wy, 3, 1) Then
 End If</pre>
 
 <!-- ------------------------------------------------------------------ -->
-<h3 id="vt_tui_input_field">vt_tui_input_field</h3>
+<h3 id="vt_tui_keymap_default">vt_tui_keymap_default / vt_tui_keymap</h3>
 <p>
-  Single-line text input at an arbitrary screen position.
-  <strong>Blocking.</strong> Draws a field of <code>wid</code> cells in the
-  theme's <code>inp_fg / inp_bg</code> colours and lets the user edit the text.
-  Supports buffers longer than the visible width via horizontal scrolling.
-  The text cursor is shown during editing and its previous visibility state is
-  restored on exit.
+  Control the navigation key bindings used by all TUI widgets. The keymap is a
+  shared array indexed by <code>VT_TUI_ACT_*</code> constants. Default bindings
+  mirror standard Windows TUI conventions and are applied automatically on the
+  first draw call if neither function has been called.
 </p>
-<div class="syntax">Function vt_tui_input_field(x       As Long,  y       As Long,
-                            wid     As Long,
-                            initial As String,
-                            max_len As Long) As String</div>
+<p>
+  <code>vt_tui_keymap_default</code> resets all slots to defaults.
+  <code>vt_tui_keymap</code> overrides a single slot.
+  Neither function requires <code>vt_screen</code> to have been called first.
+</p>
+<div class="syntax">Sub vt_tui_keymap_default()
+
+Sub vt_tui_keymap(action As Long, k As ULong)</div>
 <table>
   <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
-  <tr><td>x, y</td><td>Long</td><td>1-based column and row of the left edge of the field.</td></tr>
-  <tr><td>wid</td><td>Long</td><td>Visible field width in cells.</td></tr>
-  <tr><td>initial</td><td>String</td><td>Pre-filled text. Cursor starts at the end of the text.</td></tr>
-  <tr><td>max_len</td><td>Long</td><td>Maximum characters the buffer may hold. Pass <code>0</code> to use <code>wid</code> as the limit.</td></tr>
+  <tr><td>action</td><td>Long</td><td><code>VT_TUI_ACT_*</code> constant identifying the slot to override.</td></tr>
+  <tr><td>k</td><td>ULong</td><td>Packed key value built with <code>VT_TUI_MKKEY(scan, sh, ct, al)</code> or captured live from <code>vt_inkey()</code>. Pass <code>0</code> to unbind the action.</td></tr>
 </table>
-<h4>Return value</h4>
-<div class="ret">
-  Edited string on Enter.<br>
-  <code>initial</code> unchanged on Escape.
+<div class="note">
+  Space (toggle for checkboxes and radio buttons) is matched on the character
+  value, not via the keymap, so it cannot be rebound and does not interfere with
+  Space typed inside an input field.
 </div>
-<h4>Key bindings</h4>
-<table class="const-table">
-  <tr><th>Key</th><th>Action</th></tr>
-  <tr><td>Left / Right</td><td>Move cursor one character.</td></tr>
-  <tr><td>Home / End</td><td>Cursor to start / end of text.</td></tr>
-  <tr><td>Backspace / Del</td><td>Delete left / right of cursor.</td></tr>
-  <tr><td>Printable char</td><td>Insert at cursor (respects max_len).</td></tr>
-  <tr><td>Enter</td><td>Confirm &mdash; return edited text.</td></tr>
-  <tr><td>Escape</td><td>Cancel &mdash; return initial unchanged.</td></tr>
-</table>
-<pre><em>' Prompt for a filename:</em>
-Dim fname As String = vt_tui_input_field(10, 12, 30, "", 64)
-If Len(fname) > 0 Then
-    <em>' use fname</em>
-End If
-
-<em>' Pre-filled edit (e.g. rename dialog):</em>
-Dim newname As String = vt_tui_input_field(10, 12, 30, "oldname.txt", 64)</pre>
+<pre><em>' Remap PgUp / PgDn to Ctrl+Up / Ctrl+Down:</em>
+vt_tui_keymap VT_TUI_ACT_PGUP, VT_TUI_MKKEY(VT_KEY_UP,   0, 1, 0)
+vt_tui_keymap VT_TUI_ACT_PGDN, VT_TUI_MKKEY(VT_KEY_DOWN, 0, 1, 0)</pre>
 
 <!-- ------------------------------------------------------------------ -->
-<h3 id="vt_tui_listbox">vt_tui_listbox</h3>
+<h3 id="vt_tui_listbox_draw">vt_tui_listbox_draw / vt_tui_listbox_handle</h3>
 <p>
-  Scrollable item list. <strong>Blocking.</strong> Draws the list at the given
-  position, handles keyboard and mouse input, and returns when the user confirms
-  or cancels. A scrollbar is drawn automatically on the right edge when the item
-  count exceeds the visible height.
+  Non-blocking scrollable list. Two-function design:
+  <code>vt_tui_listbox_draw</code> renders the list passively each frame;
+  <code>vt_tui_listbox_handle</code> processes one key or mouse event and returns
+  immediately. The caller owns the <code>vt_tui_listbox_state</code> struct and
+  loops until <code>vt_tui_listbox_handle</code> returns a value other than
+  <code>VT_FORM_PENDING</code>.
+  A scrollbar is drawn automatically on the right edge when the item count
+  exceeds the visible height.
 </p>
-<div class="syntax">Function vt_tui_listbox(x       As Long,   y   As Long,
-                        wid     As Long,   hei As Long,
+
+<h4>vt_tui_listbox_state type</h4>
+<p>
+  Declare one of these per listbox. Initialise all fields before the first call.
+</p>
+<div class="syntax">Type vt_tui_listbox_state
+    sel             As Long    ' current highlighted index (0-based) -- read any time
+    top_item        As Long    ' first visible item -- managed by handle; init to 0
+    last_click_item As Long    ' internal double-click detection -- init to -1
+    last_click_time As Double  ' internal -- init to 0.0
+    prev_btns       As Long    ' internal -- init to 0
+End Type</div>
+
+<div class="syntax">Sub vt_tui_listbox_draw(x       As Long, y       As Long,
+                        wid     As Long, hei     As Long,
                         items() As String,
-                        flags   As Long = 0) As Long</div>
+                        ByRef st As vt_tui_listbox_state)
+
+Function vt_tui_listbox_handle(x       As Long, y       As Long,
+                                wid     As Long, hei     As Long,
+                                items() As String,
+                                ByRef st As vt_tui_listbox_state,
+                                k        As ULong) As Long</div>
 <table>
-  <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
-  <tr><td>x, y</td><td>Long</td><td><em>none</em></td><td>1-based column and row of the top-left corner.</td></tr>
-  <tr><td>wid, hei</td><td>Long</td><td><em>none</em></td><td>Width and visible height in cells. The scrollbar occupies the rightmost cell when active.</td></tr>
-  <tr><td>items()</td><td>String array</td><td><em>none</em></td><td>Items to display. Any array lower bound is accepted.</td></tr>
-  <tr><td>flags</td><td>Long</td><td>0</td><td>Reserved for future use.</td></tr>
+  <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+  <tr><td>x, y</td><td>Long</td><td>1-based column and row of the top-left corner.</td></tr>
+  <tr><td>wid, hei</td><td>Long</td><td>Width and visible height in cells. Scrollbar occupies the rightmost cell when active.</td></tr>
+  <tr><td>items()</td><td>String array</td><td>Items to display. Any array lower bound is accepted.</td></tr>
+  <tr><td>st</td><td>vt_tui_listbox_state (ByRef)</td><td>Caller-owned state. Pass the same struct to both functions every frame.</td></tr>
+  <tr><td>k</td><td>ULong</td><td>Key value from <code>vt_inkey()</code> for the current frame.</td></tr>
 </table>
-<h4>Return value</h4>
+<h4>Return value (<code>vt_tui_listbox_handle</code>)</h4>
 <div class="ret">
-  0-based index of the confirmed item (Enter or double-click).<br>
-  <code>-1</code> on Escape (cancel).
+  <code>&ge; 0</code> &mdash; confirmed 0-based item index (Enter or double-click).<br>
+  <code>VT_FORM_PENDING</code> (&minus;2) &mdash; still navigating, call again next frame.<br>
+  <code>VT_FORM_CANCEL</code> (&minus;1) &mdash; Escape was pressed.
 </div>
 <h4>Key and mouse bindings</h4>
 <table class="const-table">
@@ -2963,16 +3039,33 @@ Dim newname As String = vt_tui_input_field(10, 12, 30, "oldname.txt", 64)</pre>
   <tr><td>PgUp / PgDn</td><td>Move selection by <code>hei</code> items.</td></tr>
   <tr><td>Home / End</td><td>Jump to first / last item.</td></tr>
   <tr><td>Enter</td><td>Confirm selection.</td></tr>
-  <tr><td>Escape</td><td>Cancel, return <code>-1</code>.</td></tr>
+  <tr><td>Escape</td><td>Return <code>VT_FORM_CANCEL</code>.</td></tr>
   <tr><td>Click</td><td>Highlight the clicked item.</td></tr>
   <tr><td>Double-click</td><td>Confirm the clicked item immediately.</td></tr>
-  <tr><td>Scroll wheel</td><td>Scroll the view without moving the selection.</td></tr>
+  <tr><td>Scroll wheel</td><td>Scroll the view.</td></tr>
 </table>
-<pre><em>' Difficulty picker:</em>
+<pre><em>' Non-blocking difficulty picker inside a game loop:</em>
 Dim opts(2) As String
 opts(0) = "Easy" : opts(1) = "Normal" : opts(2) = "Hard"
 
-Dim picked As Long = vt_tui_listbox(20, 8, 20, 3, opts())
+Dim st As vt_tui_listbox_state
+st.sel             = 0
+st.top_item        = 0
+st.last_click_item = -1
+st.last_click_time = 0.0
+st.prev_btns       = 0
+
+vt_tui_window 18, 6, 24, 7, " Difficulty "
+
+Dim picked As Long = VT_FORM_PENDING
+Dim k      As ULong
+Do While picked = VT_FORM_PENDING
+    k      = vt_inkey()
+    picked = vt_tui_listbox_handle(19, 7, 22, 5, opts(), st, k)
+    vt_tui_listbox_draw(19, 7, 22, 5, opts(), st)
+    vt_sleep 16
+Loop
+
 If picked >= 0 Then
     vt_print "Chose: " &amp; opts(picked) &amp; VT_NEWLINE
 End If</pre>
@@ -3078,31 +3171,52 @@ path = vt_tui_file_dialog("Save", "./saves/", "*.sav")
 path = vt_tui_file_dialog("Choose Folder", "./", "*", VT_TUI_FD_DIRSONLY)</pre>
 
 <!-- ------------------------------------------------------------------ -->
-<h3 id="vt_tui_editor">vt_tui_editor</h3>
+<h3 id="vt_tui_editor_draw">vt_tui_editor_draw / vt_tui_editor_handle</h3>
 <p>
-  Multi-line text editor / viewer widget. <strong>Blocking.</strong>
-  Text is stored and returned as a single <code>String</code> with
-  <code>Chr(10)</code> as the line separator. The widget renders inside the
-  given rectangle using the theme's <code>inp_fg / inp_bg</code> colours.
-  Lines exceeding <code>wid</code> are truncated in display; no horizontal scrolling.
+  Non-blocking multi-line editor and viewer. Two-function design:
+  <code>vt_tui_editor_draw</code> renders the visible text each frame;
+  <code>vt_tui_editor_handle</code> processes one key or mouse event and returns
+  immediately. The caller owns the <code>vt_tui_editor_state</code> struct.
+  Text is stored as a single <code>String</code> with <code>Chr(10)</code> line
+  separators. Lines exceeding <code>wid</code> are truncated in display; no
+  horizontal scrolling. Uses the theme's <code>inp_fg / inp_bg</code> colours.
 </p>
-<div class="syntax">Function vt_tui_editor(x     As Long,   y   As Long,
-                       wid   As Long,   hei As Long,
-                       txt   As String,
-                       flags As Long = 0) As String</div>
+
+<h4>vt_tui_editor_state type</h4>
+<p>
+  Declare one of these per editor instance. Initialise all fields before the first call.
+</p>
+<div class="syntax">Type vt_tui_editor_state
+    work    As String  ' live text buffer (Chr(10) newlines) -- set on init
+    cpos    As Long    ' byte cursor offset -- init to 0, managed by handle
+    top_ln  As Long    ' first visible line (0-based) -- init to 0, clamped by draw
+    dirty   As Byte    ' 0 until first edit; set by handle, never cleared by widget
+    flags   As Long    ' VT_TUI_ED_READONLY etc. -- set once on init
+End Type</div>
+
+<div class="syntax">Sub vt_tui_editor_draw(x   As Long, y   As Long,
+                       wid As Long, hei As Long,
+                       ByRef st As vt_tui_editor_state)
+
+Function vt_tui_editor_handle(x   As Long, y   As Long,
+                               wid As Long, hei As Long,
+                               ByRef st As vt_tui_editor_state,
+                               k        As ULong) As Long</div>
 <table>
-  <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
-  <tr><td>x, y</td><td>Long</td><td><em>none</em></td><td>1-based column and row of the top-left corner of the editing area.</td></tr>
-  <tr><td>wid, hei</td><td>Long</td><td><em>none</em></td><td>Width and height in cells. Place directly inside a <a href="#vt_tui_window">vt_tui_window</a> border.</td></tr>
-  <tr><td>txt</td><td>String</td><td><em>none</em></td><td>Initial text. Use <code>Chr(10)</code> as the line separator.</td></tr>
-  <tr><td>flags</td><td>Long</td><td>0</td><td><code>VT_TUI_ED_READONLY</code> &mdash; view and scroll only, no editing. Text cursor is hidden.</td></tr>
+  <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+  <tr><td>x, y</td><td>Long</td><td>1-based column and row of the top-left corner of the editing area.</td></tr>
+  <tr><td>wid, hei</td><td>Long</td><td>Width and height in cells. Place directly inside a <a href="#vt_tui_window">vt_tui_window</a> border.</td></tr>
+  <tr><td>st</td><td>vt_tui_editor_state (ByRef)</td><td>Caller-owned state. Pass the same struct to both functions every frame.</td></tr>
+  <tr><td>k</td><td>ULong</td><td>Key value from <code>vt_inkey()</code> for the current frame.</td></tr>
 </table>
-<h4>Return value</h4>
+<h4>Return value (<code>vt_tui_editor_handle</code>)</h4>
 <div class="ret">
-  Edited text on F10 or Ctrl+Enter.<br>
-  Original <code>txt</code> unchanged on Escape.
+  <code>VT_FORM_PENDING</code> (&minus;2) &mdash; always returned while editing is ongoing.<br>
+  <code>VT_FORM_CANCEL</code> (&minus;1) &mdash; Escape was pressed. Caller decides
+  whether to discard or keep <code>st.work</code>. Check <code>st.dirty</code> to
+  know if any edits were made.
 </div>
-<h4>Key bindings</h4>
+<h4>Key and mouse bindings</h4>
 <table class="const-table">
   <tr><th>Key</th><th>Action</th></tr>
   <tr><td>Up / Down</td><td>Move cursor one line.</td></tr>
@@ -3112,25 +3226,40 @@ path = vt_tui_file_dialog("Choose Folder", "./", "*", VT_TUI_FD_DIRSONLY)</pre>
   <tr><td>Enter</td><td>Insert a newline (edit mode only).</td></tr>
   <tr><td>Backspace / Del</td><td>Delete left / right of cursor (edit mode only).</td></tr>
   <tr><td>Printable char</td><td>Insert at cursor (edit mode only).</td></tr>
-  <tr><td>F10 or Ctrl+Enter</td><td>Confirm &mdash; return the edited text.</td></tr>
-  <tr><td>Escape</td><td>Cancel &mdash; return original text unchanged.</td></tr>
+  <tr><td>Escape</td><td>Return <code>VT_FORM_CANCEL</code> &mdash; caller decides action.</td></tr>
+  <tr><td>Scroll wheel</td><td>Scroll the view (both modes).</td></tr>
 </table>
 <div class="note">
+  <strong>Draw order:</strong> call <code>vt_tui_editor_draw</code> <em>last</em>
+  in your loop, after any status bars or labels that use <code>vt_locate</code>.
+  The draw function sets the text cursor position; any <code>vt_locate</code> after
+  it will silently move the cursor to the wrong place before
+  <a href="#vt_sleep">vt_sleep</a> flips the frame.<br><br>
   No undo / redo in v1. No word-wrap in edit mode &mdash; lines exceeding
   <code>wid</code> are displayed truncated but stored intact.
 </div>
-<pre><em>' Note editor inside a window:</em>
-Dim note As String = "First line" &amp; Chr(10) &amp; "Second line"
-vt_tui_window 5, 3, 70, 20, "Notes  [F10=Save  Esc=Cancel]"
-note = vt_tui_editor(6, 4, 68, 18, note)
+<pre><em>' Editor inside a window:</em>
+Dim st As vt_tui_editor_state
+st.work   = "First line" &amp; Chr(10) &amp; "Second line"
+st.cpos   = 0
+st.top_ln = 0
+st.dirty  = 0
+st.flags  = 0   <em>' or VT_TUI_ED_READONLY for viewer</em>
 
-<em>' Read-only file viewer:</em>
-Dim content As String
-Open "readme.txt" For Binary As #1
-content = Space(LOF(1))
-Get #1, , content
-Close #1
-vt_tui_editor 1, 1, 80, 24, content, VT_TUI_ED_READONLY</pre>
+vt_tui_window 5, 3, 70, 20, " Notes "
+Dim result As Long = VT_FORM_PENDING
+Dim k      As ULong
+Do While result = VT_FORM_PENDING
+    k      = vt_inkey()
+    result = vt_tui_editor_handle(6, 4, 68, 18, st, k)
+    <em>' draw status bar BEFORE editor_draw so cursor is correct</em>
+    vt_color VT_BLACK, VT_CYAN
+    vt_locate 24, 1
+    vt_print " Esc=Close" &amp; IIf(st.dirty, "  *modified*", "")
+    vt_tui_editor_draw 6, 4, 68, 18, st  <em>' draw last</em>
+    vt_sleep 16
+Loop
+<em>' st.work holds the (possibly edited) text; st.dirty flags changes</em></pre>
 
 <!-- ------------------------------------------------------------------ -->
 <h3 id="vt_tui_menubar_draw">vt_tui_menubar_draw / vt_tui_menubar_handle</h3>
@@ -3227,9 +3356,12 @@ Loop</pre>
 
 <h4>vt_tui_form_item type</h4>
 <p>
-  Declare an array of this type to define the form layout. Set <code>.cpos</code>
-  and <code>.view_off</code> to <code>0</code> when initialising &mdash;
-  <code>vt_tui_form_handle</code> manages them internally afterward.
+  Declare an array of this type to define the form layout.
+  <code>vt_tui_form_handle</code> manages <code>.cpos</code> and
+  <code>.view_off</code> internally. For pre-filled <code>VT_FORM_INPUT</code>
+  items, initialise <code>.cpos = Len(.val)</code> so the cursor starts at the
+  end of the existing text; leaving it at <code>0</code> places the cursor before
+  all existing text and Backspace does nothing until the user navigates right.
 </p>
 <div class="syntax">Type vt_tui_form_item
     kind     As UByte   ' VT_FORM_INPUT, VT_FORM_BUTTON, VT_FORM_CHECKBOX, VT_FORM_RADIO
@@ -3242,26 +3374,28 @@ Loop</pre>
     checked  As Byte    ' checkbox/radio: 0=unchecked, 1=checked; unused for input/button
     group_id As Long    ' radio: items sharing the same group_id are mutually exclusive
                         '        0 = no group (standalone toggle); unused for input/button/checkbox
-    cpos     As Long    ' internal -- init to 0, do not modify
-    view_off As Long    ' internal -- init to 0, do not modify
+    cpos     As Long    ' internal -- init to Len(val) for pre-filled INPUT, else 0
+    view_off As Long    ' internal -- init to 0, managed by form_handle
 End Type</div>
 
-<div class="syntax">Sub vt_tui_form_draw(items()        As vt_tui_form_item,
-                     ByRef focused  As Long)
+<div class="syntax">Sub vt_tui_form_draw(items()       As vt_tui_form_item,
+                     ByRef focused As Long)
 
-Function vt_tui_form_handle(items()        As vt_tui_form_item,
+Function vt_tui_form_handle(items()       As vt_tui_form_item,
                              ByRef focused As Long,
-                             k             As ULong) As Long</div>
+                             k             As ULong,
+                             flags         As Long = 0) As Long</div>
 <table>
   <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
   <tr><td>items()</td><td>vt_tui_form_item array</td><td>Form items. Any array lower bound is accepted.</td></tr>
-  <tr><td>focused</td><td>Long (ByRef)</td><td>0-based index of the currently focused item. Updated in place by <code>form_handle</code> on focus changes so the next <code>form_draw</code> call reflects the new state.</td></tr>
-  <tr><td>k</td><td>ULong</td><td>Key value from <code>vt_inkey()</code> for the current frame. Pass <code>0</code> if no key was pressed this frame.</td></tr>
+  <tr><td>focused</td><td>Long (ByRef)</td><td>0-based index of the currently focused item. Updated in place by <code>form_handle</code> on focus changes.</td></tr>
+  <tr><td>k</td><td>ULong</td><td>Key value from <code>vt_inkey()</code> for the current frame.</td></tr>
+  <tr><td>flags</td><td>Long</td><td>Optional. <code>VT_FORM_NO_ESC</code> &mdash; Escape does nothing. Caller must provide another exit path (e.g. a Cancel button). Default 0.</td></tr>
 </table>
 <h4>Return value (<code>vt_tui_form_handle</code>)</h4>
 <div class="ret">
   <code>VT_FORM_PENDING</code> (&minus;2) &mdash; still editing, call again next frame.<br>
-  <code>VT_FORM_CANCEL</code> (&minus;1) &mdash; Escape was pressed.<br>
+  <code>VT_FORM_CANCEL</code> (&minus;1) &mdash; Escape was pressed (unless <code>VT_FORM_NO_ESC</code> set).<br>
   <code>&ge; 0</code> &mdash; the <code>.ret</code> value of an activated button
   (e.g. <code>VT_RET_OK = 1</code>, <code>VT_RET_CANCEL = 0</code>).
 </div>
@@ -3274,12 +3408,13 @@ Function vt_tui_form_handle(items()        As vt_tui_form_item,
 <table class="const-table">
   <tr><th>Input</th><th>Action</th></tr>
   <tr><td>Tab / Shift+Tab</td><td>Advance / retreat focus through all items (wraps).</td></tr>
-  <tr><td>Enter on an input</td><td>Advance focus to the next item (same as Tab).</td></tr>
+  <tr><td>Enter on an input</td><td>No-op. Use Tab / Shift+Tab to leave an input field.</td></tr>
   <tr><td>Enter on a button</td><td>Activate that button, return its <code>.ret</code>.</td></tr>
   <tr><td>Enter / Space on a checkbox</td><td>Toggle <code>.checked</code>.</td></tr>
   <tr><td>Enter / Space on a radio</td><td>Set <code>.checked = 1</code> on this item; clear all others sharing the same <code>.group_id</code>.</td></tr>
-  <tr><td>Left / Right on a button, checkbox, or radio</td><td>Move focus to the adjacent item.</td></tr>
-  <tr><td>Left / Right on an input</td><td>Move the cursor within the field.</td></tr>
+  <tr><td>Left / Right on an input</td><td>Move the text cursor within the field.</td></tr>
+  <tr><td>Left / Right on a button</td><td>Move focus to the adjacent item.</td></tr>
+  <tr><td>Left / Right on a checkbox or radio</td><td>No-op. Use Tab to navigate.</td></tr>
   <tr><td>Home / End on an input</td><td>Cursor to start / end of the text.</td></tr>
   <tr><td>Backspace / Del on an input</td><td>Delete left / right of cursor.</td></tr>
   <tr><td>Printable char on an input</td><td>Insert at cursor (respects <code>max_len</code>).</td></tr>
@@ -3287,48 +3422,65 @@ Function vt_tui_form_handle(items()        As vt_tui_form_item,
   <tr><td>Click on a button</td><td>Activate immediately, return its <code>.ret</code>.</td></tr>
   <tr><td>Click on a checkbox</td><td>Focus it and toggle <code>.checked</code>.</td></tr>
   <tr><td>Click on a radio</td><td>Focus it and select it (clears group).</td></tr>
-  <tr><td>Escape (any item)</td><td>Return <code>VT_FORM_CANCEL</code>.</td></tr>
+  <tr><td>Escape (any item)</td><td>Return <code>VT_FORM_CANCEL</code> (unless <code>VT_FORM_NO_ESC</code> set).</td></tr>
 </table>
-<pre><em>' Settings form: two checkboxes, a radio group, and an OK button.</em>
-Dim fitems(5) As vt_tui_form_item
+<div class="note">
+  <strong>Draw order:</strong> call <code>vt_tui_form_draw</code> <em>last</em> in
+  your loop, after any status bars or labels that use <code>vt_locate</code>.
+  The draw function sets the text cursor to the focused input field; any
+  <code>vt_locate</code> after it will silently move the cursor to the wrong place
+  before <a href="#vt_sleep">vt_sleep</a> flips the frame.
+</div>
+<pre><em>' Settings form: name input, two checkboxes, a radio group, OK + Cancel buttons.</em>
+Dim fitems(7) As vt_tui_form_item
 
-fitems(0).kind    = VT_FORM_CHECKBOX : fitems(0).x = 23 : fitems(0).y = 8
-fitems(0).val     = "Enable sound"   : fitems(0).checked = 1
+fitems(0).kind    = VT_FORM_INPUT : fitems(0).x = 23 : fitems(0).y = 7
+fitems(0).wid     = 20            : fitems(0).val = "Player one"
+fitems(0).max_len = 20            : fitems(0).cpos = Len(fitems(0).val)  <em>' cursor at end</em>
 
 fitems(1).kind    = VT_FORM_CHECKBOX : fitems(1).x = 23 : fitems(1).y = 9
-fitems(1).val     = "Show hints"     : fitems(1).checked = 0
+fitems(1).val     = "Enable sound"   : fitems(1).checked = 1
 
-fitems(2).kind     = VT_FORM_RADIO : fitems(2).x = 23 : fitems(2).y = 11
-fitems(2).val      = "Easy"        : fitems(2).checked = 1 : fitems(2).group_id = 1
+fitems(2).kind    = VT_FORM_CHECKBOX : fitems(2).x = 23 : fitems(2).y = 10
+fitems(2).val     = "Show hints"     : fitems(2).checked = 0
 
-fitems(3).kind     = VT_FORM_RADIO : fitems(3).x = 23 : fitems(3).y = 12
-fitems(3).val      = "Normal"      : fitems(3).checked = 0 : fitems(3).group_id = 1
+fitems(3).kind = VT_FORM_RADIO : fitems(3).x = 23 : fitems(3).y = 12
+fitems(3).val  = "Easy"        : fitems(3).checked = 1 : fitems(3).group_id = 1
 
-fitems(4).kind     = VT_FORM_RADIO : fitems(4).x = 23 : fitems(4).y = 13
-fitems(4).val      = "Hard"        : fitems(4).checked = 0 : fitems(4).group_id = 1
+fitems(4).kind = VT_FORM_RADIO : fitems(4).x = 23 : fitems(4).y = 13
+fitems(4).val  = "Normal"      : fitems(4).group_id = 1
 
-fitems(5).kind    = VT_FORM_BUTTON : fitems(5).x = 38 : fitems(5).y = 15
-fitems(5).val     = " OK "         : fitems(5).ret = VT_RET_OK
+fitems(5).kind = VT_FORM_RADIO : fitems(5).x = 23 : fitems(5).y = 14
+fitems(5).val  = "Hard"        : fitems(5).group_id = 1
+
+fitems(6).kind = VT_FORM_BUTTON : fitems(6).x = 23 : fitems(6).y = 16
+fitems(6).val  = "  OK  "       : fitems(6).ret = VT_RET_OK
+
+fitems(7).kind = VT_FORM_BUTTON : fitems(7).x = 33 : fitems(7).y = 16
+fitems(7).val  = "Cancel"       : fitems(7).ret = VT_RET_CANCEL
 
 Dim focused As Long = 0
 Dim result  As Long = VT_FORM_PENDING
 Dim k       As ULong
 
+vt_tui_window 21, 5, 40, 16, " Settings "
+vt_color VT_BLACK, VT_LIGHT_GREY
+vt_locate 7,  22 : vt_print "Name      :"
+vt_locate 9,  22 : vt_print "Options   :"
+vt_locate 12, 22 : vt_print "Difficulty:"
+
 Do
     k = vt_inkey()
-    vt_cls
-    vt_tui_window 21, 6, 40, 14, "Settings"
-    vt_tui_rect_fill 22, 7, 38, 12, 32, VT_BLACK, VT_LIGHT_GREY
-    vt_color VT_BLACK, VT_LIGHT_GREY
-    vt_locate 10, 23 : vt_print "Difficulty:"
-    vt_tui_form_draw   fitems(), focused
-    vt_tui_statusbar 25, " Tab=Next   Space/Enter=Toggle   Esc=Cancel "
     result = vt_tui_form_handle(fitems(), focused, k)
+    <em>' draw labels/statusbar BEFORE form_draw so cursor is placed correctly</em>
+    vt_tui_statusbar 25, " Tab=Next field   Enter=Activate button   Esc=Cancel "
+    vt_tui_form_draw fitems(), focused  <em>' last draw call before vt_sleep</em>
     vt_sleep 16
 Loop While result = VT_FORM_PENDING
 
 If result = VT_RET_OK Then
-    <em>' read fitems(0).checked, fitems(1).checked, and which radio is checked</em>
+    <em>' read fitems(0).val (name), fitems(1).checked, fitems(2).checked,</em>
+    <em>' and which of fitems(3..5).checked = 1 for the difficulty</em>
 End If</pre>
 
 <!-- ============================================================ -->
