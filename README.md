@@ -70,7 +70,7 @@ Optional extensions are pulled in by a single `#define` before the include —
 zero overhead if unused.
 
 | Feature / Extension | `#define` |
-|---|---|---|---|
+|---|---|
 | CP437 fonts (8×8, 8×14, 8×16 embedded) | — |
 | CGA 16-colour palette + manipulation | — | 
 | All 256 CP437 glyphs | — |
