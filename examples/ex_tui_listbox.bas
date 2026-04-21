@@ -35,13 +35,13 @@ vt_mouse 1
 vt_locate ,,0
 
 ' Window chrome is static -- draw once outside the loop
-vt_tui_window(2, 2, 24, 12, " Pick a call sign ", VT_TUI_WIN_SHADOW)
+vt_tui_window(2, 2, 24, 7, " Pick a call sign ", VT_TUI_WIN_SHADOW)
 
 running = 1
 Do While running
 
     k   = vt_inkey()
-    res = vt_tui_listbox_handle(3, 3, 22, 10, items(), st, k)
+    res = vt_tui_listbox_handle(3, 3, 22, 5, items(), st, k)
 
     If res = VT_FORM_CANCEL Then
         running = 0
@@ -52,11 +52,11 @@ Do While running
 
     ' Status hint first -- its vt_locate must not clobber the widget cursor
     vt_color(VT_WHITE, VT_DARK_GREY)
-    vt_locate(15, 2)
+    vt_locate(11, 2)
     vt_print(" Arrows/PgUp/PgDn  Enter=OK  Esc=Exit ")
 
     ' Widget draw last -- its cursor placement is the final one before present
-    vt_tui_listbox_draw(3, 3, 22, 10, items(), st)
+    vt_tui_listbox_draw(3, 3, 22, 5, items(), st)
 
     vt_sleep(16)
 

@@ -15,7 +15,7 @@
 #Define VT_USE_TUI
 #Include "../vt/vt.bi"
 
-Enum Items
+Enum ItemEnum
     ITEM_NAME
     ITEM_ENABLE
     ITEM_FAST
