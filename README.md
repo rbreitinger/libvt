@@ -49,21 +49,6 @@ Requires: libvt — https://github.com/rbreitinger/libvt
 
 ---
 
-## Screen Modes
-
-| Constant | Cols × Rows | Font | Canvas | Original |
-|---|---|---|---|---|
-| `VT_SCREEN_0` | 80 × 25 | 8×16 | 640×400 | VGA text (default) |
-| `VT_SCREEN_2` | 80 × 25 | 8×8 | 640×200 | CGA hi-res |
-| `VT_SCREEN_9` | 80 × 25 | 8×14 | 640×350 | EGA |
-| `VT_SCREEN_12` | 80 × 30 | 8×16 | 640×480 | VGA hi-res |
-| `VT_SCREEN_13` | 40 × 25 | 8×8 | 320×200 | VGA Mode 13h |
-| `VT_SCREEN_EGA43` | 80 × 43 | 8×8 | 640×344 | EGA 43-line |
-| `VT_SCREEN_VGA50` | 80 × 50 | 8×8 | 640×400 | VGA 50-line |
-| `VT_SCREEN_TILES` | 40 × 25 | 16×16 | 640×400 | Square tiles |
-
----
-
 ## Features & Extensions
 
 Optional extensions are pulled in by a single `#define` before the include —
@@ -86,15 +71,31 @@ zero overhead if unused.
 | Custom font loading (`vt_loadfont`) | — |
 | Screen save/load `.vts` (`vt_bsave/bload`) | — |
 | Close-button callback (`vt_on_close`) | — |
+| **ANSI** — ANSI Parsing support| `VT_USE_ANSI` |
 | **Sound** — QBasic-style audio | `VT_USE_SOUND` |
 | **Sort** — Shellsort + shuffle for all types | `VT_USE_SORT` |
-| **Math** — grid/game math, LOS, Bresenham | `VT_USE_MATH` |
-| **Strings** — split, wrap, pad, replace | `VT_USE_STRINGS` |
-| **File** — exists, copy, list, rmdir | `VT_USE_FILE` |
-| **TUI** — DOS-style widgets + menubar | `VT_USE_TUI` |
-| **Net** — sockets wrapper | `VT_USE_NET` |
+| **Math** — Math helpers | `VT_USE_MATH` |
+| **Strings** — String helpers| `VT_USE_STRINGS` |
+| **File** — File I/O helpers | `VT_USE_FILE` |
+| **TUI** — Text User Interface | `VT_USE_TUI` |
+| **Net** — Sockets wrapper | `VT_USE_NET` |
 
 `VT_USE_TUI` automatically pulls in `VT_USE_STRINGS` and `VT_USE_FILE`.
+
+---
+
+## Screen Modes
+
+| Constant | Cols × Rows | Font | Canvas | Original |
+|---|---|---|---|---|
+| `VT_SCREEN_0` | 80 × 25 | 8×16 | 640×400 | VGA text (default) |
+| `VT_SCREEN_2` | 80 × 25 | 8×8 | 640×200 | CGA hi-res |
+| `VT_SCREEN_9` | 80 × 25 | 8×14 | 640×350 | EGA |
+| `VT_SCREEN_12` | 80 × 30 | 8×16 | 640×480 | VGA hi-res |
+| `VT_SCREEN_13` | 40 × 25 | 8×8 | 320×200 | VGA Mode 13h |
+| `VT_SCREEN_EGA43` | 80 × 43 | 8×8 | 640×344 | EGA 43-line |
+| `VT_SCREEN_VGA50` | 80 × 50 | 8×8 | 640×400 | VGA 50-line |
+| `VT_SCREEN_TILES` | 40 × 25 | 16×16 | 640×400 | Square tiles |
 
 ---
 
