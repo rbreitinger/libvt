@@ -198,7 +198,7 @@ Sub vt_pump()
                     End If
                 End If
 
-                ' --- copy/paste key interception ---
+                ' --- paste key interception ---
                 consumed = 0
 
                 ' Shift+INS: request paste -- always available at live view (paste only)
@@ -333,15 +333,30 @@ Sub vt_pump()
                     ' auto-scroll when dragging to viewport edge (throttled)
                     If drag_row <= eff_top Then
                         If tick - vt_internal.cp_scroll_tick >= VT_CP_SCROLL_MS Then
+                            Dim sb_before As Long = vt_internal.sb_offset
                             vt_scroll(1)
                             vt_internal.cp_scroll_tick = tick
+                            ' only compensate anchor if the scroll actually moved
+                            If vt_internal.sb_offset <> sb_before Then
+                                If vt_internal.sel_anchor_row < eff_bot Then
+                                    vt_internal.sel_anchor_row += 1
+                                End If
+                            End If
                         End If
                     ElseIf drag_row >= eff_bot Then
                         If tick - vt_internal.cp_scroll_tick >= VT_CP_SCROLL_MS Then
+                            Dim sb_before As Long = vt_internal.sb_offset
                             vt_scroll(-1)
                             vt_internal.cp_scroll_tick = tick
+                            ' only compensate anchor if the scroll actually moved
+                            If vt_internal.sb_offset <> sb_before Then
+                                If vt_internal.sel_anchor_row > eff_top Then
+                                    vt_internal.sel_anchor_row -= 1
+                                End If
+                            End If
                         End If
                     End If
+                    
                 End If
 
             Case SDL_MOUSEBUTTONDOWN
