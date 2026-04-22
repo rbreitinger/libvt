@@ -887,7 +887,7 @@ Sub vt_present()
         End If
 
         For col_idx = 0 To cols - 1
-            ' A6: when scrollback is showing AND a column viewport is active,
+            ' when scrollback is showing AND a column viewport is active,
             ' columns outside view_left..view_right read from live vis_buf so
             ' sidepanels stay frozen; columns inside use the scrollback cellptr.
             If vt_internal.sb_offset > 0 AndAlso vt_internal.view_left <> -1 Then
@@ -964,7 +964,7 @@ Sub vt_present()
             sl_row = flat_cur \ cols
             sl_col = flat_cur Mod cols
 
-            ' B8: clip to cp_view_* snapshot -- skip cells outside the column/row viewport
+            ' clip to cp_view_* snapshot -- skip cells outside the column/row viewport
             If vt_internal.cp_view_left <> -1 Then
                 If sl_col + 1 < vt_internal.cp_view_left  Then Continue For
                 If sl_col + 1 > vt_internal.cp_view_right Then Continue For
@@ -973,7 +973,13 @@ Sub vt_present()
                 If sl_row + 1 < vt_internal.cp_view_top Then Continue For
                 If sl_row + 1 > vt_internal.cp_view_bot Then Continue For
             End If
-
+            
+            ' skip the mouse cursor cell so the cursor always renders distinctly on top
+            If vt_internal.mouse_on AndAlso vt_internal.mouse_vis Then
+                If sl_col = vt_internal.mouse_col - 1 AndAlso _
+                   sl_row = vt_internal.mouse_row - 1 Then Continue For
+            End If
+            
             sl_cellptr = vt_internal_display_cellptr(sl_col, sl_row, vis_buf)
             sl_ch  = sl_cellptr->ch
             sl_cfg = sl_cellptr->fg And 15
@@ -1019,73 +1025,64 @@ Sub vt_present()
         SDL_RenderCopy(vt_internal.sdl_renderer, vt_internal.sdl_texture, @src_rect, @dst_rect)
     End If
 
-    ' --- mouse cursor: inverted cell colors ---
-    ' Chr(219) filled with inverted bg, original char on top with inverted fg.
-    ' Always fully opaque -- readable on any background, no blending needed.
-    ' Drawn last so it sits on top of text cursor and all cell content.
-    ' vt_internal_display_cellptr reads from sb_cells or vis_buf as appropriate
-    ' so the cursor stays visible and color-correct during scrollback.
-    ' B8: skip invert when cursor cell is inside the active selection -- the cell
-    ' is already highlighted; double XOR-invert would cancel out, hiding the cursor.
+    ' --- mouse cursor ---
     If vt_internal.mouse_on AndAlso vt_internal.mouse_vis Then
-        Dim mc_col     As Long
-        Dim mc_row     As Long
+        Dim mc_col    As Long
+        Dim mc_row    As Long
         Dim mc_cellptr As vt_cell Ptr
-        Dim mc_ch      As UByte
-        Dim mc_cfg     As UByte
-        Dim mc_cbg     As UByte
-        Dim inv_bg_r   As UByte
-        Dim inv_bg_g   As UByte
-        Dim inv_bg_b   As UByte
-        Dim inv_fg_r   As UByte
-        Dim inv_fg_g   As UByte
-        Dim inv_fg_b   As UByte
-
-        mc_col = vt_internal.mouse_col - 1
-        mc_row = vt_internal.mouse_row - 1
-
-        ' skip cursor invert if cursor is inside the active selection
-        ' (self-contained range recompute -- avoids cross-block flat1/flat2 scoping)
-        Dim mc_skip As Byte = 0
+        Dim mc_ch     As UByte
+        Dim mc_cfg    As UByte
+        Dim mc_cbg    As UByte
+        Dim mc_bg_r   As UByte
+        Dim mc_bg_g   As UByte
+        Dim mc_bg_b   As UByte
+        Dim mc_fg_r   As UByte
+        Dim mc_fg_g   As UByte
+        Dim mc_fg_b   As UByte
+        Dim mc_in_sel As Byte = 0
+        mc_col    = vt_internal.mouse_col - 1
+        mc_row    = vt_internal.mouse_row - 1
+        mc_cellptr = vt_internal_display_cellptr(mc_col, mc_row, vis_buf)
+        mc_ch  = mc_cellptr->ch
+        mc_cfg = mc_cellptr->fg And 15
+        mc_cbg = mc_cellptr->bg And 15
+        ' check if cursor sits inside the active selection
         If vt_internal.sel_active Then
-            Dim mc_flat  As Long = mc_row * cols + mc_col
-            Dim mc_sel1  As Long = (vt_internal.sel_anchor_row - 1) * cols + (vt_internal.sel_anchor_col - 1)
-            Dim mc_sel2  As Long = (vt_internal.sel_end_row    - 1) * cols + (vt_internal.sel_end_col    - 1)
+            Dim mc_flat As Long = mc_row * cols + mc_col
+            Dim mc_sel1 As Long = (vt_internal.sel_anchor_row - 1) * cols + (vt_internal.sel_anchor_col - 1)
+            Dim mc_sel2 As Long = (vt_internal.sel_end_row    - 1) * cols + (vt_internal.sel_end_col    - 1)
             If mc_sel1 > mc_sel2 Then Swap mc_sel1, mc_sel2
-            If mc_flat >= mc_sel1 AndAlso mc_flat <= mc_sel2 Then mc_skip = 1
+            If mc_flat >= mc_sel1 AndAlso mc_flat <= mc_sel2 Then mc_in_sel = 1
         End If
-
-        If mc_skip = 0 Then
-            mc_cellptr = vt_internal_display_cellptr(mc_col, mc_row, vis_buf)
-            mc_ch  = mc_cellptr->ch
-            mc_cfg = mc_cellptr->fg And 15   ' strip blink bit before palette lookup
-            mc_cbg = mc_cellptr->bg And 15
-
-            ' Invert the actual palette RGB -- works with any custom palette
-            inv_bg_r = 255 - vt_internal.palette(mc_cbg * 3)
-            inv_bg_g = 255 - vt_internal.palette(mc_cbg * 3 + 1)
-            inv_bg_b = 255 - vt_internal.palette(mc_cbg * 3 + 2)
-            inv_fg_r = 255 - vt_internal.palette(mc_cfg * 3)
-            inv_fg_g = 255 - vt_internal.palette(mc_cfg * 3 + 1)
-            inv_fg_b = 255 - vt_internal.palette(mc_cfg * 3 + 2)
-
-            dst_rect.x = mc_col * gw
-            dst_rect.y = mc_row * gh
-
-            ' Pass 1: Chr(219) solid block tinted with inverted bg -- fills the cell
-            src_rect.x = (219 Mod 16) * gw
-            src_rect.y = (219 \ 16)   * gh
-            SDL_SetTextureColorMod(vt_internal.sdl_texture, inv_bg_r, inv_bg_g, inv_bg_b)
-            SDL_RenderCopy(vt_internal.sdl_renderer, vt_internal.sdl_texture, @src_rect, @dst_rect)
-
-            ' Pass 2: original char tinted with inverted fg -- draws the glyph on top
-            src_rect.x = (mc_ch Mod 16) * gw
-            src_rect.y = (mc_ch \ 16)   * gh
-            SDL_SetTextureColorMod(vt_internal.sdl_texture, inv_fg_r, inv_fg_g, inv_fg_b)
-            SDL_RenderCopy(vt_internal.sdl_renderer, vt_internal.sdl_texture, @src_rect, @dst_rect)
+        ' inside selection: use original colors so cursor stands out against inverted field
+        ' outside selection: use inverted colors so cursor stands out against normal cell
+        If mc_in_sel Then
+            mc_bg_r = vt_internal.palette(mc_cbg * 3)
+            mc_bg_g = vt_internal.palette(mc_cbg * 3 + 1)
+            mc_bg_b = vt_internal.palette(mc_cbg * 3 + 2)
+            mc_fg_r = vt_internal.palette(mc_cfg * 3)
+            mc_fg_g = vt_internal.palette(mc_cfg * 3 + 1)
+            mc_fg_b = vt_internal.palette(mc_cfg * 3 + 2)
+        Else
+            mc_bg_r = 255 - vt_internal.palette(mc_cbg * 3)
+            mc_bg_g = 255 - vt_internal.palette(mc_cbg * 3 + 1)
+            mc_bg_b = 255 - vt_internal.palette(mc_cbg * 3 + 2)
+            mc_fg_r = 255 - vt_internal.palette(mc_cfg * 3)
+            mc_fg_g = 255 - vt_internal.palette(mc_cfg * 3 + 1)
+            mc_fg_b = 255 - vt_internal.palette(mc_cfg * 3 + 2)
         End If
+        dst_rect.x = mc_col * gw
+        dst_rect.y = mc_row * gh
+        src_rect.x = (219 Mod 16) * gw
+        src_rect.y = (219 \ 16)   * gh
+        SDL_SetTextureColorMod(vt_internal.sdl_texture, mc_bg_r, mc_bg_g, mc_bg_b)
+        SDL_RenderCopy(vt_internal.sdl_renderer, vt_internal.sdl_texture, @src_rect, @dst_rect)
+        src_rect.x = (mc_ch Mod 16) * gw
+        src_rect.y = (mc_ch \ 16)   * gh
+        SDL_SetTextureColorMod(vt_internal.sdl_texture, mc_fg_r, mc_fg_g, mc_fg_b)
+        SDL_RenderCopy(vt_internal.sdl_renderer, vt_internal.sdl_texture, @src_rect, @dst_rect)
     End If
-
+    
     vt_internal.dirty = 0
     SDL_RenderPresent(vt_internal.sdl_renderer)
 End Sub
