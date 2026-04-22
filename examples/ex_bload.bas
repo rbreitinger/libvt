@@ -28,8 +28,9 @@ Const FILE_B = "resources/screen_b.vts"
 Dim k   As ULong
 Dim ret As Long
 
-vt_title "ex_bload"
-vt_screen VT_SCREEN_0
+vt_title("ex_bload")
+vt_screen(VT_SCREEN_0)
+vt_locate(,,0)
 
 ' -----------------------------------------------------------------------
 ' Build and save both screens up front.
@@ -42,7 +43,6 @@ ret = vt_bsave(FILE_A)
 If ret <> 0 Then
     vt_color(VT_BRIGHT_RED, VT_BLACK)
     vt_locate(13, 28) : vt_print("vt_bsave failed: " & Str(ret))
-    vt_present()
     vt_sleep(0)
     End
 End If
@@ -56,7 +56,6 @@ ret = vt_bsave(FILE_B)
 If ret <> 0 Then
     vt_color(VT_BRIGHT_RED, VT_BLACK)
     vt_locate(13, 28) : vt_print("vt_bsave failed: " & Str(ret))
-    vt_present()
     vt_sleep(0)
     End
 End If
@@ -83,10 +82,10 @@ Do
             Exit Do
     End Select
 
-    Sleep 10, 1
+    vt_sleep(10)
 Loop
 
-vt_shutdown
+vt_shutdown()
 End
 
 ' =============================================================================
@@ -228,6 +227,5 @@ Sub show_load_error(ret As Long)
     vt_color(VT_WHITE, VT_RED)
     vt_locate(13, (80 - Len(err_txt) - 19) \ 2 + 1)
     vt_print("  vt_bload failed: " & err_txt & "  ")
-    vt_present()
     vt_sleep()
 End Sub

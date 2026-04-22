@@ -5,6 +5,7 @@
     #Undef Integer
     #Define Integer Long
     #Include Once "win/winsock2.bi"
+    Type SOCKET_T As Long
 #Else
     #Include Once "crt.bi"
     #Include Once "crt/sys/select.bi"

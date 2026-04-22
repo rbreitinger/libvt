@@ -13,7 +13,7 @@ vt_title "VT Mouse Test"
 vt_screen VT_SCREEN_0
 
 ' lock the mouse into the window
-vt_mouselock 1
+vt_mouselock VT_ENABLED
 
 ' restrict scroll region, row 25 is the status bar
 vt_view_print(1, 24)
@@ -29,7 +29,7 @@ For row_i = 1 To 24
 Next row_i
 
 ' enable mouse
-vt_mouse(1)
+vt_mouse(VT_ENABLED)
 
 Dim mx          As Long
 Dim my          As Long
@@ -116,7 +116,7 @@ Do
 
     ' hints
     vt_color(VT_DARK_GREY, VT_BLACK)
-    vt_print(" LMB:paint  RMB:erase  MMB:clear  ESC:quit")
+    vt_print(" LMB:paint  RMB:erase  MMB:clear  ESC:quit ")
 
     ' -------------------------------------------------------------------------
     k = vt_inkey()

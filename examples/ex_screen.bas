@@ -21,6 +21,8 @@ for mode_idx = 0 to 15
   ' set video mode
   vt_screen   mode, iif( mode_idx and 1, VT_WINDOWED, VT_FULLSCREEN_ASPECT )
   
+  vt_border_color 0, 255, 255
+  
   vt_color    VT_YELLOW, VT_BLUE             ' set yellow font on blue background
   vt_cls                                     ' clears the screen to blue because we set blue as background before
   vt_locate   , , , 95                       ' set cursor symbol to underscore _

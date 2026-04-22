@@ -21,7 +21,8 @@ Dim arr() As String
 
 vt_screen(VT_SCREEN_0)
 vt_title("vt_file test")
-vt_copypaste(VT_CP_KBD Or VT_CP_MOUSE)
+
+vt_locate(,,VT_DISABLED)
 
 ' -----------------------------------------------------------------------
 vt_cls()

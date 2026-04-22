@@ -21,26 +21,26 @@ static arne_v20_palette(47) As UByte = { _
   178, 220, 239 _
 }
 
-vt_title "vt_palette_set Example"
-vt_screen VT_SCREEN_TILES
+vt_title("vt_palette_set Example")
+vt_screen(VT_SCREEN_TILES)
 
 '' load custom palette
-vt_palette_set arne_v20_palette()
+vt_palette_set( arne_v20_palette() )
 
 '' print some text using the custom palette
 for col as long = 0 to 15
-    vt_locate 3 + col , 14
-    vt_color col
-    vt_print chr(219) & " Hello Arne! " & chr(219)
+    vt_locate( 3 + col , 14 )
+    vt_color( col )
+    vt_print( chr(219) & " Hello Arne! " & chr(219) )
 next
 
-vt_print_center 21 , " any key to restore default palette "
+vt_print_center( 21 , " any key to restore default palette " )
 
-vt_sleep
+vt_sleep()
 
-vt_palette '' vt_palette without arguments restores the default palette
+vt_palette() '' vt_palette without arguments restores the default palette
 
-vt_print_center 23 , " any key to end the demo "
+vt_print_center( 23 , " any key to end the demo " )
 
-vt_sleep
-vt_shutdown
+vt_sleep()
+vt_shutdown()

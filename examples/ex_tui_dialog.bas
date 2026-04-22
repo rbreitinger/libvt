@@ -33,7 +33,7 @@ End Sub
 vt_screen(VT_SCREEN_0, VT_WINDOWED)
 vt_title("test: dialog")
 vt_mouse(1)
-vt_copypaste(VT_CP_MOUSE)
+vt_copypaste(VT_ENABLED)
 
 Dim ret As Long
 
