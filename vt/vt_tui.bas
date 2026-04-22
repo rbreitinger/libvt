@@ -70,10 +70,17 @@ Const VT_TUI_ED_READONLY  = 1   ' vt_tui_editor_*: view/scroll only, no editing
 ' =============================================================================
 ' Form item kinds
 ' =============================================================================
-Const VT_FORM_INPUT    = 0   ' single-line text input
-Const VT_FORM_BUTTON   = 1   ' push button
-Const VT_FORM_CHECKBOX = 2   ' toggleable  [ ] / [x]
-Const VT_FORM_RADIO    = 3   ' radio in group  ( ) / (*)
+Enum
+    VT_FORM_INPUT          ' single-line text input
+    VT_FORM_BUTTON         ' push button
+    VT_FORM_CHECKBOX       ' toggleable  [ ] / [x]
+    VT_FORM_RADIO          ' radio in group  ( ) / (*)
+    VT_FORM_LABEL          ' static text — never receives focus, Tab skips it
+End Enum
+' Alignment for vt_tui_label_draw and VT_FORM_LABEL items
+Const VT_ALIGN_LEFT   = 0
+Const VT_ALIGN_CENTER = 1
+Const VT_ALIGN_RIGHT  = 2
 
 ' Form return codes (vt_tui_form_handle)
 Const VT_FORM_PENDING = -2  ' still editing -- call again next frame
@@ -160,6 +167,9 @@ Type vt_tui_form_item
     checked  As Byte    ' checkbox/radio: 0=unchecked, 1=checked; others: unused
     group_id As Long    ' radio: items with same group_id are mutually exclusive.
                         ' 0 = no group. unused for input/button/checkbox.
+    align    As Long    ' VT_FORM_LABEL: VT_ALIGN_LEFT/CENTER/RIGHT; others: unused (0)
+    lbl_fg   As UByte   ' VT_FORM_LABEL: foreground colour; others: unused (0)
+    lbl_bg   As UByte   ' VT_FORM_LABEL: background colour; others: unused (0)
 End Type
 
 ' =============================================================================
@@ -504,6 +514,52 @@ Sub vt_tui_vline(x As Long, y As Long, hei As Long, fg As UByte, bg As UByte)
         cel->fg = fg
         cel->bg = bg
     Next r
+    vt_internal.dirty = 1
+End Sub
+
+' =============================================================================
+' vt_tui_label_draw
+' Draw a single-row text label at 1-based (x, y), clipped/padded to wid cells.
+' align: VT_ALIGN_LEFT (default), VT_ALIGN_CENTER, VT_ALIGN_RIGHT.
+' Text longer than wid is silently truncated. Remaining cells filled with bg.
+' No state struct — purely passive. Call each frame like any other draw primitive.
+' =============================================================================
+Sub vt_tui_label_draw(x As Long, y As Long, wid As Long, txt As String, _
+                      align As Long, fg As UByte, bg As UByte)
+    Dim cel    As vt_cell Ptr
+    Dim tlen   As Long
+    Dim offset As Long
+    Dim c      As Long
+
+    VT_TUI_GUARD_SUB
+
+    If wid <= 0 Then Exit Sub
+
+    tlen = Len(txt)
+    If tlen > wid Then tlen = wid   ' truncate to field width
+
+    Select Case align
+        Case VT_ALIGN_RIGHT
+            offset = wid - tlen
+        Case VT_ALIGN_CENTER
+            offset = (wid - tlen) \ 2
+        Case Else   ' VT_ALIGN_LEFT
+            offset = 0
+    End Select
+
+    cel = vt_internal.cells + (y - 1) * vt_internal.scr_cols + (x - 1)
+
+    ' fill entire field width with background first
+    For c = 0 To wid - 1
+        cel[c].ch = 32 : cel[c].fg = fg : cel[c].bg = bg
+    Next c
+
+    ' write text at aligned offset
+    For c = 0 To tlen - 1
+        cel[offset + c].ch = txt[c]
+        ' fg/bg already set in fill pass -- no need to repeat
+    Next c
+
     vt_internal.dirty = 1
 End Sub
 
@@ -2372,6 +2428,33 @@ End Function
 ' =============================================================================
 
 ' =============================================================================
+' vt_tui_form_offset
+' Shift all item positions in the array by (ox, oy). Call once during setup,
+' after filling the items array with window-body-relative coordinates and
+' before entering the main loop.
+'
+' Convention: set item .x/.y relative to the inner window body where (1,1) is
+' the top-left cell inside the border. Pass the window outer corner as ox, oy.
+' The border width of 1 is absorbed automatically -- no manual +1 needed:
+'   local (1,1) + win_x=21  ->  screen col 22  (= win_x + 1)
+'   local (1,1) + win_y=5   ->  screen row  6  (= win_y + 1)
+'
+' All item kinds are shifted, including VT_FORM_LABEL.
+' No ready guard -- pure array write, screen not required.
+' =============================================================================
+Sub vt_tui_form_offset(items() As vt_tui_form_item, ox As Long, oy As Long)
+    Dim i          As Long
+    Dim item_count As Long
+    Dim item_base  As Long
+    item_count = UBound(items) - LBound(items) + 1
+    item_base  = LBound(items)
+    For i = 0 To item_count - 1
+        items(item_base + i).x += ox
+        items(item_base + i).y += oy
+    Next i
+End Sub
+
+' =============================================================================
 ' vt_tui_form_draw
 ' Passive, non-blocking. Draws all form items and positions the text cursor.
 ' Call once per frame after drawing your window chrome and static labels.
@@ -2475,7 +2558,13 @@ Sub vt_tui_form_draw(items() As vt_tui_form_item, ByRef focused As Long)
                     cel[4 + lbl_c].ch = items(item_base + i).val[lbl_c]
                     cel[4 + lbl_c].fg = glyph_fg : cel[4 + lbl_c].bg = glyph_bg
                 Next lbl_c
-
+                
+            Case VT_FORM_LABEL
+                vt_tui_label_draw(items(item_base + i).x, items(item_base + i).y, _
+                                  items(item_base + i).wid, items(item_base + i).val, _
+                                  items(item_base + i).align, _
+                                  items(item_base + i).lbl_fg, items(item_base + i).lbl_bg)
+                                  
         End Select
     Next i
 
@@ -2535,6 +2624,7 @@ Function vt_tui_form_handle(items() As vt_tui_form_item, ByRef focused As Long, 
     Dim mx          As Long
     Dim btn_wid     As Long
     Dim clicked_col As Long
+    Dim tab_steps   As Long
 
     VT_TUI_GUARD_FN
     vt_internal_tui_autoinit()
@@ -2616,14 +2706,28 @@ Function vt_tui_form_handle(items() As vt_tui_form_item, ByRef focused As Long, 
         Return VT_FORM_PENDING
     End If
 
-    ' Tab / Shift+Tab: advance or retreat focus through all items
+    ' Tab / Shift+Tab: advance or retreat focus, skipping VT_FORM_LABEL items
     If VT_TUI_KEY_IS(k, VT_TUI_ACT_NEXT) OrElse VT_TUI_KEY_IS(k, VT_TUI_ACT_PREV) Then
         If VT_TUI_KEY_IS(k, VT_TUI_ACT_PREV) Then
             new_focus = focused - 1
             If new_focus < 0 Then new_focus = item_count - 1
+            tab_steps = 0
+            Do While items(item_base + new_focus).kind = VT_FORM_LABEL _
+                      AndAlso tab_steps < item_count
+                new_focus -= 1
+                If new_focus < 0 Then new_focus = item_count - 1
+                tab_steps += 1
+            Loop
         Else
             new_focus = focused + 1
             If new_focus >= item_count Then new_focus = 0
+            tab_steps = 0
+            Do While items(item_base + new_focus).kind = VT_FORM_LABEL _
+                      AndAlso tab_steps < item_count
+                new_focus += 1
+                If new_focus >= item_count Then new_focus = 0
+                tab_steps += 1
+            Loop
         End If
         focused  = new_focus
         cur_item = item_base + focused
@@ -2695,9 +2799,15 @@ Function vt_tui_form_handle(items() As vt_tui_form_item, ByRef focused As Long, 
                 Return items(cur_item).ret
 
             ElseIf VT_TUI_KEY_IS(k, VT_TUI_ACT_LEFT) Then
-                ' Left on a button: retreat focus to the previous item
                 new_focus = focused - 1
                 If new_focus < 0 Then new_focus = item_count - 1
+                tab_steps = 0
+                Do While items(item_base + new_focus).kind = VT_FORM_LABEL _
+                          AndAlso tab_steps < item_count
+                    new_focus -= 1
+                    If new_focus < 0 Then new_focus = item_count - 1
+                    tab_steps += 1
+                Loop
                 focused  = new_focus
                 cur_item = item_base + focused
                 If items(cur_item).kind = VT_FORM_INPUT Then
@@ -2705,9 +2815,15 @@ Function vt_tui_form_handle(items() As vt_tui_form_item, ByRef focused As Long, 
                 End If
 
             ElseIf VT_TUI_KEY_IS(k, VT_TUI_ACT_RIGHT) Then
-                ' Right on a button: advance focus to the next item
                 new_focus = focused + 1
                 If new_focus >= item_count Then new_focus = 0
+                tab_steps = 0
+                Do While items(item_base + new_focus).kind = VT_FORM_LABEL _
+                          AndAlso tab_steps < item_count
+                    new_focus += 1
+                    If new_focus >= item_count Then new_focus = 0
+                    tab_steps += 1
+                Loop
                 focused  = new_focus
                 cur_item = item_base + focused
                 If items(cur_item).kind = VT_FORM_INPUT Then

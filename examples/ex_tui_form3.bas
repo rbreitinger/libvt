@@ -1,21 +1,35 @@
-' ex_tui_form2.bas
+' ex_tui_form3.bas
 ' Tests the updated vt_tui_form_draw / vt_tui_form_handle:
-'   - All four item kinds: INPUT, BUTTON, CHECKBOX, RADIO
+'   - All five item kinds: INPUT, BUTTON, CHECKBOX, RADIO, LABEL
 '   - VT_FORM_NO_ESC flag (toggled live via the "Lock" checkbox)
 '   - Keymap Tab / Shift+Tab / arrow navigation
 '   - Enter on INPUT is a strict no-op (Tab moves focus)
+'   - Labels demonstrate all three alignment modes:
+'       VT_ALIGN_CENTER -- header row
+'       VT_ALIGN_LEFT   -- field name labels (default)
+'       VT_ALIGN_RIGHT  -- hint line at bottom of window
 '
-' Layout inside a 46x17 window:
-'   Row 3 : Name   [__________________]
-'   Row 5 : Option [x] Enable feature
-'   Row 6 : Mode   (*) Fast  ( ) Safe  ( ) Off
-'   Row 8 : Lock   [ ] Disable Escape
+' Layout inside a 46x13 window (inner body cols 3-46, rows 2-12):
+'   Row  2: [centered]  "User Configuration"
+'   Row  3: "Name   :"  [__________________]
+'   Row  5: "Option :"  [x] Enable feature
+'   Row  6: "Mode   :"  (*) Fast  ( ) Safe  ( ) Off
+'   Row  8: "Lock   :"  [ ] Disable Escape
 '   Row 10: [  OK  ]   [Cancel]
+'   Row 12: [right]  "Tab to navigate"
 ' ---------------------------------------------------------------------------
 #Define VT_USE_TUI
 #Include "../vt/vt.bi"
 
 Enum ItemEnum
+    ' --- labels (never focused, Tab skips them) ---
+    ITEM_LBL_HEADER     ' row 2,  centered -- window section title
+    ITEM_LBL_NAME       ' row 3,  left     -- field label
+    ITEM_LBL_OPTION     ' row 5,  left     -- field label
+    ITEM_LBL_MODE       ' row 6,  left     -- field label
+    ITEM_LBL_LOCK       ' row 8,  left     -- field label
+    ITEM_LBL_HINT       ' row 12, right    -- navigation hint
+    ' --- interactive items ---
     ITEM_NAME
     ITEM_ENABLE
     ITEM_FAST
@@ -36,58 +50,119 @@ Dim frm_flags As Long
 Dim lock_hint As String
 Dim message   As String
 
-' --- Name INPUT ---
+' ---------------------------------------------------------------------------
+' Labels
+' ---------------------------------------------------------------------------
+
+' Header: centered across the inner window body (x=3, wid=44)
+items(ITEM_LBL_HEADER).kind   = VT_FORM_LABEL
+items(ITEM_LBL_HEADER).x      = 3
+items(ITEM_LBL_HEADER).y      = 2
+items(ITEM_LBL_HEADER).wid    = 44
+items(ITEM_LBL_HEADER).val    = "User Configuration"
+items(ITEM_LBL_HEADER).align  = VT_ALIGN_CENTER
+items(ITEM_LBL_HEADER).lbl_fg = VT_BLUE
+items(ITEM_LBL_HEADER).lbl_bg = VT_LIGHT_GREY
+
+' Field labels: left-aligned (VT_ALIGN_LEFT = 0, no need to assign)
+items(ITEM_LBL_NAME).kind   = VT_FORM_LABEL
+items(ITEM_LBL_NAME).x      = 4
+items(ITEM_LBL_NAME).y      = 3
+items(ITEM_LBL_NAME).wid    = 8
+items(ITEM_LBL_NAME).val    = "Name   :"
+items(ITEM_LBL_NAME).lbl_fg = VT_BLACK
+items(ITEM_LBL_NAME).lbl_bg = VT_LIGHT_GREY
+
+items(ITEM_LBL_OPTION).kind   = VT_FORM_LABEL
+items(ITEM_LBL_OPTION).x      = 4
+items(ITEM_LBL_OPTION).y      = 5
+items(ITEM_LBL_OPTION).wid    = 8
+items(ITEM_LBL_OPTION).val    = "Option :"
+items(ITEM_LBL_OPTION).lbl_fg = VT_BLACK
+items(ITEM_LBL_OPTION).lbl_bg = VT_LIGHT_GREY
+
+items(ITEM_LBL_MODE).kind   = VT_FORM_LABEL
+items(ITEM_LBL_MODE).x      = 4
+items(ITEM_LBL_MODE).y      = 6
+items(ITEM_LBL_MODE).wid    = 8
+items(ITEM_LBL_MODE).val    = "Mode   :"
+items(ITEM_LBL_MODE).lbl_fg = VT_BLACK
+items(ITEM_LBL_MODE).lbl_bg = VT_LIGHT_GREY
+
+items(ITEM_LBL_LOCK).kind   = VT_FORM_LABEL
+items(ITEM_LBL_LOCK).x      = 4
+items(ITEM_LBL_LOCK).y      = 8
+items(ITEM_LBL_LOCK).wid    = 8
+items(ITEM_LBL_LOCK).val    = "Lock   :"
+items(ITEM_LBL_LOCK).lbl_fg = VT_BLACK
+items(ITEM_LBL_LOCK).lbl_bg = VT_LIGHT_GREY
+
+' Hint: right-aligned at the bottom of the window body
+items(ITEM_LBL_HINT).kind   = VT_FORM_LABEL
+items(ITEM_LBL_HINT).x      = 3
+items(ITEM_LBL_HINT).y      = 12
+items(ITEM_LBL_HINT).wid    = 44
+items(ITEM_LBL_HINT).val    = "Tab to navigate"
+items(ITEM_LBL_HINT).align  = VT_ALIGN_RIGHT
+items(ITEM_LBL_HINT).lbl_fg = VT_DARK_GREY
+items(ITEM_LBL_HINT).lbl_bg = VT_LIGHT_GREY
+
+' ---------------------------------------------------------------------------
+' Interactive items
+' ---------------------------------------------------------------------------
+
+' Name INPUT
 items(ITEM_NAME).kind    = VT_FORM_INPUT
-items(ITEM_NAME).x       = 12
+items(ITEM_NAME).x       = 13
 items(ITEM_NAME).y       = 3
 items(ITEM_NAME).wid     = 20
 items(ITEM_NAME).val     = "World"
 items(ITEM_NAME).max_len = 20
-items(ITEM_NAME).cpos    = Len(items(ITEM_NAME).val)  ' cursor starts at end of pre-filled text
+items(ITEM_NAME).cpos    = Len(items(ITEM_NAME).val)  ' cursor at end of pre-filled text
 
-' --- Enable CHECKBOX ---
+' Enable CHECKBOX
 items(ITEM_ENABLE).kind    = VT_FORM_CHECKBOX
-items(ITEM_ENABLE).x       = 12
+items(ITEM_ENABLE).x       = 13
 items(ITEM_ENABLE).y       = 5
 items(ITEM_ENABLE).val     = "Enable feature"
 items(ITEM_ENABLE).checked = 1
 
-' --- Mode RADIO group (group_id = 1) ---
+' Mode RADIO group (group_id = 1)
 items(ITEM_FAST).kind     = VT_FORM_RADIO
-items(ITEM_FAST).x        = 12
+items(ITEM_FAST).x        = 13
 items(ITEM_FAST).y        = 6
 items(ITEM_FAST).val      = "Fast"
 items(ITEM_FAST).group_id = 1
 items(ITEM_FAST).checked  = 1
 
 items(ITEM_SAFE).kind     = VT_FORM_RADIO
-items(ITEM_SAFE).x        = 22
+items(ITEM_SAFE).x        = 23
 items(ITEM_SAFE).y        = 6
 items(ITEM_SAFE).val      = "Safe"
 items(ITEM_SAFE).group_id = 1
 
 items(ITEM_OFF).kind     = VT_FORM_RADIO
-items(ITEM_OFF).x        = 32
+items(ITEM_OFF).x        = 33
 items(ITEM_OFF).y        = 6
 items(ITEM_OFF).val      = "Off"
 items(ITEM_OFF).group_id = 1
 
-' --- Lock CHECKBOX (toggles VT_FORM_NO_ESC) ---
+' Lock CHECKBOX (toggles VT_FORM_NO_ESC)
 items(ITEM_LOCK).kind    = VT_FORM_CHECKBOX
-items(ITEM_LOCK).x       = 12
+items(ITEM_LOCK).x       = 13
 items(ITEM_LOCK).y       = 8
 items(ITEM_LOCK).val     = "Disable Escape"
 items(ITEM_LOCK).checked = 0
 
-' --- Buttons ---
+' Buttons
 items(ITEM_OK).kind = VT_FORM_BUTTON
-items(ITEM_OK).x    = 12
+items(ITEM_OK).x    = 13
 items(ITEM_OK).y    = 10
 items(ITEM_OK).val  = "  OK  "
 items(ITEM_OK).ret  = VT_RET_OK
 
 items(ITEM_CANCEL).kind = VT_FORM_BUTTON
-items(ITEM_CANCEL).x    = 23
+items(ITEM_CANCEL).x    = 24
 items(ITEM_CANCEL).y    = 10
 items(ITEM_CANCEL).val  = "Cancel"
 items(ITEM_CANCEL).ret  = VT_RET_CANCEL
@@ -99,14 +174,8 @@ vt_screen
 vt_title "ex_tui_form3"
 vt_mouse 1
 
+' Window chrome is static -- draw it once before the loop
 vt_tui_window(2, 1, 46, 13, " Settings ", VT_TUI_WIN_SHADOW)
-
-' Static labels -- drawn once outside the loop
-vt_color(VT_BLACK, VT_LIGHT_GREY)
-vt_locate(3,  4) : vt_print("Name  :")
-vt_locate(5,  4) : vt_print("Option:")
-vt_locate(6,  4) : vt_print("Mode  :")
-vt_locate(8,  4) : vt_print("Lock  :")
 
 running = 1
 Do While running

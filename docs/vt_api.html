@@ -141,9 +141,6 @@
 
     </li>
     <li><a href="#s-init">Initialization</a>
-      <ul>
-        <li><a href="#vt_on_close">vt_on_close()</a></li>
-      </ul>
     </li>
     <li><a href="#s-display">Display</a></li>
     <li><a href="#s-print">Printing &amp; Cursor</a></li>
@@ -444,6 +441,15 @@ End Select</pre>
   <tr><td>VT_FORM_BUTTON</td><td>1</td><td>Push button.</td></tr>
   <tr><td>VT_FORM_CHECKBOX</td><td>2</td><td>Toggleable checkbox. Renders as <code>[x]</code> / <code>[ ]</code> followed by the label. Space or Enter toggles <code>.checked</code>.</td></tr>
   <tr><td>VT_FORM_RADIO</td><td>3</td><td>Radio button. Renders as <code>(*)</code> / <code>( )</code> followed by the label. Space or Enter selects this item and clears all others sharing the same <code>.group_id</code>.</td></tr>
+  <tr><td>VT_FORM_LABEL</td><td>4</td><td>Static text label. Never receives focus; Tab / Shift+Tab and button Left / Right skip it automatically. Mouse clicks on a label cell are silently ignored. Set <code>.wid</code>, <code>.val</code>, <code>.align</code>, <code>.lbl_fg</code>, <code>.lbl_bg</code> &mdash; see <a href="#vt_tui_label_draw">vt_tui_label_draw</a>.</td></tr>
+</table>
+
+<h4>Label alignment constants &mdash; <code>.align</code> field of <code>VT_FORM_LABEL</code> items and <a href="#vt_tui_label_draw">vt_tui_label_draw</a></h4>
+<table class="const-table">
+  <tr><th>Constant</th><th>Value</th><th>Description</th></tr>
+  <tr><td>VT_ALIGN_LEFT</td><td>0</td><td>Text is left-aligned inside the field (default; leave <code>.align</code> at 0).</td></tr>
+  <tr><td>VT_ALIGN_CENTER</td><td>1</td><td>Text is horizontally centred inside the field.</td></tr>
+  <tr><td>VT_ALIGN_RIGHT</td><td>2</td><td>Text is right-aligned inside the field.</td></tr>
 </table>
 
 <h4>Form return codes &mdash; returned by <a href="#vt_tui_form_draw">vt_tui_form_handle</a></h4>
@@ -2848,6 +2854,45 @@ vt_tui_hline 1, 13, 80, VT_DARK_GREY, VT_BLACK
 vt_tui_vline 40, 1, 25, VT_DARK_GREY, VT_BLACK</pre>
 
 <!-- ------------------------------------------------------------------ -->
+<h3 id="vt_tui_label_draw">vt_tui_label_draw</h3>
+<p>
+  Draw a single-row text label at an arbitrary 1-based position. The label is
+  clipped or padded to exactly <code>wid</code> cells: text shorter than
+  <code>wid</code> is padded with the background colour; text longer than
+  <code>wid</code> is silently truncated. No state struct is required &mdash;
+  the function is purely passive and should be called each frame like any other
+  draw primitive.
+</p>
+<p>
+  The same functionality is available inside a
+  <a href="#vt_tui_form_draw">vt_tui_form</a> by setting an item's
+  <code>.kind = VT_FORM_LABEL</code> with the appropriate <code>.align</code>,
+  <code>.lbl_fg</code>, and <code>.lbl_bg</code> fields. Label items inside a form
+  are never focused and are skipped by Tab / Shift+Tab navigation automatically.
+</p>
+<div class="syntax">Sub vt_tui_label_draw(x     As Long,   y     As Long,
+                      wid   As Long,
+                      txt   As String,
+                      align As Long,
+                      fg    As UByte,  bg As UByte)</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+  <tr><td>x, y</td><td>Long</td><td>1-based column and row.</td></tr>
+  <tr><td>wid</td><td>Long</td><td>Field width in cells. Text is clipped or padded to this width.</td></tr>
+  <tr><td>txt</td><td>String</td><td>Label text. Truncated without error if longer than <code>wid</code>.</td></tr>
+  <tr><td>align</td><td>Long</td><td>Horizontal alignment: <code>VT_ALIGN_LEFT</code> (0), <code>VT_ALIGN_CENTER</code> (1), or <code>VT_ALIGN_RIGHT</code> (2).</td></tr>
+  <tr><td>fg, bg</td><td>UByte</td><td>Foreground and background colour indices for the entire field including padding.</td></tr>
+</table>
+<pre><em>' Left-aligned field label (default, align=0):</em>
+vt_tui_label_draw 4, 3, 10, "Name    :", VT_ALIGN_LEFT, VT_BLACK, VT_LIGHT_GREY
+
+<em>' Centred section heading across the window inner body (cols 3-46):</em>
+vt_tui_label_draw 3, 2, 44, "User Configuration", VT_ALIGN_CENTER, VT_BLUE, VT_LIGHT_GREY
+
+<em>' Right-aligned navigation hint at the bottom of the window:</em>
+vt_tui_label_draw 3, 12, 44, "Tab to navigate", VT_ALIGN_RIGHT, VT_DARK_GREY, VT_LIGHT_GREY</pre>
+
+<!-- ------------------------------------------------------------------ -->
 <h3 id="vt_tui_window">vt_tui_window</h3>
 <p>
   Draw window chrome: a border, a title bar, and optionally a close button and
@@ -3347,6 +3392,56 @@ Do
 Loop</pre>
 
 <!-- ------------------------------------------------------------------ -->
+<h3 id="vt_tui_form_offset">vt_tui_form_offset</h3>
+<p>
+  Shift all item positions in a form array by <code>(ox, oy)</code>. Call
+  once during setup &mdash; after filling the items array and before entering
+  the main loop &mdash; to convert window-body-relative coordinates to absolute
+  screen coordinates.
+</p>
+<p>
+  <strong>Convention:</strong> lay out items with <code>.x</code> / <code>.y</code>
+  relative to the inner window body, where <code>(1, 1)</code> is the top-left
+  cell inside the border. Pass the window's <em>outer</em> corner as
+  <code>ox, oy</code>. Because items start at local&nbsp;1 and the border
+  consumes exactly one cell, the arithmetic works out without any manual
+  <code>+1</code>:
+</p>
+<pre><em>'   local (1,1)  +  win_x = 21  ->  screen col 22  (win_x + 1, first col inside border)</em>
+<em>'   local (1,1)  +  win_y =  5  ->  screen row  6  (win_y + 1, row below title bar)</em></pre>
+<p>
+  All item kinds are shifted, including <code>VT_FORM_LABEL</code>. The function
+  requires no ready guard &mdash; it is a pure array write and may be called
+  before <a href="#vt_screen">vt_screen</a> if needed.
+</p>
+<div class="syntax">Sub vt_tui_form_offset(items() As vt_tui_form_item,
+                       ox As Long, oy As Long)</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+  <tr><td>items()</td><td>vt_tui_form_item array</td><td>The form array to shift in place. Any lower bound is accepted.</td></tr>
+  <tr><td>ox, oy</td><td>Long</td><td>Screen column and row of the window's outer top-left corner (i.e. the same values passed to <a href="#vt_tui_window">vt_tui_window</a>).</td></tr>
+</table>
+<div class="note">
+  <code>vt_tui_form_offset</code> mutates <code>.x</code> and <code>.y</code>
+  permanently. Call it only once per items array. Calling it twice will shift
+  everything twice.
+</div>
+<pre><em>' Window at a fixed position -- lay out items in local coords, then shift once:</em>
+Const WIN_X = 21, WIN_Y = 5
+
+<em>' ... fill items() with .x/.y relative to the inner body (1-based) ...</em>
+<em>' e.g.  items(0).x = 2, items(0).y = 2  -- two cells in from the left border</em>
+
+vt_tui_form_offset items(), WIN_X, WIN_Y
+vt_tui_window WIN_X, WIN_Y, 40, 16, " Settings "
+
+<em>' Centred window -- compute position at runtime, same pattern:</em>
+Dim wx As Long = (vt_cols() - 40) \ 2 + 1
+Dim wy As Long = (vt_rows() - 16) \ 2 + 1
+vt_tui_form_offset items(), wx, wy
+vt_tui_window wx, wy, 40, 16, " Settings "</pre>
+
+<!-- ------------------------------------------------------------------ -->
 <h3 id="vt_tui_form_draw">vt_tui_form_draw / vt_tui_form_handle</h3>
 <p>
   Non-blocking form widget. Two-function design: <code>vt_tui_form_draw</code>
@@ -3366,18 +3461,22 @@ Loop</pre>
   all existing text and Backspace does nothing until the user navigates right.
 </p>
 <div class="syntax">Type vt_tui_form_item
-    kind     As UByte   ' VT_FORM_INPUT, VT_FORM_BUTTON, VT_FORM_CHECKBOX, VT_FORM_RADIO
+    kind     As UByte   ' VT_FORM_INPUT, VT_FORM_BUTTON, VT_FORM_CHECKBOX, VT_FORM_RADIO,
+                        ' VT_FORM_LABEL
     x        As Long    ' 1-based column
     y        As Long    ' 1-based row
-    wid      As Long    ' input: visible field width; unused for other kinds
-    val      As String  ' input: text; button: label; checkbox/radio: label text
-    ret      As Long    ' button: return value on activation; unused for other kinds
-    max_len  As Long    ' input: max chars (0 = use wid); unused for other kinds
-    checked  As Byte    ' checkbox/radio: 0=unchecked, 1=checked; unused for input/button
+    wid      As Long    ' input: visible field width; label: total field width; others: unused
+    val      As String  ' input: text; button/checkbox/radio: label; label: display text
+    ret      As Long    ' button: return value on activation; others: unused
+    max_len  As Long    ' input: max chars (0 = use wid); others: unused
+    checked  As Byte    ' checkbox/radio: 0=unchecked, 1=checked; others: unused
     group_id As Long    ' radio: items sharing the same group_id are mutually exclusive
-                        '        0 = no group (standalone toggle); unused for input/button/checkbox
+                        '        0 = no group (standalone toggle); others: unused
     cpos     As Long    ' internal -- init to Len(val) for pre-filled INPUT, else 0
     view_off As Long    ' internal -- init to 0, managed by form_handle
+    align    As Long    ' label: VT_ALIGN_LEFT/CENTER/RIGHT; others: unused (leave 0)
+    lbl_fg   As UByte  ' label: foreground colour; others: unused (leave 0)
+    lbl_bg   As UByte  ' label: background colour; others: unused (leave 0)
 End Type</div>
 
 <div class="syntax">Sub vt_tui_form_draw(items()       As vt_tui_form_item,
@@ -3409,13 +3508,13 @@ Function vt_tui_form_handle(items()       As vt_tui_form_item,
 <h4>Key and mouse bindings</h4>
 <table class="const-table">
   <tr><th>Input</th><th>Action</th></tr>
-  <tr><td>Tab / Shift+Tab</td><td>Advance / retreat focus through all items (wraps).</td></tr>
+  <tr><td>Tab / Shift+Tab</td><td>Advance / retreat focus through all items (wraps). <code>VT_FORM_LABEL</code> items are skipped automatically.</td></tr>
   <tr><td>Enter on an input</td><td>No-op. Use Tab / Shift+Tab to leave an input field.</td></tr>
   <tr><td>Enter on a button</td><td>Activate that button, return its <code>.ret</code>.</td></tr>
   <tr><td>Enter / Space on a checkbox</td><td>Toggle <code>.checked</code>.</td></tr>
   <tr><td>Enter / Space on a radio</td><td>Set <code>.checked = 1</code> on this item; clear all others sharing the same <code>.group_id</code>.</td></tr>
   <tr><td>Left / Right on an input</td><td>Move the text cursor within the field.</td></tr>
-  <tr><td>Left / Right on a button</td><td>Move focus to the adjacent item.</td></tr>
+  <tr><td>Left / Right on a button</td><td>Move focus to the adjacent item (skipping labels).</td></tr>
   <tr><td>Left / Right on a checkbox or radio</td><td>No-op. Use Tab to navigate.</td></tr>
   <tr><td>Home / End on an input</td><td>Cursor to start / end of the text.</td></tr>
   <tr><td>Backspace / Del on an input</td><td>Delete left / right of cursor.</td></tr>
@@ -3424,6 +3523,7 @@ Function vt_tui_form_handle(items()       As vt_tui_form_item,
   <tr><td>Click on a button</td><td>Activate immediately, return its <code>.ret</code>.</td></tr>
   <tr><td>Click on a checkbox</td><td>Focus it and toggle <code>.checked</code>.</td></tr>
   <tr><td>Click on a radio</td><td>Focus it and select it (clears group).</td></tr>
+  <tr><td>Click on a label</td><td>No-op. Labels are never focused and never respond to mouse input.</td></tr>
   <tr><td>Escape (any item)</td><td>Return <code>VT_FORM_CANCEL</code> (unless <code>VT_FORM_NO_ESC</code> set).</td></tr>
 </table>
 <div class="note">
@@ -3914,7 +4014,7 @@ vt_shutdown</pre>
 
 <hr>
 <p style="font-size:0.85em; color:#555;">
-  VT Virtual Text Screen Library &mdash; API Reference &mdash; v1.4.2<br>
+  VT Virtual Text Screen Library &mdash; API Reference &mdash; v1.5.2<br>
   FreeBASIC 1.10.1 / SDL2 / Windows + Linux
 </p>
 
