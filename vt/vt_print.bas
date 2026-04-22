@@ -48,40 +48,49 @@ End Sub
 ' -----------------------------------------------------------------------------
 ' Internal: write one character at the current cursor position and advance.
 ' Does NOT call vt_present - caller does that after the full string.
+' Respects view_left/view_right for wrap boundary and newline left edge.
+' view_left = -1 means full width (left edge = col 1, right edge = scr_cols).
 ' -----------------------------------------------------------------------------
 Sub vt_internal_putch(ch As UByte)
+    Dim col_left  As Long
+    Dim col_right As Long
+
+    ' resolve column bounds -- -1 means full width
+    If vt_internal.view_left = -1 Then
+        col_left  = 1
+        col_right = vt_internal.scr_cols
+    Else
+        col_left  = vt_internal.view_left
+        col_right = vt_internal.view_right
+    End If
+
     Select Case ch
         Case 13   ' carriage return
-            vt_internal.cur_col = 1
-
-        Case 10   ' line feed - advance row AND reset column to 1 (DOS behaviour)
-            vt_internal.cur_col = 1
+            vt_internal.cur_col = col_left
+        Case 10   ' line feed -- advance row AND reset column to left edge (DOS behaviour)
+            vt_internal.cur_col = col_left
             If vt_internal.cur_row < vt_internal.view_bot Then
                 vt_internal.cur_row += 1
             ElseIf vt_internal.scroll_on Then
                 vt_internal_scroll_up()
             End If
-
         Case Else
             Dim cellptr As vt_cell Ptr = vt_internal.cells + _
                 ((vt_internal.cur_row - 1) * vt_internal.scr_cols + (vt_internal.cur_col - 1))
-
             cellptr->ch = ch
             cellptr->fg = vt_internal.clr_fg
             cellptr->bg = vt_internal.clr_bg
             vt_internal.dirty = 1
-
             ' advance cursor
             vt_internal.cur_col += 1
-            If vt_internal.cur_col > vt_internal.scr_cols Then
-                vt_internal.cur_col = 1
+            If vt_internal.cur_col > col_right Then
+                vt_internal.cur_col = col_left
                 If vt_internal.cur_row < vt_internal.view_bot Then
                     vt_internal.cur_row += 1
                 ElseIf vt_internal.scroll_on Then
                     vt_internal_scroll_up()
                 End If
             End If
-
     End Select
 End Sub
 
@@ -95,7 +104,8 @@ End Sub
 
 ' -----------------------------------------------------------------------------
 ' vt_cls - clear the screen
-' Respects view_top/view_bot - only clears the active scroll region.
+' Respects view_top/view_bot and view_left/view_right.
+' When column bounds are active, only that column range is cleared per row.
 ' -----------------------------------------------------------------------------
 Sub vt_cls(bg As Long = -1)
     If vt_internal.ready = 0 Then Exit Sub
@@ -104,6 +114,8 @@ Sub vt_cls(bg As Long = -1)
     Dim cols    As Long
     Dim vtop    As Long
     Dim vbot    As Long
+    Dim ci_from As Long
+    Dim ci_to   As Long
     Dim row     As Long
     Dim ci      As Long
     Dim cellptr As vt_cell Ptr
@@ -112,9 +124,19 @@ Sub vt_cls(bg As Long = -1)
     vtop = vt_internal.view_top - 1   ' 0-based
     vbot = vt_internal.view_bot - 1   ' 0-based
 
+    ' resolve column bounds -- -1 means full width
+    If vt_internal.view_left = -1 Then
+        ci_from = 0
+        ci_to   = cols - 1
+    Else
+        ci_from = vt_internal.view_left  - 1   ' 0-based
+        ci_to   = vt_internal.view_right - 1   ' 0-based
+        If ci_to > cols - 1 Then ci_to = cols - 1
+    End If
+
     For row = vtop To vbot
         cellptr = vt_internal.cells + (row * cols)
-        For ci = 0 To cols - 1
+        For ci = ci_from To ci_to
             cellptr[ci].ch = 32
             cellptr[ci].fg = vt_internal.clr_fg
             cellptr[ci].bg = vt_internal.clr_bg
@@ -179,18 +201,27 @@ Function vt_cols()   As Long : Return vt_internal.scr_cols : End Function
 Function vt_rows()   As Long : Return vt_internal.scr_rows : End Function
 
 ' -----------------------------------------------------------------------------
-' vt_view_print - restrict scroll region to a row range
-' omit arguments resets the viewport
+' vt_view_print - restrict scroll/print region to a row and/or column range
+' All -1 (or omitted): full reset of all four viewport bounds.
+' Partial call (e.g. only top/bot): column bounds stay unchanged.
+' vt_locate is always absolute -- never affected by the viewport.
 ' -----------------------------------------------------------------------------
-Sub vt_view_print(top_row As Long = -1, bot_row As Long = -1)
+Sub vt_view_print(top_row As Long = -1, bot_row As Long = -1, _
+                  lft_col As Long = -1, rgt_col As Long = -1)
     If vt_internal.ready = 0 Then Exit Sub
-    If top_row = -1 AndAlso bot_row = -1 Then
-        vt_internal.view_top = 1
-        vt_internal.view_bot = vt_internal.scr_rows
+    ' all sentinel -1 = full reset of all four bounds
+    If top_row = -1 AndAlso bot_row = -1 AndAlso lft_col = -1 AndAlso rgt_col = -1 Then
+        vt_internal.view_top   = 1
+        vt_internal.view_bot   = vt_internal.scr_rows
+        vt_internal.view_left  = -1
+        vt_internal.view_right = -1
         Exit Sub
     End If
+    ' partial set -- only update params that are not -1
     If top_row >= 1 AndAlso top_row <= vt_internal.scr_rows Then vt_internal.view_top = top_row
     If bot_row >= vt_internal.view_top AndAlso bot_row <= vt_internal.scr_rows Then vt_internal.view_bot = bot_row
+    If lft_col >= 1 AndAlso lft_col <= vt_internal.scr_cols Then vt_internal.view_left = lft_col
+    If rgt_col >= 1 AndAlso rgt_col <= vt_internal.scr_cols Then vt_internal.view_right = rgt_col
 End Sub
 
 ' -----------------------------------------------------------------------------

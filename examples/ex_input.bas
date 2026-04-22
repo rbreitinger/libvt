@@ -3,7 +3,7 @@
 vt_title "vt_input Demo"
 vt_screen
 
-vt_copypaste ( VT_CP_MOUSE Or VT_CP_KBD )
+vt_copypaste(VT_ENABLED)
 
 vt_color VT_WHITE, VT_BLUE
 vt_locate 12, 20

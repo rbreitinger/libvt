@@ -130,21 +130,19 @@
 <h2 id="toc">Table of Contents</h2>
 <div class="toc-col">
   <ul>
-    <li><a href="#constants">Constants</a>
-      <ul>
+
         <li><a href="#c-screenmodes">Screen Modes</a></li>
         <li><a href="#c-winflags">Window Flags</a></li>
         <li><a href="#c-colors">Color Constants</a></li>
         <li><a href="#c-keymacros">Key Macros</a></li>
         <li><a href="#c-keyscans">Key Scancodes</a></li>
         <li><a href="#c-mousebtns">Mouse Button Constants</a></li>
-        <li><a href="#c-cpflags">Copy/Paste Flags</a></li>
         <li><a href="#c-misc">Misc Constants</a></li>
-      </ul>
+
     </li>
     <li><a href="#s-init">Initialization</a>
       <ul>
-        <li><a href="#vt_on_close">vt_on_close</a></li>
+        <li><a href="#vt_on_close">vt_on_close()</a></li>
       </ul>
     </li>
     <li><a href="#s-display">Display</a></li>
@@ -336,23 +334,15 @@ End Select</pre>
   <tr><td>VT_MOUSE_BTN_MIDDLE</td><td>4</td><td>Middle button (bit 2).</td></tr>
 </table>
 
-<!-- Copy/Paste Flags -->
-<h3 id="c-cpflags">Copy/Paste Flags</h3>
-<p>Passed to <a href="#vt_copypaste">vt_copypaste</a>. Combinable with <code>Or</code>.</p>
-<table class="const-table">
-  <tr><th>Constant</th><th>Value</th><th>Description</th></tr>
-  <tr><td>VT_CP_DISABLED</td><td>0</td><td>Default. No keys reserved, no mouse events captured by VT.</td></tr>
-  <tr><td>VT_CP_MOUSE</td><td>1</td><td>LMB drag selects, RMB copies selection, MMB pastes (paste: vt_input only).</td></tr>
-  <tr><td>VT_CP_KBD</td><td>2</td><td>Shift+arrows select, Ctrl+INS copies, Shift+INS pastes (paste: vt_input only).</td></tr>
-</table>
-
 <!-- Misc Constants -->
 <h3 id="c-misc">Miscellaneous Constants</h3>
 <table class="const-table">
-  <tr><th>Constant</th><th>Description</th></tr>
-  <tr><td>VT_NEWLINE</td><td><code>Chr(10)</code> &mdash; newline character for use with <a href="#vt_print">vt_print</a>.</td></tr>
-  <tr><td>VT_LF</td><td>short alias for VT_NEWLINE</td></tr>
-  <tr><td>VT_VIDEO</td><td>Value <code>0</code>. The display page index. Always page 0.</td></tr>
+  <tr><th>Constant</th><th>Value</th><th>Description</th></tr>
+  <tr><td>VT_DISABLED</td><td>0</td><td>Generic off/false value. Usable with any function that accepts an on/off flag, e.g. <a href="#vt_copypaste">vt_copypaste</a>.</td></tr>
+  <tr><td>VT_ENABLED</td><td>1</td><td>Generic on/true value.</td></tr>
+  <tr><td>VT_NEWLINE</td><td>&mdash;</td><td><code>Chr(10)</code> &mdash; newline character for use with <a href="#vt_print">vt_print</a>.</td></tr>
+  <tr><td>VT_LF</td><td>&mdash;</td><td>Short alias for VT_NEWLINE.</td></tr>
+  <tr><td>VT_VIDEO</td><td>0</td><td>The display page index. Always page 0.</td></tr>
 </table>
 
 <!-- Math Macros -->
@@ -726,6 +716,11 @@ vt_on_close(0)</pre>
   <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
   <tr><td>bg</td><td>Long</td><td>-1</td><td>Background colour index (0&ndash;15). <code>-1</code> keeps the current background colour.</td></tr>
 </table>
+<div class="note">
+  Respects the full viewport set by <a href="#vt_view_print">vt_view_print</a>, including column
+  bounds. When column bounds are active only the cells within <code>view_left..view_right</code>
+  are cleared per row. When no column bounds are set the entire row width is cleared (fast path).
+</div>
 
 <!-- vt_color -->
 <h3 id="vt_color">vt_color</h3>
@@ -953,17 +948,25 @@ End If</pre>
 <!-- vt_view_print -->
 <h3 id="vt_view_print">vt_view_print</h3>
 <p>
-  Restrict the scroll region and print region to a range of rows (like QBasic's
-  <code>VIEW PRINT</code>). Rows outside this range are unaffected by
+  Restrict the scroll region and print region to a range of rows and/or columns
+  (like QBasic's <code>VIEW PRINT</code>, extended with column bounds).
+  Rows and columns outside the active viewport are unaffected by
   <a href="#vt_cls">vt_cls</a>, <a href="#vt_print">vt_print</a>, and scrolling.
-  Call with no arguments (or both <code>-1</code>) to reset to the full screen.
+  Call with no arguments (or all <code>-1</code>) to reset the full viewport including column bounds.
 </p>
-<div class="syntax">Sub vt_view_print(top_row As Long = -1, bot_row As Long = -1)</div>
+<div class="syntax">Sub vt_view_print(top_row As Long = -1, bot_row As Long = -1,
+                  lft_col As Long = -1, rgt_col As Long = -1)</div>
 <table>
   <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
-  <tr><td>top_row</td><td>Long</td><td>-1</td><td>First row of the scroll region, 1-based. <code>-1</code> resets both bounds to the full screen.</td></tr>
+  <tr><td>top_row</td><td>Long</td><td>-1</td><td>First row of the scroll region, 1-based. <code>-1</code> resets all four bounds to the full screen.</td></tr>
   <tr><td>bot_row</td><td>Long</td><td>-1</td><td>Last row of the scroll region, 1-based. Must be &ge; top_row.</td></tr>
+  <tr><td>lft_col</td><td>Long</td><td>-1</td><td>First column of the print region, 1-based. <code>-1</code> (default) means full screen width. When active, <code>vt_print</code> newlines land at this column.</td></tr>
+  <tr><td>rgt_col</td><td>Long</td><td>-1</td><td>Last column of the print region, 1-based. Must be &ge; lft_col. When active, <code>vt_print</code> wraps at this column.</td></tr>
 </table>
+<div class="note">
+  <a href="#vt_locate">vt_locate</a> is always absolute &mdash; column bounds do not affect it.<br>
+  Calling with all <code>-1</code> resets the entire viewport: row bounds, column bounds, and cursor position.
+</div>
 
 <hr>
 
@@ -1002,16 +1005,6 @@ End If</pre>
     <td><kbd>Ctrl+Shift+PgDn</kbd></td>
     <td>&#x2713; scroll forward &frac12; page</td>
   </tr>
-  <tr>
-    <td><kbd>Alt+&ndash;</kbd> (minus)</td>
-    <td>&mdash;</td>
-    <td>&#x2713; scroll back 1 line</td>
-  </tr>
-  <tr>
-    <td><kbd>Alt+.</kbd> (period)</td>
-    <td>&mdash;</td>
-    <td>&#x2713; scroll forward 1 line</td>
-  </tr>
 </table>
 
 <h3 id="hk-copypaste">Copy / Paste</h3>
@@ -1020,13 +1013,11 @@ End If</pre>
   been called to enable it.
 </p>
 <table>
-  <tr><th>Key</th><th>Effect</th></tr>
-  <tr><td><kbd>Ctrl+Ins</kbd></td><td>Copy current selection to clipboard.</td></tr>
-  <tr><td><kbd>Shift+Ins</kbd></td><td>Paste clipboard text (inside <a href="#vt_input">vt_input</a> only).</td></tr>
-  <tr><td><kbd>Shift+Arrow / Home / End</kbd></td><td>Extend keyboard selection.</td></tr>
-  <tr><td>Left mouse drag</td><td>Select a region.</td></tr>
-  <tr><td>Right mouse button</td><td>Copy current selection.</td></tr>
-  <tr><td>Middle mouse button</td><td>Paste (inside <a href="#vt_input">vt_input</a> only).</td></tr>
+  <tr><th>Binding</th><th>Effect</th></tr>
+  <tr><td>Left mouse button drag</td><td>Select a region. Selection activates only once the mouse moves from the click point.</td></tr>
+  <tr><td>Right mouse button</td><td>Copy current selection to the clipboard and deselect.</td></tr>
+  <tr><td>Middle mouse button</td><td>Paste clipboard text (inside <a href="#vt_input">vt_input</a> only).</td></tr>
+  <tr><td><kbd>Shift+Ins</kbd></td><td>Paste clipboard text (inside <a href="#vt_input">vt_input</a> only). Always available regardless of copy/paste mode.</td></tr>
 </table>
 
 <h3 id="hk-alt">Alt+letter (TUI menubar)</h3>
@@ -1035,11 +1026,6 @@ End If</pre>
   menu group by its first letter. VT delivers these as a keyrec with
   <code>VT_ALT(k) = 1</code> and <code>VT_CHAR(k)</code> set to the letter.
 </p>
-<div class="note">
-  Both parameters must be <code>-1</code> together to reset. Passing one as <code>-1</code>
-  while the other has a valid value only applies the valid value.
-</div>
-
 <hr>
 
 <!-- ============================================================ -->
@@ -1455,37 +1441,44 @@ vt_getmouse(,,@mb)</pre>
 <!-- ============================================================ -->
 <h2 id="s-copypaste">Copy/Paste</h2>
 <ul class="section-toc">
-  <li><a href="#vt_copypaste">vt_copypaste</a> &mdash; configure selection and clipboard mode</li>
+  <li><a href="#vt_copypaste">vt_copypaste</a> &mdash; enable or disable mouse selection and clipboard</li>
 </ul>
 
 <!-- vt_copypaste -->
 <h3 id="vt_copypaste">vt_copypaste</h3>
 <p>
-  Configure the copy/paste and text selection system. Call after
-  <a href="#vt_screen">vt_screen</a>. Clears any active selection.
+  Enable or disable the mouse copy/paste and text selection system. Call after
+  <a href="#vt_screen">vt_screen</a>. Clears any active selection and resets all
+  internal selection state.
 </p>
 <div class="syntax">Sub vt_copypaste(flags As Long)</div>
 <table>
   <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
-  <tr><td>flags</td><td>Long</td><td><em>none</em></td><td>One or more <a href="#c-cpflags">VT_CP_*</a> constants combined with <code>Or</code>. <code>VT_CP_DISABLED</code> (0) disables all interception.</td></tr>
+  <tr><td>flags</td><td>Long</td><td><em>none</em></td><td>Pass <code>VT_ENABLED</code> (1) to enable, <code>VT_DISABLED</code> (0) to disable. Values greater than 1 are silently clamped to 1.</td></tr>
 </table>
 <div class="note">
-  <strong>Keyboard mode (VT_CP_KBD):</strong> Shift+Arrow / Shift+Home / Shift+End extends a selection from
-  the cursor. Ctrl+INS copies the selection to the clipboard. Shift+INS pastes from
-  the clipboard (inside <a href="#vt_input">vt_input</a> only).<br><br>
-  <strong>Mouse mode (VT_CP_MOUSE):</strong> LMB drag creates a selection. RMB copies the current selection.
-  MMB pastes from the clipboard (inside <a href="#vt_input">vt_input</a> only).<br><br>
-  Copy works during scrollback. Keyboard selection extension and paste are gated on
-  scrollback being at the live view (sb_offset = 0).<br><br>
-  Selected text is stored in the system clipboard as plain text, with trailing spaces
-  per row trimmed and rows joined with CRLF.
+  <strong>Selection:</strong> click-and-drag with the left mouse button to select a region.
+  A bare click without movement clears any existing selection; the selection only activates
+  once the mouse moves from the initial click position.<br><br>
+  <strong>Copy:</strong> right-click copies the current selection to the system clipboard and
+  clears the selection. Copy works during scrollback.<br><br>
+  <strong>Paste:</strong> middle mouse button (MMB) or <kbd>Shift+Ins</kbd> paste from the
+  clipboard into the active <a href="#vt_input">vt_input</a> field.
+  Shift+Ins paste is always available regardless of whether copy/paste is enabled.<br><br>
+  <strong>Auto-scroll:</strong> holding the mouse at or beyond the top or bottom edge of the
+  active scroll viewport during a drag automatically scrolls the content.<br><br>
+  <strong>Column viewport:</strong> when a column viewport is active via
+  <a href="#vt_view_print">vt_view_print</a>, the selection and clipboard content are clipped
+  to that column range. Columns outside the viewport are excluded from selection and copy.<br><br>
+  Selected text is placed in the system clipboard as plain text, with trailing spaces per row
+  trimmed and rows joined with CRLF.
 </div>
-<pre><em>' Enable both keyboard and mouse copy/paste:</em>
+<pre><em>' Enable mouse copy/paste:</em>
 vt_screen VT_SCREEN_0
-vt_copypaste VT_CP_KBD Or VT_CP_MOUSE
+vt_copypaste VT_ENABLED
 
 <em>' Disable entirely:</em>
-vt_copypaste VT_CP_DISABLED</pre>
+vt_copypaste VT_DISABLED</pre>
 
 <hr>
 
@@ -1523,6 +1516,10 @@ vt_copypaste VT_CP_DISABLED</pre>
   <code>-3</code> = bad magic &mdash; not a valid .vts file<br>
   <code>-4</code> = dimension mismatch &mdash; file was saved in a different screen mode
 </div>
+<div class="note">
+  Unaffected by any viewport setting. Always loads the full screen regardless of any
+  row or column bounds set with <a href="#vt_view_print">vt_view_print</a>.
+</div>
 
 <!-- vt_bsave -->
 <h3 id="vt_bsave">vt_bsave</h3>
@@ -1537,6 +1534,10 @@ vt_copypaste VT_CP_DISABLED</pre>
   <code>0</code> = success<br>
   <code>-1</code> = library not ready (call vt_screen first)<br>
   <code>-2</code> = file could not be opened for writing
+</div>
+<div class="note">
+  Unaffected by any viewport setting. Always saves the full screen regardless of any
+  row or column bounds set with <a href="#vt_view_print">vt_view_print</a>.
 </div>
 
 <hr>
@@ -3913,7 +3914,7 @@ vt_shutdown</pre>
 
 <hr>
 <p style="font-size:0.85em; color:#555;">
-  VT Virtual Text Screen Library &mdash; API Reference &mdash; v1.4.0<br>
+  VT Virtual Text Screen Library &mdash; API Reference &mdash; v1.4.1<br>
   FreeBASIC 1.10.1 / SDL2 / Windows + Linux
 </p>
 

@@ -7,7 +7,7 @@
 #Define VT_NEWLINE  Chr(10)
 #Define VT_LF       VT_NEWLINE     ' short alias
 
-Const VT_VERSION = "1.4.0"         ' major.minor.patch 
+Const VT_VERSION = "1.4.1"         ' major.minor.patch
 
 ' -----------------------------------------------------------------------------
 ' Init flags  (combinable with Or)
@@ -151,6 +151,7 @@ Const VT_BLINK_MS           = 200
 Const VT_PAGE_SLOTS         = 8    ' max allocatable pages (0=VT_VIDEO, 1..7 work pages)
 Const VT_KEY_REPEAT_INITIAL = 400
 Const VT_KEY_REPEAT_RATE    = 30
+Const VT_CP_SCROLL_MS       = 150  ' ms between auto-scroll steps during drag selection
 
 ' -----------------------------------------------------------------------------
 ' Mouse button bitmask constants  (vt_getmouse btns param)
@@ -160,11 +161,11 @@ Const VT_MOUSE_BTN_RIGHT  = 2   ' bit 1
 Const VT_MOUSE_BTN_MIDDLE = 4   ' bit 2
 
 ' -----------------------------------------------------------------------------
-' Copy/paste mode flags  (combinable with Or)
+' Generic on/off flags -- usable with any function accepting an on/off flag
+' e.g. vt_copypaste(VT_ENABLED), vt_mouse(VT_ENABLED)
 ' -----------------------------------------------------------------------------
-Const VT_CP_DISABLED = 0   ' default -- no keys reserved, no mouse events captured
-Const VT_CP_MOUSE    = 1   ' LMB drag selects, RMB copies, MMB pastes (paste: vt_input only)
-Const VT_CP_KBD      = 2   ' Shift+arrows select, Ctrl+INS copies, Shift+INS pastes
+Const VT_DISABLED = 0
+Const VT_ENABLED  = 1
 
 ' -----------------------------------------------------------------------------
 ' Sorting Constants
@@ -223,6 +224,8 @@ Type vt_internal_state
     scroll_on   As Byte
     view_top    As Long
     view_bot    As Long
+    view_left   As Long    ' 1-based, -1 = full width (default)
+    view_right  As Long    ' 1-based, -1 = full width (default)
 
     ' --- scrollback buffer ---
     sb_cells    As vt_cell Ptr
@@ -256,7 +259,6 @@ Type vt_internal_state
     ' page_buf holds all allocated cell buffers. Only 0..num_pages-1 are valid.
     ' cells = page_buf(work_page) at all times.
     ' vt_present reads page_buf(vis_page).
-    
     page_buf(VT_PAGE_SLOTS - 1) As vt_cell Ptr
     num_pages   As Long   ' how many pages were allocated at vt_screen() time
     work_page   As Long   ' active drawing page index
@@ -277,13 +279,15 @@ Type vt_internal_state
     dirty       As Byte
     ready       As Byte   ' 1 = running, 0 = not init
     init_flags  As Long   ' flags passed to vt_screen (fullscreen mode, grab, etc.)
-        
+
     ' --- copy/paste ---
     ' cp_flags gates all interception. sel_active = 0 means nothing selected.
     ' Anchor is where the selection started; end moves as user extends it.
     ' sel_dragging tracks LMB held for mouse drag -- independent of mouse_btns.
     ' cp_paste_pend is set by vt_pump and drained by vt_input.
-    
+    ' cp_view_* snapshot the viewport at LMB-down; survive LMB-up so highlight
+    ' render and build_text can still use them. Cleared to -1 after RMB copy
+    ' or vt_copypaste(VT_DISABLED).
     cp_flags       As Long
     sel_active     As Byte
     sel_anchor_col As Long
@@ -292,7 +296,12 @@ Type vt_internal_state
     sel_end_row    As Long
     sel_dragging   As Byte
     cp_paste_pend  As Byte
-    
+    cp_view_left   As Long   ' snapshot of view_left  at LMB-down, -1 = full
+    cp_view_right  As Long   ' snapshot of view_right at LMB-down, -1 = full
+    cp_view_top    As Long   ' snapshot of view_top   at LMB-down, -1 = full
+    cp_view_bot    As Long   ' snapshot of view_bot   at LMB-down, -1 = full
+    cp_scroll_tick As ULong  ' last auto-scroll tick during drag
+
     ' --- close callback ---
     ' If set, called on SDL_QUIT instead of the default shutdown+End.
     ' Return 0 = proceed with shutdown. Return 1 = veto (user handles it).
@@ -340,6 +349,7 @@ Dim Shared vt_internal As vt_internal_state
 #Undef vt_internal_blink_update
 #Undef vt_init_impl
 #Undef vt_internal_present_if_dirty
+#Undef vt_internal_scroll_rect
 #Undef vt_internal_pixel_to_cell
 #Undef vt_internal_display_cellptr
 #Undef vt_default_palette
