@@ -4,44 +4,75 @@
 
 ' -----------------------------------------------------------------------------
 ' Internal: scroll the view region up by one line
+' Column-aware: only shifts and blanks cells within view_left..view_right.
+' Scrollback capture always saves the full row (full context for scrollback view).
+' Full-row fast path used when view_left = -1.
 ' -----------------------------------------------------------------------------
 Sub vt_internal_scroll_up()
-    Dim cols As Long = vt_internal.scr_cols
-    Dim vtop As Long = vt_internal.view_top - 1   ' 0-based
-    Dim vbot As Long = vt_internal.view_bot - 1   ' 0-based
-
-    ' push top line into scrollback buffer if enabled
+    Dim cols    As Long = vt_internal.scr_cols
+    Dim vtop    As Long = vt_internal.view_top - 1   ' 0-based
+    Dim vbot    As Long = vt_internal.view_bot - 1   ' 0-based
+    Dim v_left  As Long
+    Dim v_right As Long
+    Dim ln      As Long
+    Dim ci      As Long
+    Dim cellptr As vt_cell Ptr
+    Dim src     As vt_cell Ptr
+    Dim dst     As vt_cell Ptr
+    ' resolve column bounds
+    If vt_internal.view_left = -1 Then
+        v_left  = 0
+        v_right = cols - 1
+    Else
+        v_left  = vt_internal.view_left  - 1   ' 0-based
+        v_right = vt_internal.view_right - 1   ' 0-based
+    End If
+    ' push top line into scrollback buffer if enabled -- always full row
     If vt_internal.sb_lines > 0 AndAlso vt_internal.sb_cells <> 0 Then
         If vt_internal.sb_used < vt_internal.sb_lines Then
-            Dim dst As vt_cell Ptr = vt_internal.sb_cells + (vt_internal.sb_used * cols)
-            Dim src As vt_cell Ptr = vt_internal.cells   + (vtop * cols)
+            dst = vt_internal.sb_cells + (vt_internal.sb_used * cols)
+            src = vt_internal.cells    + (vtop * cols)
             memcpy(dst, src, cols * SizeOf(vt_cell))
             vt_internal.sb_used += 1
         Else
             memcpy(vt_internal.sb_cells, _
                    vt_internal.sb_cells + cols, _
                    (vt_internal.sb_lines - 1) * cols * SizeOf(vt_cell))
-            Dim dst As vt_cell Ptr = vt_internal.sb_cells + ((vt_internal.sb_lines - 1) * cols)
-            Dim src As vt_cell Ptr = vt_internal.cells    + (vtop * cols)
+            dst = vt_internal.sb_cells + ((vt_internal.sb_lines - 1) * cols)
+            src = vt_internal.cells    + (vtop * cols)
             memcpy(dst, src, cols * SizeOf(vt_cell))
         End If
     End If
-
-    ' shift view region lines up by one
-    For ln As Long = vtop To vbot - 1
-        memcpy(vt_internal.cells + (ln * cols), _
-               vt_internal.cells + ((ln + 1) * cols), _
-               cols * SizeOf(vt_cell))
-    Next ln
-
-    ' clear the bottom line with current bg colour
-    Dim cellptr As vt_cell Ptr = vt_internal.cells + (vbot * cols)
-    For ci As Long = 0 To cols - 1
-        cellptr[ci].ch = 32
-        cellptr[ci].fg = vt_internal.clr_fg
-        cellptr[ci].bg = vt_internal.clr_bg
-    Next ci
-
+    If vt_internal.view_left = -1 Then
+        ' full-row fast path -- no column viewport active
+        For ln = vtop To vbot - 1
+            memcpy(vt_internal.cells + (ln * cols), _
+                   vt_internal.cells + ((ln + 1) * cols), _
+                   cols * SizeOf(vt_cell))
+        Next ln
+        cellptr = vt_internal.cells + (vbot * cols)
+        For ci = 0 To cols - 1
+            cellptr[ci].ch = 32
+            cellptr[ci].fg = vt_internal.clr_fg
+            cellptr[ci].bg = vt_internal.clr_bg
+        Next ci
+    Else
+        ' column-range path -- only touch v_left..v_right per row
+        For ln = vtop To vbot - 1
+            dst = vt_internal.cells + (ln       * cols)
+            src = vt_internal.cells + ((ln + 1) * cols)
+            For ci = v_left To v_right
+                dst[ci] = src[ci]
+            Next ci
+        Next ln
+        ' blank bottom line within column range only
+        cellptr = vt_internal.cells + (vbot * cols)
+        For ci = v_left To v_right
+            cellptr[ci].ch = 32
+            cellptr[ci].fg = vt_internal.clr_fg
+            cellptr[ci].bg = vt_internal.clr_bg
+        Next ci
+    End If
     vt_internal.dirty = 1
 End Sub
 
@@ -143,7 +174,12 @@ Sub vt_cls(bg As Long = -1)
         Next ci
     Next row
 
-    vt_internal.cur_col = 1
+    ' cursor to top-left of the active viewport (not screen col 1)
+    If vt_internal.view_left = -1 Then
+        vt_internal.cur_col = 1
+    Else
+        vt_internal.cur_col = vt_internal.view_left
+    End If
     vt_internal.cur_row = vt_internal.view_top
     vt_internal.dirty   = 1
 End Sub
