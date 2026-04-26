@@ -385,6 +385,7 @@ Sub run_game()
     Dim bx        As Long
     Dim by        As Long
     Dim is_paused As Byte = 0
+    Dim dirty     As Byte = 1
 
     '' Reset board
     For by = 0 To BOARD_H - 1
@@ -451,29 +452,29 @@ Sub run_game()
 
             Case VT_KEY_LEFT
                 If piece_ok(cur_pc, cur_rot, cur_bx - 1, cur_by) Then
-                    cur_bx -= 1 : snd_move()
+                    cur_bx -= 1 : snd_move() : dirty = 1
                 End If
 
             Case VT_KEY_RIGHT
                 If piece_ok(cur_pc, cur_rot, cur_bx + 1, cur_by) Then
-                    cur_bx += 1 : snd_move()
+                    cur_bx += 1 : snd_move() : dirty = 1
                 End If
 
             Case VT_KEY_UP
                 '' Rotate CW with wall-kick
                 new_rot = vt_wrap(cur_rot + 1, 0, 3)
                 If piece_ok(cur_pc, new_rot, cur_bx, cur_by) Then
-                    cur_rot = new_rot : snd_rotate()
+                    cur_rot = new_rot : snd_rotate() : dirty = 1
                 ElseIf piece_ok(cur_pc, new_rot, cur_bx - 1, cur_by) Then
-                    cur_bx -= 1 : cur_rot = new_rot : snd_rotate()
+                    cur_bx -= 1 : cur_rot = new_rot : snd_rotate() : dirty = 1
                 ElseIf piece_ok(cur_pc, new_rot, cur_bx + 1, cur_by) Then
-                    cur_bx += 1 : cur_rot = new_rot : snd_rotate()
+                    cur_bx += 1 : cur_rot = new_rot : snd_rotate() : dirty = 1
                 End If
 
             Case VT_KEY_DOWN
                 '' Soft drop
                 If piece_ok(cur_pc, cur_rot, cur_bx, cur_by + 1) Then
-                    cur_by += 1 : update_panel() : grav_t = Timer()
+                    cur_by += 1 : update_panel() : grav_t = Timer() : dirty = 1
                 End If
 
             Case VT_KEY_SPACE
@@ -489,6 +490,7 @@ Sub run_game()
                 If nc > 0 Then snd_clear nc : add_score nc
                 draw_board()
                 If spawn_piece() = 0 Then is_over = 1
+                dirty = 1
                 grav_t = Timer()
                 k = 0 : Exit Do   '' consume remaining keys this tick
 
@@ -498,11 +500,11 @@ Sub run_game()
                                 
                     new_rot = vt_wrap(cur_rot - 1, 0, 3)
                     If piece_ok(cur_pc, new_rot, cur_bx, cur_by) Then
-                        cur_rot = new_rot : snd_rotate()
+                        cur_rot = new_rot : snd_rotate() : dirty = 1
                     ElseIf piece_ok(cur_pc, new_rot, cur_bx - 1, cur_by) Then
-                        cur_bx -= 1 : cur_rot = new_rot : snd_rotate()
+                        cur_bx -= 1 : cur_rot = new_rot : snd_rotate() : dirty = 1
                     ElseIf piece_ok(cur_pc, new_rot, cur_bx + 1, cur_by) Then
-                        cur_bx += 1 : cur_rot = new_rot : snd_rotate()
+                        cur_bx += 1 : cur_rot = new_rot : snd_rotate() : dirty = 1
                     End If
                 End If
 
@@ -518,7 +520,7 @@ Sub run_game()
             If (Timer() - grav_t) * 1000.0 >= grav_ms() Then
                 grav_t = Timer()
                 If piece_ok(cur_pc, cur_rot, cur_bx, cur_by + 1) Then
-                    cur_by += 1
+                    cur_by += 1 : dirty = 1
                 Else
                     '' Piece has landed — lock and spawn next
                     lock_piece() : snd_lock()
@@ -529,6 +531,7 @@ Sub run_game()
                     If nc > 0 Then snd_clear nc : add_score nc
                     draw_board()
                     If spawn_piece() = 0 Then is_over = 1
+                    dirty = 1
                 End If
             End If
         End If
@@ -536,11 +539,12 @@ Sub run_game()
         If is_over Then Exit Do
 
         '' -- render ----------------------------------------------------------
-        If is_paused = 0 Then
+        If is_paused = 0 Andalso dirty Then
             gy = ghost_row()
             draw_board()
             draw_ghost gy
             draw_cur 0
+            dirty = 0
         End If
         vt_pcopy 1, VT_VIDEO
         vt_present()

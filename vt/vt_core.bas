@@ -1212,6 +1212,7 @@ End Function
 ' -----------------------------------------------------------------------------
 ' vt_sleep ms = 0 : wait for any key; ms > 0 : delay for ms milliseconds
 ' -----------------------------------------------------------------------------
+#if 0
 Sub vt_sleep(ms As Long = 0)
     Dim t_start As ULong
     Dim t_now   As ULong
@@ -1235,6 +1236,36 @@ Sub vt_sleep(ms As Long = 0)
         End If
     Loop
 End Sub
+#else
+Sub vt_sleep(ms As Long = 0)
+    Dim t_start   As ULong
+    Dim t_now     As ULong
+    Dim remaining As Long
+    Dim slp       As Long
+    Dim k         As ULong
+
+    t_start = vt_internal_ticks()
+
+    Do
+        If ms = 0 Then
+            k = vt_inkey()
+            If k <> 0 Then Exit Do
+            Sleep 10, 1
+        Else
+            vt_pump()
+            If vt_internal_blink_update() Then vt_internal.dirty = 1
+            vt_internal_present_if_dirty()
+            t_now = vt_internal_ticks()
+            If t_now - t_start >= CULng(ms) Then Exit Do
+            remaining = ms - CLng(t_now - t_start)
+            slp = remaining \ 2         ' sleep half the remaining time
+            If slp < 1  Then slp = 1    ' minimum 1ms
+            If slp > 10 Then slp = 10   ' cap at 10ms (responsive enough)
+            Sleep slp, 1
+        End If
+    Loop
+End Sub
+#endif
 
 ' -----------------------------------------------------------------------------
 ' vt_getkey - blocking vt_inkey
