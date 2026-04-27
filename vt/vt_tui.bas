@@ -1089,9 +1089,21 @@ Sub vt_tui_editor_draw(x As Long, y As Long, wid As Long, hei As Long, _
     cur_col = st.cpos - ln_start
 
     ' clamp top_ln
-    If cur_line < st.top_ln Then st.top_ln = cur_line
-    If cur_line >= st.top_ln + hei Then st.top_ln = cur_line - hei + 1
-    If st.top_ln < 0 Then st.top_ln = 0
+    If readonly_f Then
+        ' cursor is irrelevant in readonly -- clamp by total line count instead
+        Dim total_lns As Long = 1
+        For i = 0 To Len(st.work) - 1
+            If st.work[i] = 10 Then total_lns += 1
+        Next i
+        Dim max_top As Long = total_lns - hei
+        If max_top < 0 Then max_top = 0
+        If st.top_ln > max_top Then st.top_ln = max_top
+        If st.top_ln < 0 Then st.top_ln = 0
+    Else
+        If cur_line < st.top_ln Then st.top_ln = cur_line
+        If cur_line >= st.top_ln + hei Then st.top_ln = cur_line - hei + 1
+        If st.top_ln < 0 Then st.top_ln = 0
+    End If
 
     ' find byte offset of top_ln
     vis_start = 0
@@ -1183,22 +1195,7 @@ Function vt_tui_editor_handle(x As Long, y As Long, wid As Long, hei As Long, _
     VT_TUI_GUARD_FN
 
     readonly_f = IIf((st.flags And VT_TUI_ED_READONLY) <> 0, 1, 0)
-
-    ' mouse wheel scroll
-    whl = vt_internal.mouse_wheel
-    If whl <> 0 Then
-        vt_internal.mouse_wheel = 0
-        st.top_ln -= whl
-        If st.top_ln < 0 Then st.top_ln = 0
-    End If
-
-    If k = 0 Then Return VT_FORM_PENDING
-
-    sc = VT_SCAN(k)
-    ch = VT_CHAR(k)
-
-    If VT_TUI_KEY_IS(k, VT_TUI_ACT_CANCEL) Then Return VT_FORM_CANCEL
-
+    
     ' derive cursor position context (needed for all navigation)
     cur_line = 0
     ln_start = 0
@@ -1209,6 +1206,59 @@ Function vt_tui_editor_handle(x As Long, y As Long, wid As Long, hei As Long, _
         End If
     Next i
     cur_col = st.cpos - ln_start
+
+    ' mouse wheel scroll
+    whl = vt_internal.mouse_wheel
+    If whl <> 0 Then
+        vt_internal.mouse_wheel = 0
+        st.top_ln -= whl
+        If st.top_ln < 0 Then st.top_ln = 0
+        ' snap cpos to top of visible area so cursor-lock clamp doesn't fight wheel
+        If cur_line < st.top_ln OrElse cur_line >= st.top_ln + hei Then
+            p = 0
+            Dim ln_c2 As Long = 0
+            Do While p < Len(st.work) AndAlso ln_c2 < st.top_ln
+                If st.work[p] = 10 Then ln_c2 += 1
+                p += 1
+            Loop
+            st.cpos = p
+        End If
+    End If
+
+    ' paste  (Shift+INS or MMB sets cp_paste_pend in vt_pump)
+    ' Must come before the k=0 early-out so MMB paste is not swallowed.
+    If vt_internal.cp_paste_pend Then
+        vt_internal.cp_paste_pend = 0
+        If readonly_f = 0 Then
+            Dim clip_ptr As ZString Ptr = SDL_GetClipboardText()
+            If clip_ptr <> 0 Then
+                Dim clip_str As String = *clip_ptr
+                SDL_free(clip_ptr)
+                Dim pi  As Long
+                Dim pch As UByte
+                For pi = 0 To Len(clip_str) - 1
+                    pch = clip_str[pi]
+                    If pch = 13 Then Continue For   ' skip CR, LF handled below
+                    If pch = 10 Then
+                        st.work  = Left(st.work, st.cpos) & Chr(10) & Mid(st.work, st.cpos + 1)
+                        st.cpos += 1
+                        st.dirty = 1
+                    ElseIf pch >= 32 AndAlso pch <= 126 Then
+                        st.work  = Left(st.work, st.cpos) & Chr(pch) & Mid(st.work, st.cpos + 1)
+                        st.cpos += 1
+                        st.dirty = 1
+                    End If
+                Next pi
+            End If
+        End If
+    End If
+
+    If k = 0 Then Return VT_FORM_PENDING
+
+    sc = VT_SCAN(k)
+    ch = VT_CHAR(k)
+
+    If VT_TUI_KEY_IS(k, VT_TUI_ACT_CANCEL) Then Return VT_FORM_CANCEL
 
     If VT_TUI_KEY_IS(k, VT_TUI_ACT_LEFT) Then
         If st.cpos > 0 Then st.cpos -= 1
@@ -2693,6 +2743,38 @@ Function vt_tui_form_handle(items() As vt_tui_form_item, ByRef focused As Long, 
             End Select
         Next i
     End If
+    
+    ' =========================================================================
+    ' paste  (Shift+INS or MMB sets cp_paste_pend in vt_pump)
+    ' Must come before the k=0 early-out so MMB paste is not swallowed.
+    ' =========================================================================
+    If vt_internal.cp_paste_pend AndAlso items(cur_item).kind = VT_FORM_INPUT Then
+        vt_internal.cp_paste_pend = 0
+        Dim clip_ptr As ZString Ptr = SDL_GetClipboardText()
+        If clip_ptr <> 0 Then
+            Dim clip_str As String = *clip_ptr
+            SDL_free(clip_ptr)
+            Dim mx_p As Long = items(cur_item).max_len
+            If mx_p < 1 Then mx_p = items(cur_item).wid
+            Dim pi   As Long
+            Dim pch  As UByte
+            For pi = 0 To Len(clip_str) - 1
+                pch = clip_str[pi]
+                ' accept printable ASCII only -- CR/LF and high bytes silently dropped
+                If pch >= 32 AndAlso pch <= 126 Then
+                    If Len(items(cur_item).val) < mx_p Then
+                        items(cur_item).val  = Left(items(cur_item).val, items(cur_item).cpos) & _
+                                               Chr(pch) & _
+                                               Mid(items(cur_item).val, items(cur_item).cpos + 1)
+                        items(cur_item).cpos += 1
+                    End If
+                End If
+            Next pi
+            vt_internal_tui_form_scroll(items(cur_item))
+        End If
+    End If
+
+    If k = 0 Then Return VT_FORM_PENDING
 
     ' =========================================================================
     ' keyboard

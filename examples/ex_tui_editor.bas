@@ -26,6 +26,7 @@ st.flags  = 0   ' edit mode; set VT_TUI_ED_READONLY for viewer-only
 vt_screen
 vt_title "ex_tui_editor"
 vt_mouse 1
+vt_copypaste(VT_ENABLED)
 
 vt_tui_window(2, 2, 48, 14, " Editor ", VT_TUI_WIN_SHADOW)
 
