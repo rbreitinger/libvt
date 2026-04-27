@@ -1375,7 +1375,8 @@ Function vt_tui_dialog(caption As String, txt As String, _
     Dim cur_btns      As Long
     Dim lmb_down      As Byte
     Dim result        As Long
-
+    Dim pad           As Long
+    
     VT_TUI_GUARD_FN
     vt_internal_tui_autoinit()
 
@@ -1456,11 +1457,12 @@ Function vt_tui_dialog(caption As String, txt As String, _
     Do
         vt_tui_window(dlg_x, dlg_y, dlg_w, dlg_h, caption)
         vt_tui_rect_fill(dlg_x + 1, dlg_y + 1, inner_w, dlg_h - 2, 32, dfg, dbg)
-
+        
         For r = 0 To line_count - 1
-            cel  = vt_internal.cells + (dlg_y + 1 + r) * vt_internal.scr_cols + dlg_x
             tlen = Len(wlines(r))
             If tlen > text_w Then tlen = text_w
+            pad  = (text_w - tlen) \ 2
+            cel  = vt_internal.cells + (dlg_y + 1 + r) * vt_internal.scr_cols + dlg_x + 1 + pad
             For c = 0 To tlen - 1
                 cel[c].ch = wlines(r)[c]
                 cel[c].fg = dfg : cel[c].bg = dbg
