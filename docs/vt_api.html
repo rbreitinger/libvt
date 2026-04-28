@@ -269,8 +269,8 @@ vt_color VT_WHITE Or VT_BLINK, VT_BLUE</pre>
 </p>
 <table class="const-table">
   <tr><th>Macro</th><th>Description</th></tr>
-  <tr><td>VT_CHAR(k)</td><td>ASCII character code (0 if non-printable).</td></tr>
-  <tr><td>VT_SCAN(k)</td><td>VT scancode (bits 16&ndash;27). Always compare via this macro, never directly against <code>k</code>.</td></tr>
+  <tr><td>VT_CHAR(k)</td><td>ASCII code of the resulting character (Ctrl+letter gives 1&ndash;26); 0 for keys that produce no character (arrows, F-keys, etc.) &mdash; use VT_SCAN for those.</td></tr>
+  <tr><td>VT_SCAN(k)</td><td>VT scancode (bits 16&ndash;27) &mdash; only meaningful for named VT_KEY_* constants (arrows, F-keys, Tab, Enter, etc.); returns 0 for regular letter/digit/symbol keys &mdash; use VT_CHAR for those. Always compare via this macro, never directly against <code>k</code>.</td></tr>
   <tr><td>VT_REPEAT(k)</td><td>1 if this is an auto-repeat event (key held down), 0 otherwise.</td></tr>
   <tr><td>VT_SHIFT(k)</td><td>1 if Shift was held when the key was pressed.</td></tr>
   <tr><td>VT_CTRL(k)</td><td>1 if Ctrl was held when the key was pressed.</td></tr>
