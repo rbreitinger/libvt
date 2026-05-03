@@ -96,6 +96,10 @@ zero overhead if unused.
 | `VT_SCREEN_EGA43` | 80 × 43 | 8×8 | 640×344 | EGA 43-line |
 | `VT_SCREEN_VGA50` | 80 × 50 | 8×8 | 640×400 | VGA 50-line |
 | `VT_SCREEN_TILES` | 40 × 25 | 16×16 | 640×400 | Square tiles |
+| `VT_SCREEN_100_40`| 100 × 40 | 8 × 16 | 800×640 | hi-res wide |
+| `VT_SCREEN_100_50`| 100 × 50 | 8 × 8  | 800×400 | hi-res wide packed |
+| `VT_SCREEN_120_45`| 120 × 45 | 8 × 16 | 960×720 | hi-res ultrawide |
+| `VT_SCREEN_120_50`| 120 × 50 | 8 × 8  | 960×400 | hi-res ultrawide packed |
 
 ---
 
@@ -109,10 +113,15 @@ working together — run `vtetris-bake.bas` once first to generate the screen as
 
 ---
 
+![VTSolitaire example game](docs/screenshot2.png)
+
+---
+
 ## API Reference
 
-Full function reference, constants and parameter details:
-**[rbreitinger.github.io/libvt/vt_api.html](https://rbreitinger.github.io/libvt/vt_api.html)**
+**Full function reference, constants and parameter details**
+[Online Version](https://rbreitinger.github.io/libvt/vt_api.html)
+[Offline Version](https://github.com/rbreitinger/vthelp)
 
 ---
 
