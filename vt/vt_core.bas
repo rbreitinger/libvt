@@ -276,10 +276,10 @@ Sub vt_pump()
                     vt_internal_key_push(keyrec)
                 End If
 
-            Case SDL_WINDOWEVENT
+            CASE SDL_WINDOWEVENT
                 If evt.window.event = SDL_WINDOWEVENT_RESIZED Then
                     vt_present()
-                End If
+                End IF
 
             Case SDL_MOUSEMOTION
                 ' Coordinate computation hoisted so both mouse cursor and drag
@@ -697,6 +697,18 @@ Function vt_screen(mode As Long, flags As Long, pages As Long) As Long
             fptr = @vt_font_data_8x8(0)  : fsrc_h = 8
         Case VT_SCREEN_TILES
             cols = 40 : rows = 25 : gw = 16 : gh = 16
+            fptr = @vt_font_data_8x8(0)  : fsrc_h = 8
+        Case VT_SCREEN_100_40
+            cols = 100 : rows = 40 : gw = 8  : gh = 16
+            fptr = @vt_font_data_8x16(0) : fsrc_h = 16
+        Case VT_SCREEN_100_50
+            cols = 100 : rows = 50 : gw = 8  : gh = 8
+            fptr = @vt_font_data_8x8(0)  : fsrc_h = 8
+        Case VT_SCREEN_120_45
+            cols = 120 : rows = 45 : gw = 8  : gh = 16
+            fptr = @vt_font_data_8x16(0) : fsrc_h = 16
+        Case VT_SCREEN_120_50
+            cols = 120 : rows = 50 : gw = 8  : gh = 8
             fptr = @vt_font_data_8x8(0)  : fsrc_h = 8
         Case Else
             cols = 80 : rows = 25 : gw = 8  : gh = 16

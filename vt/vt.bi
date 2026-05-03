@@ -7,7 +7,7 @@
 #Define VT_NEWLINE  Chr(10)
 #Define VT_LF       VT_NEWLINE     ' short alias
 
-Const VT_VERSION = "1.5.3"         ' major.minor.patch
+Const VT_VERSION = "1.6.0"         ' major.minor.patch
 
 ' -----------------------------------------------------------------------------
 ' Init flags  (combinable with Or)
@@ -22,14 +22,18 @@ Const VT_WINDOWED_MAX       = 32   ' start maximized -- regular window, not full
 ' -----------------------------------------------------------------------------
 ' Screen mode constants
 ' -----------------------------------------------------------------------------
-Const VT_SCREEN_0     = 0    ' 80x25  8x16  640x400  -- VGA text (default)
-Const VT_SCREEN_2     = 2    ' 80x25  8x8   640x200  -- CGA hi-res text grid
-Const VT_SCREEN_9     = 9    ' 80x25  8x14  640x350  -- EGA text grid
-Const VT_SCREEN_12    = 12   ' 80x30  8x16  640x480  -- VGA hi-res text grid
-Const VT_SCREEN_13    = 13   ' 40x25  8x8   320x200  -- VGA Mode 13h text grid
-Const VT_SCREEN_EGA43 = 43   ' 80x43  8x8   640x344  -- EGA 43-line
-Const VT_SCREEN_VGA50 = 50   ' 80x50  8x8   640x400  -- VGA 50-line
-Const VT_SCREEN_TILES = 100  ' 40x25  16x16 640x400  -- square tiles, game-friendly
+Const VT_SCREEN_0       = 0    ' 80x25  8x16  640x400  -- VGA text (default)
+Const VT_SCREEN_2       = 2    ' 80x25  8x8   640x200  -- CGA hi-res text grid
+Const VT_SCREEN_9       = 9    ' 80x25  8x14  640x350  -- EGA text grid
+Const VT_SCREEN_12      = 12   ' 80x30  8x16  640x480  -- VGA hi-res text grid
+Const VT_SCREEN_13      = 13   ' 40x25  8x8   320x200  -- VGA Mode 13h text grid
+Const VT_SCREEN_EGA43   = 43   ' 80x43  8x8   640x344  -- EGA 43-line
+Const VT_SCREEN_VGA50   = 50   ' 80x50  8x8   640x400  -- VGA 50-line
+Const VT_SCREEN_TILES   = 100  ' 40x25  16x16 640x400  -- square tiles, game-friendly
+Const VT_SCREEN_100_40  = 200  ' 100x40  8x16  800x640  -- hi-res wide
+Const VT_SCREEN_100_50  = 201  ' 100x50  8x8   800x400  -- hi-res wide packed
+Const VT_SCREEN_120_45  = 300  ' 120x45  8x16  960x720  -- hi-res ultrawide
+Const VT_SCREEN_120_50  = 301  ' 120x50  8x8   960x400  -- hi-res ultrawide packed
 
 ' -----------------------------------------------------------------------------
 ' Page constants
