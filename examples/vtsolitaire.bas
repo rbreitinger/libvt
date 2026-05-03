@@ -8,7 +8,7 @@
 #Define VT_USE_SORT
 #Define VT_USE_MATH
 #Define VT_USE_TUI
-#Include once "vt/vt.bi"
+#Include once "../vt/vt.bi"
 
 ' =============================================================================
 ' Constants
