@@ -7,7 +7,7 @@
 #Define VT_NEWLINE  Chr(10)
 #Define VT_LF       VT_NEWLINE     ' short alias
 
-Const VT_VERSION = "1.6.0"         ' major.minor.patch
+Const VT_VERSION = "1.7.0"         ' major.minor.patch
 
 ' -----------------------------------------------------------------------------
 ' Init flags  (combinable with Or)
@@ -34,6 +34,18 @@ Const VT_SCREEN_100_40  = 200  ' 100x40  8x16  800x640  -- hi-res wide
 Const VT_SCREEN_100_50  = 201  ' 100x50  8x8   800x400  -- hi-res wide packed
 Const VT_SCREEN_120_45  = 300  ' 120x45  8x16  960x720  -- hi-res ultrawide
 Const VT_SCREEN_120_50  = 301  ' 120x50  8x8   960x400  -- hi-res ultrawide packed
+
+' custom screenmodes...
+Union vt_screenparam_t
+  Type
+    w  As ubyte
+    h  As ubyte
+    fw As ubyte
+    fh As ubyte
+  End Type
+  n As long
+End Union
+#define VT_SCREENPARAM(_p...) type<vt_screenparam_t>(_p).n
 
 ' -----------------------------------------------------------------------------
 ' Page constants
@@ -193,6 +205,7 @@ Type vt_internal_state
     sdl_window   As SDL_Window Ptr
     sdl_renderer As SDL_Renderer Ptr
     sdl_texture  As SDL_Texture Ptr
+    sdl_buffer   As SDL_Texture Ptr
 
     ' --- screen geometry ---
     scr_cols    As Long

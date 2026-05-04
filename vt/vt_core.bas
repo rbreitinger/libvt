@@ -467,7 +467,8 @@ Sub vt_internal_shutdown()
     vt_internal.cells = 0
 
     If vt_internal.sb_cells <> 0 Then DeAllocate vt_internal.sb_cells : vt_internal.sb_cells = 0
-
+    
+    if vt_internal.sdl_buffer   <> 0 then SDL_DestroyTexture( vt_internal.sdl_buffer ) : vt_internal.sdl_buffer   = 0
     If vt_internal.sdl_texture  <> 0 Then SDL_DestroyTexture(vt_internal.sdl_texture)  : vt_internal.sdl_texture  = 0
     If vt_internal.sdl_renderer <> 0 Then SDL_DestroyRenderer(vt_internal.sdl_renderer): vt_internal.sdl_renderer = 0
     If vt_internal.sdl_window   <> 0 Then SDL_DestroyWindow(vt_internal.sdl_window)    : vt_internal.sdl_window   = 0
@@ -534,7 +535,7 @@ Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Lo
         Return -3
     End If
 
-    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0")
+    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1")
     SDL_RenderSetLogicalSize(vt_internal.sdl_renderer, win_w, win_h)
     If flags And VT_FULLSCREEN_ASPECT Then
         SDL_RenderSetIntegerScale(vt_internal.sdl_renderer, SDL_TRUE)
@@ -550,6 +551,9 @@ Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Lo
 
     ' --- build font texture ---
     vt_internal.sdl_texture = vt_internal_build_embedded_tex()
+    if vt_internal.sdl_buffer then SDL_DestroyTexture( vt_internal.sdl_buffer )
+    vt_internal.sdl_buffer = SDL_CreateTexture( vt_internal.sdl_renderer , _
+      SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, win_w, win_h )
     If vt_internal.sdl_texture = 0 Then
         SDL_DestroyRenderer(vt_internal.sdl_renderer)
         SDL_DestroyWindow(vt_internal.sdl_window)
@@ -662,6 +666,7 @@ Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Lo
     Return 0
 End Function
 
+
 ' -----------------------------------------------------------------------------
 ' vt_screen - open the virtual text screen
 ' -----------------------------------------------------------------------------
@@ -711,8 +716,23 @@ Function vt_screen(mode As Long, flags As Long, pages As Long) As Long
             cols = 120 : rows = 50 : gw = 8  : gh = 8
             fptr = @vt_font_data_8x8(0)  : fsrc_h = 8
         Case Else
-            cols = 80 : rows = 25 : gw = 8  : gh = 16
-            fptr = @vt_font_data_8x16(0) : fsrc_h = 16
+            If mode >= &h400 Then
+                Dim As vt_screenparam_t tmode = Any : tmode.n = mode
+                cols = tmode.w : rows = tmode.h
+                gw = tmode.fw: If gw = 0 Then gw =  8
+                gh = tmode.fh: If gh = 0 Then gh = 16
+            Else
+                cols = 80 : rows = 25 : gw = 8  : gh = 16
+            End If
+            
+            Select Case gh
+                Case 8
+                    fptr = @vt_font_data_8x8(0)  : fsrc_h =  8
+                Case 14
+                    fptr = @vt_font_data_8x14(0) : fsrc_h = 14
+                Case Else
+                    fptr = @vt_font_data_8x16(0) : fsrc_h = 16
+            End Select
     End Select
 
     Return vt_init_impl(cols, rows, gw, gh, fptr, fsrc_h, flags, pages)
@@ -864,6 +884,8 @@ Sub vt_present()
     cols    = vt_internal.scr_cols
     rows    = vt_internal.scr_rows
     vis_buf = vt_internal.page_buf(vt_internal.vis_page)
+    
+    SDL_SetRenderTarget(vt_internal.sdl_renderer, vt_internal.sdl_buffer)
 
     SDL_SetRenderDrawColor(vt_internal.sdl_renderer, _
         vt_internal.border_r, vt_internal.border_g, vt_internal.border_b, 255)
@@ -1094,6 +1116,9 @@ Sub vt_present()
         SDL_SetTextureColorMod(vt_internal.sdl_texture, mc_fg_r, mc_fg_g, mc_fg_b)
         SDL_RenderCopy(vt_internal.sdl_renderer, vt_internal.sdl_texture, @src_rect, @dst_rect)
     End If
+    
+    SDL_SetRenderTarget(vt_internal.sdl_renderer, NULL)
+    SDL_RenderCopy(vt_internal.sdl_renderer, vt_internal.sdl_buffer, NULL, NULL)
     
     vt_internal.dirty = 0
     SDL_RenderPresent(vt_internal.sdl_renderer)

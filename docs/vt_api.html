@@ -228,6 +228,12 @@ vt_sleep 0   <em>' wait for keypress</em></pre>
   <code>VT_SCREEN_TILES</code> uses the 8x8 font data scaled to 16x16 glyphs;
   useful for tile-based games where square cells are desirable.
 </p>
+<p>
+  custom screenmode macro <code>#define VT_SCREENPARAM</code> 
+  up to 255 x 255 cells and either font 8x8, 8x14 or 8x16
+  useage:
+  vt_screen VT_SCREENPARAM(col, row, fontwid, fonthei), windowflags
+</p>
 
 <!-- Window Flags -->
 <h3 id="c-winflags">Window Flags</h3>
@@ -4018,7 +4024,7 @@ vt_shutdown</pre>
 
 <hr>
 <p style="font-size:0.85em; color:#555;">
-  VT Virtual Text Screen Library &mdash; API Reference &mdash; v1.6.0<br>
+  VT Virtual Text Screen Library &mdash; API Reference &mdash; v1.7.0<br>
   FreeBASIC 1.10.1 / SDL2 / Windows + Linux
 </p>
 

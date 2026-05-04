@@ -101,6 +101,8 @@ zero overhead if unused.
 | `VT_SCREEN_120_45`| 120 × 45 | 8 × 16 | 960×720 | hi-res ultrawide |
 | `VT_SCREEN_120_50`| 120 × 50 | 8 × 8  | 960×400 | hi-res ultrawide packed |
 
+also custom screenmodes are supported up to 255x255, font sizes 8x8, 8x14 or 8x16
+
 ---
 
 ## Examples
