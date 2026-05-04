@@ -141,7 +141,8 @@ Type vt_internal_tui_theme_state
 End Type
 
 Dim Shared vt_internal_tui_theme          As vt_internal_tui_theme_state
-Dim Shared vt_internal_tui_inited         As Byte
+Dim Shared vt_internal_tui_inited         As Byte  ' theme initialized
+Dim Shared vt_internal_tui_keymap_inited  As Byte  ' keymap initialised
 Dim Shared vt_internal_tui_menu_prev_btns As Long
 Dim Shared vt_internal_tui_form_prev_btns As Long
 Dim Shared vt_internal_tui_keymap(VT_TUI_ACT_COUNT - 1) As ULong
@@ -235,27 +236,27 @@ End Sub
 ' vt_tui_theme - set all theme values in one call
 ' No ready guard -- pure struct write, screen not required.
 ' -----------------------------------------------------------------------------
-Sub vt_tui_theme(win_fg As UByte, win_bg As UByte, _
-                 title_fg As UByte, title_bg As UByte, _
-                 bar_fg As UByte, bar_bg As UByte, _
-                 btn_fg As UByte, btn_bg As UByte, _
-                 dlg_fg As UByte, dlg_bg As UByte, _
-                 inp_fg As UByte, inp_bg As UByte, _
-                 border_style As UByte)
-    vt_internal_tui_theme.win_fg       = win_fg
-    vt_internal_tui_theme.win_bg       = win_bg
-    vt_internal_tui_theme.title_fg     = title_fg
-    vt_internal_tui_theme.title_bg     = title_bg
-    vt_internal_tui_theme.bar_fg       = bar_fg
-    vt_internal_tui_theme.bar_bg       = bar_bg
-    vt_internal_tui_theme.btn_fg       = btn_fg
-    vt_internal_tui_theme.btn_bg       = btn_bg
-    vt_internal_tui_theme.dlg_fg       = dlg_fg
-    vt_internal_tui_theme.dlg_bg       = dlg_bg
-    vt_internal_tui_theme.inp_fg       = inp_fg
-    vt_internal_tui_theme.inp_bg       = inp_bg
-    vt_internal_tui_theme.border_style = border_style
-    vt_internal_tui_inited             = 1
+Sub vt_tui_theme(win_fg       As UByte = 16, win_bg       As UByte = 16, _
+                 title_fg     As UByte = 16, title_bg     As UByte = 16, _
+                 bar_fg       As UByte = 16, bar_bg       As UByte = 16, _
+                 btn_fg       As UByte = 16, btn_bg       As UByte = 16, _
+                 dlg_fg       As UByte = 16, dlg_bg       As UByte = 16, _
+                 inp_fg       As UByte = 16, inp_bg       As UByte = 16, _
+                 border_style As UByte = 16)
+    If win_fg       <> 16 Then vt_internal_tui_theme.win_fg       = win_fg
+    If win_bg       <> 16 Then vt_internal_tui_theme.win_bg       = win_bg
+    If title_fg     <> 16 Then vt_internal_tui_theme.title_fg     = title_fg
+    If title_bg     <> 16 Then vt_internal_tui_theme.title_bg     = title_bg
+    If bar_fg       <> 16 Then vt_internal_tui_theme.bar_fg       = bar_fg
+    If bar_bg       <> 16 Then vt_internal_tui_theme.bar_bg       = bar_bg
+    If btn_fg       <> 16 Then vt_internal_tui_theme.btn_fg       = btn_fg
+    If btn_bg       <> 16 Then vt_internal_tui_theme.btn_bg       = btn_bg
+    If dlg_fg       <> 16 Then vt_internal_tui_theme.dlg_fg       = dlg_fg
+    If dlg_bg       <> 16 Then vt_internal_tui_theme.dlg_bg       = dlg_bg
+    If inp_fg       <> 16 Then vt_internal_tui_theme.inp_fg       = inp_fg
+    If inp_bg       <> 16 Then vt_internal_tui_theme.inp_bg       = inp_bg
+    If border_style <> 16 Then vt_internal_tui_theme.border_style = border_style
+    vt_internal_tui_inited = 1
 End Sub
 
 ' =============================================================================
@@ -280,6 +281,7 @@ Sub vt_tui_keymap_default()
     vt_internal_tui_keymap(VT_TUI_ACT_PGDN)   = VT_TUI_MKKEY(VT_KEY_PGDN,  0, 0, 0)
     vt_internal_tui_keymap(VT_TUI_ACT_HOME)   = VT_TUI_MKKEY(VT_KEY_HOME,  0, 0, 0)
     vt_internal_tui_keymap(VT_TUI_ACT_END)    = VT_TUI_MKKEY(VT_KEY_END,   0, 0, 0)
+    vt_internal_tui_keymap_inited = 1
 End Sub
 
 ' =============================================================================
@@ -303,6 +305,8 @@ End Sub
 Sub vt_internal_tui_autoinit()
     If vt_internal_tui_inited = 0 Then
         vt_tui_theme_default()
+    End If
+    If vt_internal_tui_keymap_inited = 0 Then
         vt_tui_keymap_default()
     End If
 End Sub
@@ -1575,7 +1579,7 @@ Function vt_tui_dialog(caption As String, txt As String, _
         End If
     Loop
 
-dlg_done:
+  dlg_done:
     vt_internal_tui_restore_rect(dlg_x, dlg_y, dlg_w, dlg_h, saved())
     Return result
 End Function
@@ -2147,7 +2151,7 @@ Function vt_tui_file_dialog(title As String, start_path As String, _
         End If  ' lmb_down
     Loop
 
-fd_done:
+  fd_done:
     vt_internal.cur_visible = 0
     vt_internal_tui_restore_rect(dlg_x, dlg_y, dlg_w, dlg_h, saved())
     Return result
@@ -2462,13 +2466,13 @@ Function vt_tui_menubar_handle(row As Long, groups() As String, _
         sel      = 0
     Loop While 1
 
-menu_confirm:
+  menu_confirm:
     If drop_h > 0 Then
         vt_internal_tui_restore_rect(drop_x, drop_y, drop_w, drop_h, saved())
     End If
     Return menu_result
 
-menu_done:
+  menu_done:
     If drop_h > 0 Then
         vt_internal_tui_restore_rect(drop_x, drop_y, drop_w, drop_h, saved())
     End If
