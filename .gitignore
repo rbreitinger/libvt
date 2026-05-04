@@ -3,4 +3,6 @@ Thumbs.db
 *.exe
 *.fbs
 *.vts
+*.cfg
+*.bak
 int_*.*
