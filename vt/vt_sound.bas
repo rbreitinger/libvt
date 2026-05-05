@@ -1,6 +1,6 @@
 ' =============================================================================
 ' vt_sound.bas : opt-in Sound Extension
-' Generates waveform samples and queues them via SDL_QueueAudio.
+' Generates waveform samples and queues them via DRV_QueueAudio.
 ' =============================================================================
 
 Const VT_WAVE_SQUARE      = 0       ' PC speaker / chiptune square wave (default)
@@ -18,7 +18,7 @@ Const VT_SND_QUEUE_CAP    = 220500  ' max queued bytes (~20 seconds at 11025 Hz)
 ' vt_internal_sound_state - audio subsystem state (vt_sound extension)
 ' -----------------------------------------------------------------------------
 Type vt_internal_sound_state
-    dev    As SDL_AudioDeviceID   ' 0 = not open
+    dev    As DRV_AudioDeviceID   ' 0 = not open
     ready  As Byte
 End Type
 
@@ -32,24 +32,24 @@ Dim Shared vt_snd As vt_internal_sound_state
 Function vt_internal_sound_init() As Long
     If vt_snd.ready Then Return 0
 
-    If SDL_InitSubSystem(SDL_INIT_AUDIO) <> 0 Then Return -1
+    If DRV_InitSubSystem(DRV_INIT_AUDIO) <> 0 Then Return -1
 
-    Dim want As SDL_AudioSpec
-    Dim got  As SDL_AudioSpec
+    Dim want As DRV_AudioSpec
+    Dim got  As DRV_AudioSpec
 
     want.freq     = VT_SND_RATE
-    want.format   = AUDIO_U8
+    want.format   = DRV_AUDIO_U8
     want.channels = 1
     want.samples  = 512
     want.callback = 0          ' null -- queue-based, no callback thread
 
-    vt_snd.dev = SDL_OpenAudioDevice(0, 0, @want, @got, 0)
+    vt_snd.dev = DRV_OpenAudioDevice(0, 0, @want, @got, 0)
     If vt_snd.dev = 0 Then
-        SDL_QuitSubSystem(SDL_INIT_AUDIO)
+        DRV_QuitSubSystem(DRV_INIT_AUDIO)
         Return -2
     End If
 
-    SDL_PauseAudioDevice(vt_snd.dev, 0)   ' devices start paused -- unpause now
+    DRV_PauseAudioDevice(vt_snd.dev, 0)   ' devices start paused -- unpause now
     vt_snd.ready = 1
     Return 0
 End Function
@@ -60,8 +60,8 @@ End Function
 ' -----------------------------------------------------------------------------
 Sub vt_internal_sound_shutdown()
     If vt_snd.ready = 0 Then Exit Sub
-    SDL_CloseAudioDevice(vt_snd.dev)
-    SDL_QuitSubSystem(SDL_INIT_AUDIO)
+    DRV_CloseAudioDevice(vt_snd.dev)
+    DRV_QuitSubSystem(DRV_INIT_AUDIO)
     vt_snd.dev   = 0
     vt_snd.ready = 0
 End Sub
@@ -97,7 +97,7 @@ Function vt_sound(freq     As Long,                   _
 
     ' freq = 0: stop and clear queue
     If freq = 0 Then
-        If vt_snd.ready Then SDL_ClearQueuedAudio(vt_snd.dev)
+        If vt_snd.ready Then DRV_ClearQueuedAudio(vt_snd.dev)
         Return 0
     End If
 
@@ -111,7 +111,7 @@ Function vt_sound(freq     As Long,                   _
     n_smp_64 = Clngint(VT_SND_RATE) * dur_ms \ 1000
     If n_smp_64 < 1 Then Return 0
 
-    queued = SDL_GetQueuedAudioSize(vt_snd.dev)
+    queued = DRV_GetQueuedAudioSize(vt_snd.dev)
     If Clngint(queued) + n_smp_64 > VT_SND_QUEUE_CAP Then Return -2
 
     n_samples = Clng(n_smp_64)
@@ -178,13 +178,13 @@ Function vt_sound(freq     As Long,                   _
 
     End Select
 
-    SDL_QueueAudio(vt_snd.dev, buf, Culng(n_samples))
+    DRV_QueueAudio(vt_snd.dev, buf, Culng(n_samples))
     Deallocate(buf)
 
     ' any non-zero blocking value is treated as VT_SOUND_BLOCKING
     If blocking <> 0 Then
         Do
-            If SDL_GetQueuedAudioSize(vt_snd.dev) = 0 Then Exit Do
+            If DRV_GetQueuedAudioSize(vt_snd.dev) = 0 Then Exit Do
             If vt_internal.ready Then
                 vt_pump()
                 If vt_internal_blink_update() Then vt_internal.dirty = 1
@@ -204,7 +204,7 @@ End Function
 Sub vt_sound_wait()
     If vt_snd.ready = 0 Then Exit Sub
     Do
-        If SDL_GetQueuedAudioSize(vt_snd.dev) = 0 Then Exit Do
+        If DRV_GetQueuedAudioSize(vt_snd.dev) = 0 Then Exit Do
         If vt_internal.ready Then
             vt_pump()
             If vt_internal_blink_update() Then vt_internal.dirty = 1

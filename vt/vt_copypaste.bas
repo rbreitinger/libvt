@@ -86,7 +86,7 @@ Sub vt_internal_cp_build_text()
         End If
     Next row_idx
 
-    SDL_SetClipboardText(clip_str)
+    DRV_SetClipboardText(clip_str)
 
     ' reset cp_view_* snapshot after copy
     vt_internal.cp_view_left  = -1

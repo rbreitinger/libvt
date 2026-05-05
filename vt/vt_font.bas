@@ -6,12 +6,12 @@
 ' Internal helper: build a white-on-transparent ARGB32 font texture from the
 ' built-in bitpacked font data stored in vt_internal.
 ' Used by vt_font_reset. Mirrors the texture-build block in vt_init_impl exactly.
-' Returns a new SDL_Texture Ptr on success, 0 on failure.
+' Returns a new DRV_Texture Ptr on success, 0 on failure.
 ' Caller owns the returned texture and must set blend mode before use.
 ' -----------------------------------------------------------------------------
-Function vt_internal_build_embedded_tex() As SDL_Texture Ptr
-    Dim font_surf  As SDL_Surface Ptr
-    Dim new_tex    As SDL_Texture Ptr
+Function vt_internal_build_embedded_tex() As DRV_Texture Ptr
+    Dim font_surf  As DRV_Surface Ptr
+    Dim new_tex    As DRV_Texture Ptr
     Dim surf_px    As ULong Ptr
     Dim surf_pitch As Long
     Dim gw         As Long
@@ -33,11 +33,11 @@ Function vt_internal_build_embedded_tex() As SDL_Texture Ptr
     fsrc_h = vt_internal.font_src_h
     fptr   = vt_internal.font_ptr
 
-    font_surf = SDL_CreateRGBSurface(0, 16 * gw, 16 * gh, 32, _
+    font_surf = DRV_CreateRGBSurface(0, 16 * gw, 16 * gh, 32, _
         &h00FF0000, &h0000FF00, &h000000FF, &hFF000000)
     If font_surf = 0 Then Return 0
 
-    SDL_LockSurface(font_surf)
+    DRV_LockSurface(font_surf)
     surf_px    = CPtr(ULong Ptr, font_surf->pixels)
     surf_pitch = font_surf->pitch \ 4
 
@@ -60,10 +60,10 @@ Function vt_internal_build_embedded_tex() As SDL_Texture Ptr
         Next glyph_row
     Next glyph_idx
 
-    SDL_UnlockSurface(font_surf)
+    DRV_UnlockSurface(font_surf)
 
-    new_tex = SDL_CreateTextureFromSurface(vt_internal.sdl_renderer, font_surf)
-    SDL_FreeSurface(font_surf)
+    new_tex = DRV_CreateTextureFromSurface(vt_internal.sdl_renderer, font_surf)
+    DRV_FreeSurface(font_surf)
     Return new_tex
 End Function
 
@@ -72,15 +72,15 @@ End Function
 ' Rebuilds the SDL texture from the bitpacked data that vt_screen() selected.
 ' -----------------------------------------------------------------------------
 Function vt_font_reset() As Long
-    Dim new_tex As SDL_Texture Ptr
+    Dim new_tex As DRV_Texture Ptr
 
     If vt_internal.ready = 0 Then Return -1
 
     new_tex = vt_internal_build_embedded_tex()
     If new_tex = 0 Then Return -2
 
-    SDL_SetTextureBlendMode(new_tex, SDL_BLENDMODE_BLEND)
-    SDL_DestroyTexture(vt_internal.sdl_texture)
+    DRV_SetTextureBlendMode(new_tex, DRV_BLENDMODE_BLEND)
+    DRV_DestroyTexture(vt_internal.sdl_texture)
     vt_internal.sdl_texture = new_tex
     vt_internal.dirty = 1
     Return 0
@@ -96,11 +96,11 @@ Function vt_loadfont(fname As String, _
                      mask_g As UByte = 0, _
                      mask_b As UByte = 0) As Long
 
-    Dim bmp_surf   As SDL_Surface Ptr
-    Dim conv_surf  As SDL_Surface Ptr
-    Dim font_surf  As SDL_Surface Ptr
-    Dim new_tex    As SDL_Texture Ptr
-    Dim sdl_fmt    As SDL_PixelFormat Ptr
+    Dim bmp_surf   As DRV_Surface Ptr
+    Dim conv_surf  As DRV_Surface Ptr
+    Dim font_surf  As DRV_Surface Ptr
+    Dim new_tex    As DRV_Texture Ptr
+    Dim sdl_fmt    As DRV_PixelFormat Ptr
     Dim gw         As Long
     Dim gh         As Long
     Dim img_w      As Long
@@ -126,7 +126,7 @@ Function vt_loadfont(fname As String, _
     gh = vt_internal.glyph_h
 
     ' --- load BMP (SDL accepts any bit depth here) ---
-    bmp_surf = SDL_LoadBMP(fname)
+    bmp_surf = DRV_LoadBMP(fname)
     If bmp_surf = 0 Then Return -2
 
     img_w = bmp_surf->w
@@ -134,11 +134,11 @@ Function vt_loadfont(fname As String, _
 
     ' --- dimension sanity check ---
     If sheet_w > 0 AndAlso sheet_w <> img_w Then
-        SDL_FreeSurface(bmp_surf)
+        DRV_FreeSurface(bmp_surf)
         Return -3
     End If
     If sheet_h > 0 AndAlso sheet_h <> img_h Then
-        SDL_FreeSurface(bmp_surf)
+        DRV_FreeSurface(bmp_surf)
         Return -3
     End If
 
@@ -150,32 +150,32 @@ Function vt_loadfont(fname As String, _
     ElseIf img_w = 256 * gw AndAlso img_h = gh Then
         layout = 2
     Else
-        SDL_FreeSurface(bmp_surf)
+        DRV_FreeSurface(bmp_surf)
         Return -3
     End If
 
     ' --- normalise to RGB24 for predictable 3-byte-per-pixel access ---
     ' Handles 24bpp, 32bpp, and indexed palettes uniformly.
-    sdl_fmt   = SDL_AllocFormat(SDL_PIXELFORMAT_RGB24)
-    conv_surf = SDL_ConvertSurface(bmp_surf, sdl_fmt, 0)
-    SDL_FreeFormat(sdl_fmt)
-    SDL_FreeSurface(bmp_surf)
+    sdl_fmt   = DRV_AllocFormat(DRV_PIXELFORMAT_RGB24)
+    conv_surf = DRV_ConvertSurface(bmp_surf, sdl_fmt, 0)
+    DRV_FreeFormat(sdl_fmt)
+    DRV_FreeSurface(bmp_surf)
     bmp_surf = 0
 
     If conv_surf = 0 Then Return -2
 
     ' --- create destination surface: 16x16 glyph grid, ARGB32, white on transparent ---
     ' Same format as the texture built from the embedded fonts in vt_init_impl.
-    font_surf = SDL_CreateRGBSurface(0, 16 * gw, 16 * gh, 32, _
+    font_surf = DRV_CreateRGBSurface(0, 16 * gw, 16 * gh, 32, _
         &h00FF0000, &h0000FF00, &h000000FF, &hFF000000)
 
     If font_surf = 0 Then
-        SDL_FreeSurface(conv_surf)
+        DRV_FreeSurface(conv_surf)
         Return -2
     End If
 
-    SDL_LockSurface(conv_surf)
-    SDL_LockSurface(font_surf)
+    DRV_LockSurface(conv_surf)
+    DRV_LockSurface(font_surf)
 
     src_base  = CPtr(UByte Ptr, conv_surf->pixels)
     dst_base  = CPtr(ULong Ptr, font_surf->pixels)
@@ -217,20 +217,20 @@ Function vt_loadfont(fname As String, _
 
     Next glyph_idx
 
-    SDL_UnlockSurface(font_surf)
-    SDL_UnlockSurface(conv_surf)
-    SDL_FreeSurface(conv_surf)
+    DRV_UnlockSurface(font_surf)
+    DRV_UnlockSurface(conv_surf)
+    DRV_FreeSurface(conv_surf)
 
     ' --- upload to GPU ---
-    new_tex = SDL_CreateTextureFromSurface(vt_internal.sdl_renderer, font_surf)
-    SDL_FreeSurface(font_surf)
+    new_tex = DRV_CreateTextureFromSurface(vt_internal.sdl_renderer, font_surf)
+    DRV_FreeSurface(font_surf)
 
     If new_tex = 0 Then Return -4
 
-    SDL_SetTextureBlendMode(new_tex, SDL_BLENDMODE_BLEND)
+    DRV_SetTextureBlendMode(new_tex, DRV_BLENDMODE_BLEND)
 
     ' --- hot-swap: destroy old texture, install new one ---
-    SDL_DestroyTexture(vt_internal.sdl_texture)
+    DRV_DestroyTexture(vt_internal.sdl_texture)
     vt_internal.sdl_texture = new_tex
 
     vt_internal.dirty = 1

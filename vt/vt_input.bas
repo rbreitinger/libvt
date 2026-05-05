@@ -60,10 +60,10 @@ Function vt_input(max_len As Long = -1, initial As String = "", allowed As Strin
         ' --- paste injection ---
         If vt_internal.cp_paste_pend Then
             vt_internal.cp_paste_pend = 0
-            clip_ptr = SDL_GetClipboardText()
+            clip_ptr = DRV_GetClipboardText()
             If clip_ptr <> 0 Then
                 clip_str = *clip_ptr
-                SDL_free(clip_ptr)
+                DRV_free(clip_ptr)
                 For pi = 0 To Len(clip_str) - 1
                     pch = clip_str[pi]
                     ' accept printable ASCII only -- CR/LF and high bytes silently dropped

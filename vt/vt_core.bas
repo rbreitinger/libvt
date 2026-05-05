@@ -11,13 +11,13 @@ Declare Sub      vt_internal_scroll_rect(amount As Long)
 Declare Sub      vt_internal_pixel_to_cell(px As Long, py As Long, col_out As Long Ptr, row_out As Long Ptr)
 Declare Function vt_internal_display_cellptr(col As Long, row_0 As Long, vis_buf As vt_cell Ptr) As vt_cell Ptr
 Declare Sub      vt_internal_cp_build_text()
-Declare Function vt_internal_build_embedded_tex() As SDL_Texture Ptr
+Declare Function vt_internal_build_embedded_tex() As DRV_Texture Ptr
 #Ifdef VT_USE_SOUND
     Declare Sub  vt_internal_sound_shutdown()
 #Endif
 
 Function vt_internal_ticks() As ULong
-    Return SDL_GetTicks()
+    Return DRV_GetTicks()
 End Function
 
 ' -----------------------------------------------------------------------------
@@ -38,49 +38,49 @@ End Sub
 ' -----------------------------------------------------------------------------
 Function vt_internal_sdl_to_vtscan(sdlscan As Long) As Long
     Select Case sdlscan
-        Case SDL_SCANCODE_F1      : Return VT_KEY_F1
-        Case SDL_SCANCODE_F2      : Return VT_KEY_F2
-        Case SDL_SCANCODE_F3      : Return VT_KEY_F3
-        Case SDL_SCANCODE_F4      : Return VT_KEY_F4
-        Case SDL_SCANCODE_F5      : Return VT_KEY_F5
-        Case SDL_SCANCODE_F6      : Return VT_KEY_F6
-        Case SDL_SCANCODE_F7      : Return VT_KEY_F7
-        Case SDL_SCANCODE_F8      : Return VT_KEY_F8
-        Case SDL_SCANCODE_F9      : Return VT_KEY_F9
-        Case SDL_SCANCODE_F10     : Return VT_KEY_F10
-        Case SDL_SCANCODE_F11     : Return VT_KEY_F11
-        Case SDL_SCANCODE_F12     : Return VT_KEY_F12
-        Case SDL_SCANCODE_UP      : Return VT_KEY_UP
-        Case SDL_SCANCODE_DOWN    : Return VT_KEY_DOWN
-        Case SDL_SCANCODE_LEFT    : Return VT_KEY_LEFT
-        Case SDL_SCANCODE_RIGHT   : Return VT_KEY_RIGHT
-        Case SDL_SCANCODE_HOME    : Return VT_KEY_HOME
-        Case SDL_SCANCODE_END     : Return VT_KEY_END
-        Case SDL_SCANCODE_PAGEUP  : Return VT_KEY_PGUP
-        Case SDL_SCANCODE_PAGEDOWN: Return VT_KEY_PGDN
-        Case SDL_SCANCODE_INSERT  : Return VT_KEY_INS
-        Case SDL_SCANCODE_DELETE  : Return VT_KEY_DEL
-        Case SDL_SCANCODE_ESCAPE  : Return VT_KEY_ESC
-        Case SDL_SCANCODE_RETURN  : Return VT_KEY_ENTER
-        Case SDL_SCANCODE_KP_ENTER: Return VT_KEY_ENTER
-        Case SDL_SCANCODE_BACKSPACE:Return VT_KEY_BKSP
-        Case SDL_SCANCODE_TAB     : Return VT_KEY_TAB
-        Case SDL_SCANCODE_SPACE   : Return VT_KEY_SPACE
-        Case SDL_SCANCODE_LSHIFT  : Return VT_KEY_LSHIFT
-        Case SDL_SCANCODE_RSHIFT  : Return VT_KEY_RSHIFT
-        Case SDL_SCANCODE_LCTRL   : Return VT_KEY_LCTRL
-        Case SDL_SCANCODE_RCTRL   : Return VT_KEY_RCTRL
-        Case SDL_SCANCODE_LALT    : Return VT_KEY_LALT
-        Case SDL_SCANCODE_RALT    : Return VT_KEY_RALT
-        Case SDL_SCANCODE_LGUI    : Return VT_KEY_LWIN
-        Case SDL_SCANCODE_RGUI    : Return VT_KEY_RWIN
+        Case DRV_SCANCODE_F1      : Return VT_KEY_F1
+        Case DRV_SCANCODE_F2      : Return VT_KEY_F2
+        Case DRV_SCANCODE_F3      : Return VT_KEY_F3
+        Case DRV_SCANCODE_F4      : Return VT_KEY_F4
+        Case DRV_SCANCODE_F5      : Return VT_KEY_F5
+        Case DRV_SCANCODE_F6      : Return VT_KEY_F6
+        Case DRV_SCANCODE_F7      : Return VT_KEY_F7
+        Case DRV_SCANCODE_F8      : Return VT_KEY_F8
+        Case DRV_SCANCODE_F9      : Return VT_KEY_F9
+        Case DRV_SCANCODE_F10     : Return VT_KEY_F10
+        Case DRV_SCANCODE_F11     : Return VT_KEY_F11
+        Case DRV_SCANCODE_F12     : Return VT_KEY_F12
+        Case DRV_SCANCODE_UP      : Return VT_KEY_UP
+        Case DRV_SCANCODE_DOWN    : Return VT_KEY_DOWN
+        Case DRV_SCANCODE_LEFT    : Return VT_KEY_LEFT
+        Case DRV_SCANCODE_RIGHT   : Return VT_KEY_RIGHT
+        Case DRV_SCANCODE_HOME    : Return VT_KEY_HOME
+        Case DRV_SCANCODE_END     : Return VT_KEY_END
+        Case DRV_SCANCODE_PAGEUP  : Return VT_KEY_PGUP
+        Case DRV_SCANCODE_PAGEDOWN: Return VT_KEY_PGDN
+        Case DRV_SCANCODE_INSERT  : Return VT_KEY_INS
+        Case DRV_SCANCODE_DELETE  : Return VT_KEY_DEL
+        Case DRV_SCANCODE_ESCAPE  : Return VT_KEY_ESC
+        Case DRV_SCANCODE_RETURN  : Return VT_KEY_ENTER
+        Case DRV_SCANCODE_KP_ENTER: Return VT_KEY_ENTER
+        Case DRV_SCANCODE_BACKSPACE:Return VT_KEY_BKSP
+        Case DRV_SCANCODE_TAB     : Return VT_KEY_TAB
+        Case DRV_SCANCODE_SPACE   : Return VT_KEY_SPACE
+        Case DRV_SCANCODE_LSHIFT  : Return VT_KEY_LSHIFT
+        Case DRV_SCANCODE_RSHIFT  : Return VT_KEY_RSHIFT
+        Case DRV_SCANCODE_LCTRL   : Return VT_KEY_LCTRL
+        Case DRV_SCANCODE_RCTRL   : Return VT_KEY_RCTRL
+        Case DRV_SCANCODE_LALT    : Return VT_KEY_LALT
+        Case DRV_SCANCODE_RALT    : Return VT_KEY_RALT
+        Case DRV_SCANCODE_LGUI    : Return VT_KEY_LWIN
+        Case DRV_SCANCODE_RGUI    : Return VT_KEY_RWIN
     End Select
     Return 0
 End Function
 
 ' -----------------------------------------------------------------------------
 ' Internal: convert raw SDL window pixel coords to 1-based cell coords.
-' Uses SDL_RenderGetScale so the result is correct under all window modes:
+' Uses DRV_RenderGetScale so the result is correct under all window modes:
 ' VT_WINDOWED, VT_FULLSCREEN_ASPECT (integer scale), VT_FULLSCREEN_STRETCH,
 ' and maximized windows. No stored flags needed -- SDL tells us what it used.
 ' -----------------------------------------------------------------------------
@@ -94,8 +94,8 @@ Sub vt_internal_pixel_to_cell(px As Long, py As Long, col_out As Long Ptr, row_o
     Dim log_w As Long
     Dim log_h As Long
 
-    SDL_RenderGetScale(vt_internal.sdl_renderer, @sx, @sy)
-    SDL_GetRendererOutputSize(vt_internal.sdl_renderer, @out_w, @out_h)
+    DRV_RenderGetScale(vt_internal.sdl_renderer, @sx, @sy)
+    DRV_GetRendererOutputSize(vt_internal.sdl_renderer, @out_w, @out_h)
 
     log_w = vt_internal.scr_cols * vt_internal.glyph_w
     log_h = vt_internal.scr_rows * vt_internal.glyph_h
@@ -119,8 +119,8 @@ Sub vt_pump()
     If pump_active Then Exit Sub
     pump_active = 1
 
-    Dim evt       As SDL_Event
-    Dim modstate  As SDL_Keymod
+    Dim evt       As DRV_Event
+    Dim modstate  As DRV_Keymod
     Dim vtscan    As Long
     Dim keyrec    As ULong
     Dim tick      As ULong
@@ -157,9 +157,9 @@ Sub vt_pump()
     End If
 
     ' --- drain SDL event queue ---
-    While SDL_PollEvent(@evt)
+    While DRV_PollEvent(@evt)
         Select Case evt.type
-            Case SDL_QUIT_
+            Case DRV_QUIT_
                 If vt_internal.close_cb <> 0 Then
                     ' Release pump guard so the callback can use VT input freely
                     pump_active = 0
@@ -175,11 +175,11 @@ Sub vt_pump()
                     End
                 End If
 
-            Case SDL_KEYDOWN
-                modstate = SDL_GetModState()
-                Dim sh As ULong = IIf((modstate And KMOD_SHIFT) <> 0, 1UL, 0UL)
-                Dim ct As ULong = IIf((modstate And KMOD_CTRL)  <> 0, 1UL, 0UL)
-                Dim al As ULong = IIf((modstate And KMOD_ALT)   <> 0, 1UL, 0UL)
+            Case DRV_KEYDOWN
+                modstate = DRV_GetModState()
+                Dim sh As ULong = IIf((modstate And DRVKMOD_SHIFT) <> 0, 1UL, 0UL)
+                Dim ct As ULong = IIf((modstate And DRVKMOD_CTRL)  <> 0, 1UL, 0UL)
+                Dim al As ULong = IIf((modstate And DRVKMOD_ALT)   <> 0, 1UL, 0UL)
 
                 vtscan = vt_internal_sdl_to_vtscan(evt.key.keysym.scancode)
 
@@ -225,14 +225,14 @@ Sub vt_pump()
                 ascii_ch = 0
                 If ct Then
                     Dim sym As Long = evt.key.keysym.sym
-                    If sym >= SDLK_a AndAlso sym <= SDLK_z Then
-                        ascii_ch = CByte(sym - SDLK_a + 1)
+                    If sym >= DRVK_a andalso sym <= DRVK_z Then
+                        ascii_ch = CByte(sym - DRVK_a + 1)
                     End If
                 ElseIf al Then
-                    ' Alt+letter: SDL suppresses SDL_TEXTINPUT while Alt is held,
+                    ' Alt+letter: SDL suppresses DRV_TEXTINPUT while Alt is held,
                     ' so VT_CHAR would stay 0 in the keyrec without this.
                     ' Recover the letter from the raw SDL scancode.
-                    ' SDL_SCANCODE_A=4, Asc("a")=97, formula: ch = scancode + 93.
+                    ' DRV_SCANCODE_A=4, Asc("a")=97, formula: ch = scancode + 93.
                     sc_raw = evt.key.keysym.scancode
                     If sc_raw >= 4 AndAlso sc_raw <= 29 Then
                         ascii_ch = CByte(sc_raw + 93)
@@ -252,22 +252,22 @@ Sub vt_pump()
                     vt_internal.rep_last = 0
                 End If
 
-            Case SDL_KEYUP
+            Case DRV_KEYUP
                 If vt_internal_sdl_to_vtscan(evt.key.keysym.scancode) = vt_internal.rep_scan Then
                     vt_internal.rep_scan = 0
                     vt_internal.rep_last = 0
                 End If
 
-            Case SDL_TEXTINPUT
-                ' SDL_TEXTINPUT fires for normal printable text (no Alt held).
-                ' Alt+letter is already handled in SDL_KEYDOWN above.
+            Case DRV_TEXTINPUT
+                ' DRV_TEXTINPUT fires for normal printable text (no Alt held).
+                ' Alt+letter is already handled in DRV_KEYDOWN above.
                 Dim ch As UByte = CPtr(UByte Ptr, @evt.text.text)[0]
                 If ch >= 32 AndAlso ch <> 127 Then
                     keyrec = CULng(ch) Or (CULng(vt_internal.rep_scan) Shl 16)
-                    modstate = SDL_GetModState()
-                    If (modstate And KMOD_SHIFT) Then keyrec = keyrec Or (1UL Shl 29)
-                    If (modstate And KMOD_CTRL)  Then keyrec = keyrec Or (1UL Shl 30)
-                    If (modstate And KMOD_ALT)   Then keyrec = keyrec Or (1UL Shl 31)
+                    modstate = DRV_GetModState()
+                    If (modstate and DRVKMOD_SHIFT) Then keyrec = keyrec Or (1UL Shl 29)
+                    If (modstate And DRVKMOD_CTRL)  Then keyrec = keyrec Or (1UL Shl 30)
+                    If (modstate And DRVKMOD_ALT)   Then keyrec = keyrec Or (1UL Shl 31)
                     If vt_internal.key_count > 0 Then
                         vt_internal.key_write = (vt_internal.key_write + VT_KEY_BUFFER_SIZE - 1) _
                                                 Mod VT_KEY_BUFFER_SIZE
@@ -276,12 +276,12 @@ Sub vt_pump()
                     vt_internal_key_push(keyrec)
                 End If
 
-            CASE SDL_WINDOWEVENT
-                If evt.window.event = SDL_WINDOWEVENT_RESIZED Then
+            CASE DRV_WINDOWEVENT
+                If evt.window.event = DRV_WINDOWEVENT_RESIZED Then
                     vt_present()
                 End IF
 
-            Case SDL_MOUSEMOTION
+            Case DRV_MOUSEMOTION
                 ' Coordinate computation hoisted so both mouse cursor and drag
                 ' selection can share it without duplicating the clamping logic.
                 new_col = evt.motion.x \ vt_internal.glyph_w + 1
@@ -359,12 +359,12 @@ Sub vt_pump()
                     
                 End If
 
-            Case SDL_MOUSEBUTTONDOWN
+            Case DRV_MOUSEBUTTONDOWN
                 If vt_internal.mouse_on Then
                     Select Case evt.button.button
-                        Case SDL_BUTTON_LEFT   : vt_internal.mouse_btns Or= VT_MOUSE_BTN_LEFT
-                        Case SDL_BUTTON_RIGHT  : vt_internal.mouse_btns Or= VT_MOUSE_BTN_RIGHT
-                        Case SDL_BUTTON_MIDDLE : vt_internal.mouse_btns Or= VT_MOUSE_BTN_MIDDLE
+                        Case DRV_BUTTON_LEFT   : vt_internal.mouse_btns Or= VT_MOUSE_BTN_LEFT
+                        Case DRV_BUTTON_RIGHT  : vt_internal.mouse_btns Or= VT_MOUSE_BTN_RIGHT
+                        Case DRV_BUTTON_MIDDLE : vt_internal.mouse_btns Or= VT_MOUSE_BTN_MIDDLE
                     End Select
                 End If
 
@@ -377,7 +377,7 @@ Sub vt_pump()
                     If click_row < 1 Then click_row = 1
                     If click_row > vt_internal.scr_rows Then click_row = vt_internal.scr_rows
                     Select Case evt.button.button
-                        Case SDL_BUTTON_LEFT
+                        Case DRV_BUTTON_LEFT
                             ' snapshot viewport; selection activates only on drag movement
                             If vt_internal.sel_active Then
                                 vt_internal.sel_active = 0
@@ -393,7 +393,7 @@ Sub vt_pump()
                             vt_internal.sel_end_row    = click_row
                             vt_internal.sel_dragging   = 1
                             ' sel_active intentionally NOT set -- activates on first drag movement
-                        Case SDL_BUTTON_RIGHT
+                        Case DRV_BUTTON_RIGHT
                             ' copy whatever is selected (no-op if sel_active = 0)
                             vt_internal_cp_build_text()
                             vt_internal.sel_active    = 0
@@ -402,30 +402,30 @@ Sub vt_pump()
                             vt_internal.cp_view_top   = -1
                             vt_internal.cp_view_bot   = -1
                             vt_internal.dirty = 1
-                        Case SDL_BUTTON_MIDDLE
+                        Case DRV_BUTTON_MIDDLE
                             ' request paste -- vt_input drains this
                             vt_internal.cp_paste_pend = 1
                     End Select
                 End If
 
-            Case SDL_MOUSEBUTTONUP
+            Case DRV_MOUSEBUTTONUP
                 If vt_internal.mouse_on Then
                     Select Case evt.button.button
-                        Case SDL_BUTTON_LEFT   : vt_internal.mouse_btns And= Not VT_MOUSE_BTN_LEFT
-                        Case SDL_BUTTON_RIGHT  : vt_internal.mouse_btns And= Not VT_MOUSE_BTN_RIGHT
-                        Case SDL_BUTTON_MIDDLE : vt_internal.mouse_btns And= Not VT_MOUSE_BTN_MIDDLE
+                        Case DRV_BUTTON_LEFT   : vt_internal.mouse_btns And= Not VT_MOUSE_BTN_LEFT
+                        Case DRV_BUTTON_RIGHT  : vt_internal.mouse_btns And= Not VT_MOUSE_BTN_RIGHT
+                        Case DRV_BUTTON_MIDDLE : vt_internal.mouse_btns And= Not VT_MOUSE_BTN_MIDDLE
                     End Select
                 End If
                 ' finalize drag -- selection stays visible until overwritten or RMB copied
                 If vt_internal.cp_flags <> 0 Then
-                    If evt.button.button = SDL_BUTTON_LEFT Then
+                    If evt.button.button = DRV_BUTTON_LEFT Then
                         vt_internal.sel_dragging = 0
                         ' cp_view_* intentionally NOT cleared here:
                         ' highlight render and build_text still need the snapshot
                     End If
                 End If
 
-            Case SDL_MOUSEWHEEL
+            Case DRV_MOUSEWHEEL
                 If vt_internal.mouse_on Then
                     vt_internal.mouse_wheel += evt.wheel.y
                 End If
@@ -468,17 +468,17 @@ Sub vt_internal_shutdown()
 
     If vt_internal.sb_cells <> 0 Then DeAllocate vt_internal.sb_cells : vt_internal.sb_cells = 0
     
-    if vt_internal.sdl_buffer   <> 0 then SDL_DestroyTexture( vt_internal.sdl_buffer ) : vt_internal.sdl_buffer   = 0
-    If vt_internal.sdl_texture  <> 0 Then SDL_DestroyTexture(vt_internal.sdl_texture)  : vt_internal.sdl_texture  = 0
-    If vt_internal.sdl_renderer <> 0 Then SDL_DestroyRenderer(vt_internal.sdl_renderer): vt_internal.sdl_renderer = 0
-    If vt_internal.sdl_window   <> 0 Then SDL_DestroyWindow(vt_internal.sdl_window)    : vt_internal.sdl_window   = 0
+    if vt_internal.sdl_buffer   <> 0 then DRV_DestroyTexture( vt_internal.sdl_buffer ) : vt_internal.sdl_buffer   = 0
+    If vt_internal.sdl_texture  <> 0 Then DRV_DestroyTexture(vt_internal.sdl_texture)  : vt_internal.sdl_texture  = 0
+    If vt_internal.sdl_renderer <> 0 Then DRV_DestroyRenderer(vt_internal.sdl_renderer): vt_internal.sdl_renderer = 0
+    If vt_internal.sdl_window   <> 0 Then DRV_DestroyWindow(vt_internal.sdl_window)    : vt_internal.sdl_window   = 0
     
     #Ifdef VT_USE_SOUND
         ' vt_sound extension -- shuts down cleanly if audio was ever opened
         vt_internal_sound_shutdown()
     #Endif
     
-    SDL_Quit()
+    DRV_Quit()
 End Sub
 
 ' -----------------------------------------------------------------------------
@@ -498,10 +498,10 @@ Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Lo
 
     If vt_internal.ready Then vt_internal_shutdown()  ' re-init: clean up first
 
-    If SDL_Init(SDL_INIT_VIDEO) <> 0 Then Return -1
+    If DRV_Init(DRV_INIT_VIDEO) <> 0 Then Return -1
 
-    Dim wflags As ULong = SDL_WINDOW_SHOWN
-    If (flags And VT_NO_RESIZE) = 0 Then wflags = wflags Or SDL_WINDOW_RESIZABLE
+    Dim wflags As ULong = DRV_WINDOW_SHOWN
+    If (flags And VT_NO_RESIZE) = 0 Then wflags = wflags Or DRV_WINDOW_RESIZABLE
 
     Dim win_w As Long = cols * glyph_w
     Dim win_h As Long = rows * glyph_h
@@ -509,36 +509,36 @@ Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Lo
     Dim wtitle As String = vt_internal.win_title
     If wtitle = "" Then wtitle = "VT"
 
-    vt_internal.sdl_window = SDL_CreateWindow(wtitle, _
-        SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, _
+    vt_internal.sdl_window = DRV_CreateWindow( wtitle, _
+        DRV_WINDOWPOS_CENTERED, DRV_WINDOWPOS_CENTERED, _
         win_w, win_h, wflags)
 
     If vt_internal.sdl_window = 0 Then
-        SDL_Quit()
+        DRV_Quit()
         Return -2
     End If
 
     If flags And VT_FULLSCREEN_ASPECT Then
-        SDL_SetWindowFullscreen(vt_internal.sdl_window, SDL_WINDOW_FULLSCREEN_DESKTOP)
+        DRV_SetWindowFullscreen(vt_internal.sdl_window, DRV_WINDOW_FULLSCREEN_DESKTOP)
     ElseIf flags And VT_FULLSCREEN_STRETCH Then
-        SDL_SetWindowFullscreen(vt_internal.sdl_window, SDL_WINDOW_FULLSCREEN)
+        DRV_SetWindowFullscreen(vt_internal.sdl_window, DRV_WINDOW_FULLSCREEN)
     ElseIf flags And VT_WINDOWED_MAX Then
-        SDL_MaximizeWindow(vt_internal.sdl_window)
+        DRV_MaximizeWindow(vt_internal.sdl_window)
     End If
 
-    Dim rflags As ULong = SDL_RENDERER_ACCELERATED
-    If flags And VT_VSYNC Then rflags = rflags Or SDL_RENDERER_PRESENTVSYNC
-    vt_internal.sdl_renderer = SDL_CreateRenderer(vt_internal.sdl_window, -1, rflags)
+    Dim rflags As ULong = DRV_RENDERER_ACCELERATED
+    If flags And VT_VSYNC Then rflags = rflags Or DRV_RENDERER_PRESENTVSYNC
+    vt_internal.sdl_renderer = DRV_CreateRenderer(vt_internal.sdl_window, -1, rflags)
     If vt_internal.sdl_renderer = 0 Then
-        SDL_DestroyWindow(vt_internal.sdl_window)
-        SDL_Quit()
+        DRV_DestroyWindow(vt_internal.sdl_window)
+        DRV_Quit()
         Return -3
     End If
 
-    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1")
-    SDL_RenderSetLogicalSize(vt_internal.sdl_renderer, win_w, win_h)
+    DRV_SetHint(DRV_HINT_RENDER_SCALE_QUALITY, "1")
+    DRV_RenderSetLogicalSize(vt_internal.sdl_renderer, win_w, win_h)
     If flags And VT_FULLSCREEN_ASPECT Then
-        SDL_RenderSetIntegerScale(vt_internal.sdl_renderer, SDL_TRUE)
+        DRV_RenderSetIntegerScale(vt_internal.sdl_renderer, DRV_TRUE)
     End If
 
     ' --- store geometry and font (must precede texture build -- helper reads these) ---
@@ -551,16 +551,16 @@ Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Lo
 
     ' --- build font texture ---
     vt_internal.sdl_texture = vt_internal_build_embedded_tex()
-    if vt_internal.sdl_buffer then SDL_DestroyTexture( vt_internal.sdl_buffer )
-    vt_internal.sdl_buffer = SDL_CreateTexture( vt_internal.sdl_renderer , _
-      SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, win_w, win_h )
+    if vt_internal.sdl_buffer then DRV_DestroyTexture( vt_internal.sdl_buffer )
+    vt_internal.sdl_buffer = DRV_CreateTexture( vt_internal.sdl_renderer , _
+      DRV_PIXELFORMAT_RGBA8888, DRV_TEXTUREACCESS_TARGET, win_w, win_h )
     If vt_internal.sdl_texture = 0 Then
-        SDL_DestroyRenderer(vt_internal.sdl_renderer)
-        SDL_DestroyWindow(vt_internal.sdl_window)
-        SDL_Quit()
+        DRV_DestroyRenderer(vt_internal.sdl_renderer)
+        DRV_DestroyWindow(vt_internal.sdl_window)
+        DRV_Quit()
         Return -4
     End If
-    SDL_SetTextureBlendMode(vt_internal.sdl_texture, SDL_BLENDMODE_BLEND)
+    DRV_SetTextureBlendMode(vt_internal.sdl_texture, DRV_BLENDMODE_BLEND)
 
     ' --- pages ---
     ' Clamp requested page count, allocate each buffer, wire cells to page 0.
@@ -849,8 +849,8 @@ Sub vt_present()
     Dim gh          As Long
     Dim cols        As Long
     Dim rows        As Long
-    Dim src_rect    As SDL_Rect
-    Dim dst_rect    As SDL_Rect
+    Dim src_rect    As DRV_Rect
+    Dim dst_rect    As DRV_Rect
     Dim row_idx     As Long
     Dim col_idx     As Long
     Dim last_fg_r   As UByte
@@ -885,11 +885,11 @@ Sub vt_present()
     rows    = vt_internal.scr_rows
     vis_buf = vt_internal.page_buf(vt_internal.vis_page)
     
-    SDL_SetRenderTarget(vt_internal.sdl_renderer, vt_internal.sdl_buffer)
+    DRV_SetRenderTarget(vt_internal.sdl_renderer, vt_internal.sdl_buffer)
 
-    SDL_SetRenderDrawColor(vt_internal.sdl_renderer, _
+    DRV_SetRenderDrawColor(vt_internal.sdl_renderer, _
         vt_internal.border_r, vt_internal.border_g, vt_internal.border_b, 255)
-    SDL_RenderClear(vt_internal.sdl_renderer)
+    DRV_RenderClear(vt_internal.sdl_renderer)
 
     src_rect.w = gw
     src_rect.h = gh
@@ -898,7 +898,7 @@ Sub vt_present()
 
     ' Reset texture colormod to white before cell loop each frame.
     ' Cursor render from previous frame would otherwise taint fg=white cells.
-    SDL_SetTextureColorMod(vt_internal.sdl_texture, 255, 255, 255)
+    DRV_SetTextureColorMod(vt_internal.sdl_texture, 255, 255, 255)
     last_fg_r = 255
     last_fg_g = 255
     last_fg_b = 255
@@ -952,18 +952,18 @@ Sub vt_present()
             dst_rect.x = col_idx * gw
             dst_rect.y = row_idx * gh
 
-            SDL_SetRenderDrawColor(vt_internal.sdl_renderer, bg_r, bg_g, bg_b, 255)
-            SDL_RenderFillRect(vt_internal.sdl_renderer, @dst_rect)
+            DRV_SetRenderDrawColor(vt_internal.sdl_renderer, bg_r, bg_g, bg_b, 255)
+            DRV_RenderFillRect(vt_internal.sdl_renderer, @dst_rect)
 
             If fg_r <> last_fg_r OrElse fg_g <> last_fg_g OrElse fg_b <> last_fg_b Then
-                SDL_SetTextureColorMod(vt_internal.sdl_texture, fg_r, fg_g, fg_b)
+                DRV_SetTextureColorMod(vt_internal.sdl_texture, fg_r, fg_g, fg_b)
                 last_fg_r = fg_r
                 last_fg_g = fg_g
                 last_fg_b = fg_b
             End If
             src_rect.x = (ch Mod 16) * gw
             src_rect.y = (ch \ 16)   * gh
-            SDL_RenderCopy(vt_internal.sdl_renderer, vt_internal.sdl_texture, @src_rect, @dst_rect)
+            DRV_RenderCopy(vt_internal.sdl_renderer, vt_internal.sdl_texture, @src_rect, @dst_rect)
 
         Next col_idx
     Next row_idx
@@ -1032,14 +1032,14 @@ Sub vt_present()
             ' pass 1: solid block in inverted background colour
             src_rect.x = (219 Mod 16) * gw
             src_rect.y = (219 \ 16)   * gh
-            SDL_SetTextureColorMod(vt_internal.sdl_texture, si_bg_r, si_bg_g, si_bg_b)
-            SDL_RenderCopy(vt_internal.sdl_renderer, vt_internal.sdl_texture, @src_rect, @dst_rect)
+            DRV_SetTextureColorMod(vt_internal.sdl_texture, si_bg_r, si_bg_g, si_bg_b)
+            DRV_RenderCopy(vt_internal.sdl_renderer, vt_internal.sdl_texture, @src_rect, @dst_rect)
 
             ' pass 2: original glyph in inverted foreground colour
             src_rect.x = (sl_ch Mod 16) * gw
             src_rect.y = (sl_ch \ 16)   * gh
-            SDL_SetTextureColorMod(vt_internal.sdl_texture, si_fg_r, si_fg_g, si_fg_b)
-            SDL_RenderCopy(vt_internal.sdl_renderer, vt_internal.sdl_texture, @src_rect, @dst_rect)
+            DRV_SetTextureColorMod(vt_internal.sdl_texture, si_fg_r, si_fg_g, si_fg_b)
+            DRV_RenderCopy(vt_internal.sdl_renderer, vt_internal.sdl_texture, @src_rect, @dst_rect)
         Next flat_cur
     End If
 
@@ -1055,8 +1055,8 @@ Sub vt_present()
         src_rect.y = (vt_internal.cur_ch \ 16)   * gh
         dst_rect.x = c_col * gw
         dst_rect.y = c_row * gh
-        SDL_SetTextureColorMod(vt_internal.sdl_texture, cfg_r, cfg_g, cfg_b)
-        SDL_RenderCopy(vt_internal.sdl_renderer, vt_internal.sdl_texture, @src_rect, @dst_rect)
+        DRV_SetTextureColorMod(vt_internal.sdl_texture, cfg_r, cfg_g, cfg_b)
+        DRV_RenderCopy(vt_internal.sdl_renderer, vt_internal.sdl_texture, @src_rect, @dst_rect)
     End If
 
     ' --- mouse cursor ---
@@ -1109,19 +1109,19 @@ Sub vt_present()
         dst_rect.y = mc_row * gh
         src_rect.x = (219 Mod 16) * gw
         src_rect.y = (219 \ 16)   * gh
-        SDL_SetTextureColorMod(vt_internal.sdl_texture, mc_bg_r, mc_bg_g, mc_bg_b)
-        SDL_RenderCopy(vt_internal.sdl_renderer, vt_internal.sdl_texture, @src_rect, @dst_rect)
+        DRV_SetTextureColorMod(vt_internal.sdl_texture, mc_bg_r, mc_bg_g, mc_bg_b)
+        DRV_RenderCopy(vt_internal.sdl_renderer, vt_internal.sdl_texture, @src_rect, @dst_rect)
         src_rect.x = (mc_ch Mod 16) * gw
         src_rect.y = (mc_ch \ 16)   * gh
-        SDL_SetTextureColorMod(vt_internal.sdl_texture, mc_fg_r, mc_fg_g, mc_fg_b)
-        SDL_RenderCopy(vt_internal.sdl_renderer, vt_internal.sdl_texture, @src_rect, @dst_rect)
+        DRV_SetTextureColorMod(vt_internal.sdl_texture, mc_fg_r, mc_fg_g, mc_fg_b)
+        DRV_RenderCopy(vt_internal.sdl_renderer, vt_internal.sdl_texture, @src_rect, @dst_rect)
     End If
     
-    SDL_SetRenderTarget(vt_internal.sdl_renderer, NULL)
-    SDL_RenderCopy(vt_internal.sdl_renderer, vt_internal.sdl_buffer, NULL, NULL)
+    DRV_SetRenderTarget(vt_internal.sdl_renderer, NULL)
+    DRV_RenderCopy(vt_internal.sdl_renderer, vt_internal.sdl_buffer, NULL, NULL)
     
     vt_internal.dirty = 0
-    SDL_RenderPresent(vt_internal.sdl_renderer)
+    DRV_RenderPresent(vt_internal.sdl_renderer)
 End Sub
 
 ' -----------------------------------------------------------------------------
@@ -1153,7 +1153,7 @@ End Sub
 Sub vt_title(txt As String)
     vt_internal.win_title = txt
     If vt_internal.ready Then
-        SDL_SetWindowTitle(vt_internal.sdl_window, txt)
+        DRV_SetWindowTitle(vt_internal.sdl_window, txt)
     End If
 End Sub
 
@@ -1202,45 +1202,45 @@ Function vt_key_held(vtscan As Long) As Byte
     Dim states   As Const UByte Ptr
 
     Select Case vtscan
-        Case VT_KEY_F1     : sdl_scan = SDL_SCANCODE_F1
-        Case VT_KEY_F2     : sdl_scan = SDL_SCANCODE_F2
-        Case VT_KEY_F3     : sdl_scan = SDL_SCANCODE_F3
-        Case VT_KEY_F4     : sdl_scan = SDL_SCANCODE_F4
-        Case VT_KEY_F5     : sdl_scan = SDL_SCANCODE_F5
-        Case VT_KEY_F6     : sdl_scan = SDL_SCANCODE_F6
-        Case VT_KEY_F7     : sdl_scan = SDL_SCANCODE_F7
-        Case VT_KEY_F8     : sdl_scan = SDL_SCANCODE_F8
-        Case VT_KEY_F9     : sdl_scan = SDL_SCANCODE_F9
-        Case VT_KEY_F10    : sdl_scan = SDL_SCANCODE_F10
-        Case VT_KEY_F11    : sdl_scan = SDL_SCANCODE_F11
-        Case VT_KEY_F12    : sdl_scan = SDL_SCANCODE_F12
-        Case VT_KEY_ESC    : sdl_scan = SDL_SCANCODE_ESCAPE
-        Case VT_KEY_ENTER  : sdl_scan = SDL_SCANCODE_RETURN
-        Case VT_KEY_BKSP   : sdl_scan = SDL_SCANCODE_BACKSPACE
-        Case VT_KEY_TAB    : sdl_scan = SDL_SCANCODE_TAB
-        Case VT_KEY_SPACE  : sdl_scan = SDL_SCANCODE_SPACE
-        Case VT_KEY_UP     : sdl_scan = SDL_SCANCODE_UP
-        Case VT_KEY_DOWN   : sdl_scan = SDL_SCANCODE_DOWN
-        Case VT_KEY_LEFT   : sdl_scan = SDL_SCANCODE_LEFT
-        Case VT_KEY_RIGHT  : sdl_scan = SDL_SCANCODE_RIGHT
-        Case VT_KEY_HOME   : sdl_scan = SDL_SCANCODE_HOME
-        Case VT_KEY_END    : sdl_scan = SDL_SCANCODE_END
-        Case VT_KEY_PGUP   : sdl_scan = SDL_SCANCODE_PAGEUP
-        Case VT_KEY_PGDN   : sdl_scan = SDL_SCANCODE_PAGEDOWN
-        Case VT_KEY_INS    : sdl_scan = SDL_SCANCODE_INSERT
-        Case VT_KEY_DEL    : sdl_scan = SDL_SCANCODE_DELETE
-        Case VT_KEY_LSHIFT : sdl_scan = SDL_SCANCODE_LSHIFT
-        Case VT_KEY_RSHIFT : sdl_scan = SDL_SCANCODE_RSHIFT
-        Case VT_KEY_LCTRL  : sdl_scan = SDL_SCANCODE_LCTRL
-        Case VT_KEY_RCTRL  : sdl_scan = SDL_SCANCODE_RCTRL
-        Case VT_KEY_LALT   : sdl_scan = SDL_SCANCODE_LALT
-        Case VT_KEY_RALT   : sdl_scan = SDL_SCANCODE_RALT
-        Case VT_KEY_LWIN   : sdl_scan = SDL_SCANCODE_LGUI
-        Case VT_KEY_RWIN   : sdl_scan = SDL_SCANCODE_RGUI
+        Case VT_KEY_F1     : sdl_scan = DRV_SCANCODE_F1
+        Case VT_KEY_F2     : sdl_scan = DRV_SCANCODE_F2
+        Case VT_KEY_F3     : sdl_scan = DRV_SCANCODE_F3
+        Case VT_KEY_F4     : sdl_scan = DRV_SCANCODE_F4
+        Case VT_KEY_F5     : sdl_scan = DRV_SCANCODE_F5
+        Case VT_KEY_F6     : sdl_scan = DRV_SCANCODE_F6
+        Case VT_KEY_F7     : sdl_scan = DRV_SCANCODE_F7
+        Case VT_KEY_F8     : sdl_scan = DRV_SCANCODE_F8
+        Case VT_KEY_F9     : sdl_scan = DRV_SCANCODE_F9
+        Case VT_KEY_F10    : sdl_scan = DRV_SCANCODE_F10
+        Case VT_KEY_F11    : sdl_scan = DRV_SCANCODE_F11
+        Case VT_KEY_F12    : sdl_scan = DRV_SCANCODE_F12
+        Case VT_KEY_ESC    : sdl_scan = DRV_SCANCODE_ESCAPE
+        Case VT_KEY_ENTER  : sdl_scan = DRV_SCANCODE_RETURN
+        Case VT_KEY_BKSP   : sdl_scan = DRV_SCANCODE_BACKSPACE
+        Case VT_KEY_TAB    : sdl_scan = DRV_SCANCODE_TAB
+        Case VT_KEY_SPACE  : sdl_scan = DRV_SCANCODE_SPACE
+        Case VT_KEY_UP     : sdl_scan = DRV_SCANCODE_UP
+        Case VT_KEY_DOWN   : sdl_scan = DRV_SCANCODE_DOWN
+        Case VT_KEY_LEFT   : sdl_scan = DRV_SCANCODE_LEFT
+        Case VT_KEY_RIGHT  : sdl_scan = DRV_SCANCODE_RIGHT
+        Case VT_KEY_HOME   : sdl_scan = DRV_SCANCODE_HOME
+        Case VT_KEY_END    : sdl_scan = DRV_SCANCODE_END
+        Case VT_KEY_PGUP   : sdl_scan = DRV_SCANCODE_PAGEUP
+        Case VT_KEY_PGDN   : sdl_scan = DRV_SCANCODE_PAGEDOWN
+        Case VT_KEY_INS    : sdl_scan = DRV_SCANCODE_INSERT
+        Case VT_KEY_DEL    : sdl_scan = DRV_SCANCODE_DELETE
+        Case VT_KEY_LSHIFT : sdl_scan = DRV_SCANCODE_LSHIFT
+        Case VT_KEY_RSHIFT : sdl_scan = DRV_SCANCODE_RSHIFT
+        Case VT_KEY_LCTRL  : sdl_scan = DRV_SCANCODE_LCTRL
+        Case VT_KEY_RCTRL  : sdl_scan = DRV_SCANCODE_RCTRL
+        Case VT_KEY_LALT   : sdl_scan = DRV_SCANCODE_LALT
+        Case VT_KEY_RALT   : sdl_scan = DRV_SCANCODE_RALT
+        Case VT_KEY_LWIN   : sdl_scan = DRV_SCANCODE_LGUI
+        Case VT_KEY_RWIN   : sdl_scan = DRV_SCANCODE_RGUI
         Case Else          : Return 0
     End Select
 
-    states = SDL_GetKeyboardState(@numkeys)
+    states = DRV_GetKeyboardState(@numkeys)
     If states = 0 Then Return 0
     If sdl_scan >= numkeys Then Return 0
     Return states[sdl_scan]

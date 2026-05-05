@@ -10,8 +10,8 @@ Sub vt_mouselock(onoff As Byte)
     If vt_internal.ready = 0 Then Exit Sub
     vt_internal.mouse_lock = IIf(onoff <> 0, 1, 0)
     If vt_internal.mouse_on Then
-        SDL_SetWindowGrab(vt_internal.sdl_window, _
-                          IIf(vt_internal.mouse_lock, SDL_TRUE, SDL_FALSE))
+        DRV_SetWindowGrab(vt_internal.sdl_window, _
+                          IIf(vt_internal.mouse_lock, DRV_TRUE, DRV_FALSE))
     End If
 End Sub
 
@@ -26,13 +26,13 @@ Sub vt_mouse(enabled As Byte)
     vt_internal.mouse_on = IIf(enabled <> 0, 1, 0)
 
     If enabled Then
-        SDL_ShowCursor(SDL_DISABLE)
+        DRV_ShowCursor(DRV_DISABLE)
         If vt_internal.mouse_lock Then
-            SDL_SetWindowGrab(vt_internal.sdl_window, SDL_TRUE)
+            DRV_SetWindowGrab(vt_internal.sdl_window, DRV_TRUE)
         End If
         ' Snap char cursor to current physical mouse position immediately
         ' so it doesn't sit at (1,1) waiting for the first motion event.
-        SDL_GetMouseState(@px, @py)
+        DRV_GetMouseState(@px, @py)
         vt_internal_pixel_to_cell(px, py, @vt_internal.mouse_col, @vt_internal.mouse_row)
         If vt_internal.mouse_col < 1 Then vt_internal.mouse_col = 1
         If vt_internal.mouse_col > vt_internal.scr_cols Then _
@@ -41,8 +41,8 @@ Sub vt_mouse(enabled As Byte)
         If vt_internal.mouse_row > vt_internal.scr_rows Then _
             vt_internal.mouse_row = vt_internal.scr_rows
     Else
-        SDL_SetWindowGrab(vt_internal.sdl_window, SDL_FALSE)
-        SDL_ShowCursor(SDL_ENABLE)
+        DRV_SetWindowGrab(vt_internal.sdl_window, DRV_FALSE)
+        DRV_ShowCursor(DRV_ENABLE)
         vt_internal.mouse_btns  = 0
         vt_internal.mouse_wheel = 0
     End If

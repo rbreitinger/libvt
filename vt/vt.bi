@@ -2,12 +2,16 @@
 ' vt.bi - VT Virtual Text Screen Library
 ' Usage: #include once "vt/vt.bi"
 ' =============================================================================
-#Include Once "SDL2/SDL.bi"
-
+#Ifndef BACKEND_VT
+    #Include Once "driver/sdl2.bi"
+#Else
+    #Include Once "driver/vt.bas"
+#Endif
+    
 #Define VT_NEWLINE  Chr(10)
 #Define VT_LF       VT_NEWLINE     ' short alias
 
-Const VT_VERSION = "1.7.0"         ' major.minor.patch
+Const VT_VERSION = "1.7.1"         ' major.minor.patch
 
 ' -----------------------------------------------------------------------------
 ' Init flags  (combinable with Or)
@@ -194,7 +198,7 @@ Const VT_ASCENDING = 0, VT_DESCENDING = 1
 Type vt_cell
     ch  As UByte
     fg  As UByte
-    bg  As UByte
+    bg  As ubyte
 End Type
 
 ' -----------------------------------------------------------------------------
@@ -202,10 +206,10 @@ End Type
 ' -----------------------------------------------------------------------------
 Type vt_internal_state
     ' --- SDL handles ---
-    sdl_window   As SDL_Window Ptr
-    sdl_renderer As SDL_Renderer Ptr
-    sdl_texture  As SDL_Texture Ptr
-    sdl_buffer   As SDL_Texture Ptr
+    sdl_window   As DRV_Window Ptr
+    sdl_renderer As DRV_Renderer Ptr
+    sdl_texture  As DRV_Texture Ptr
+    sdl_buffer   As DRV_Texture Ptr
 
     ' --- screen geometry ---
     scr_cols    As Long
@@ -320,7 +324,7 @@ Type vt_internal_state
     cp_scroll_tick As ULong  ' last auto-scroll tick during drag
 
     ' --- close callback ---
-    ' If set, called on SDL_QUIT instead of the default shutdown+End.
+    ' If set, called on DRV_QUIT instead of the default shutdown+End.
     ' Return 0 = proceed with shutdown. Return 1 = veto (user handles it).
     close_cb As Function() As Byte
 End Type
@@ -340,11 +344,11 @@ Dim Shared vt_internal As vt_internal_state
 #Include Once "vt_copypaste.bas"
 #Include Once "vt_font.bas"
 
-#Ifdef VT_USE_FILE
+#ifdef VT_USE_FILE
     #include once "vt_file.bas"
 #Endif
 #Ifdef VT_USE_STRINGS
-    #Include Once "vt_strings.bas"
+    #include Once "vt_strings.bas"
 #Endif
 #Ifdef VT_USE_MATH
     #Include Once "vt_math.bas"

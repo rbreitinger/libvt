@@ -1,7 +1,7 @@
 ' =============================================================================
 ' vt_tui.bas - TUI opt-in extension for the VT Virtual Text Screen Library
 ' =============================================================================
-#Include Once "vt_strings.bas"
+#Include once "vt_strings.bas"
 #Include Once "vt_file.bas"
 
 #Define VT_TUI_INVERT_FG(fg)  ((fg) Xor 15)
@@ -1236,10 +1236,10 @@ Function vt_tui_editor_handle(x As Long, y As Long, wid As Long, hei As Long, _
     If vt_internal.cp_paste_pend Then
         vt_internal.cp_paste_pend = 0
         If readonly_f = 0 Then
-            Dim clip_ptr As ZString Ptr = SDL_GetClipboardText()
+            Dim clip_ptr As ZString Ptr = DRV_GetClipboardText()
             If clip_ptr <> 0 Then
                 Dim clip_str As String = *clip_ptr
-                SDL_free(clip_ptr)
+                DRV_free(clip_ptr)
                 Dim pi  As Long
                 Dim pch As UByte
                 For pi = 0 To Len(clip_str) - 1
@@ -2756,10 +2756,10 @@ Function vt_tui_form_handle(items() As vt_tui_form_item, ByRef focused As Long, 
     ' =========================================================================
     If vt_internal.cp_paste_pend AndAlso items(cur_item).kind = VT_FORM_INPUT Then
         vt_internal.cp_paste_pend = 0
-        Dim clip_ptr As ZString Ptr = SDL_GetClipboardText()
+        Dim clip_ptr As ZString Ptr = DRV_GetClipboardText()
         If clip_ptr <> 0 Then
             Dim clip_str As String = *clip_ptr
-            SDL_free(clip_ptr)
+            DRV_free(clip_ptr)
             Dim mx_p As Long = items(cur_item).max_len
             If mx_p < 1 Then mx_p = items(cur_item).wid
             Dim pi   As Long
