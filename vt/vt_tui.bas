@@ -242,7 +242,9 @@ Sub vt_tui_theme(win_fg       As UByte = 16, win_bg       As UByte = 16, _
                  btn_fg       As UByte = 16, btn_bg       As UByte = 16, _
                  dlg_fg       As UByte = 16, dlg_bg       As UByte = 16, _
                  inp_fg       As UByte = 16, inp_bg       As UByte = 16, _
-                 border_style As UByte = 16)
+                 border_style As UByte = 16 _
+                )
+
     If win_fg       <> 16 Then vt_internal_tui_theme.win_fg       = win_fg
     If win_bg       <> 16 Then vt_internal_tui_theme.win_bg       = win_bg
     If title_fg     <> 16 Then vt_internal_tui_theme.title_fg     = title_fg
