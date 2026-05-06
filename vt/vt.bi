@@ -362,6 +362,10 @@ Dim Shared vt_internal As vt_internal_state
 #Ifdef VT_USE_NET
     #Include Once "vt_net.bas"
 #Endif
+#ifdef VT_USE_TLS
+    #include once "vt_tls.bi"
+    #include once "vt_tls.bas"
+#endif
 
 ' --- undefine internals ---
 #Undef vt_internal_shutdown
