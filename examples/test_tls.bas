@@ -2,7 +2,6 @@
 #define VT_USE_TLS
 #include once "../vt/vt.bi"
 
-' NOTE: compile from root via "fbc examples/test_tls.bas", otherwise libmbedtls will not be found
 Const TEST_HOST = "gemini.circumlunar.space"
 Const TEST_PORT = 1965
 Const TEST_URL  = "gemini://gemini.circumlunar.space/" & Chr(13) & Chr(10)
@@ -82,5 +81,5 @@ vt_net_close(sock)
 vt_net_shutdown()
 Print "Done."
 
-vt_sleep()
+sleep
 vt_shutdown()
