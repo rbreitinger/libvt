@@ -1,4 +1,4 @@
-#Include Once "SDL2/sdl.bi"
+#Include Once "SDL2/SDL.bi"
 
 ' --- constants / scancodes ---
 #define DRV_SCANCODE_F1               SDL_SCANCODE_F1

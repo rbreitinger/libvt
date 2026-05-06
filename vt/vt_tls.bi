@@ -1,16 +1,15 @@
 #pragma once
 
-#define _inclibrelpath( _LibPath ) #inclib __FB_EVAL__("fb -L"__FILE__ "/../" _LibPath)
-
-_inclibrelpath(".")
-
 #ifdef __FB_WIN32__
+    #define _inclibrelpath( _LibPath ) #inclib __FB_EVAL__("fb-L"__PATH__ _LibPath)
+    _inclibrelpath(".")
     #ifdef __FB_64BIT__
         #inclib "mbedtls_win64"
     #else
         #inclib "mbedtls_win32"
     #endif
 #else
+    #inclib __FB_EVAL__("fb -L"__PATH__)
     #ifdef __FB_64BIT__
         #inclib "mbedtls_linux64"
     #else
