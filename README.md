@@ -79,8 +79,10 @@ zero overhead if unused.
 | **File** — File I/O helpers | `VT_USE_FILE` |
 | **TUI** — Text User Interface | `VT_USE_TUI` |
 | **Net** — Sockets wrapper | `VT_USE_NET` |
+| **TLS** — TLS 1.2/1.3 over TCP (requires VT_USE_NET) | `VT_USE_TLS` |
 
 `VT_USE_TUI` automatically pulls in `VT_USE_STRINGS` and `VT_USE_FILE`.
+`VT_USE_TLS` requires `VT_USE_NET` to be defined first.
 
 ---
 

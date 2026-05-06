@@ -183,6 +183,7 @@
       </ul>
     </li>
     <li><a href="#s-net">Networking</a> <span class="badge-opt">opt-in</span></li>
+    <li><a href="#s-tls">TLS</a> <span class="badge-opt">opt-in</span></li>
   </ul>
 </div>
 
@@ -4022,9 +4023,208 @@ vt_net_shutdown()
 vt_sleep 0
 vt_shutdown</pre>
 
+<!-- ================================================================== -->
+<h2 id="s-tls">TLS <span class="badge-opt">opt-in</span></h2>
+<p>
+  TLS 1.2 / 1.3 layer on top of <a href="#s-net">VT_USE_NET</a> TCP sockets,
+  backed by the embedded <strong>mbedTLS</strong> library &mdash; no external TLS
+  dependency is required on either platform.
+  Enable with both defines:
+</p>
+<pre>#Define VT_USE_NET
+#Define VT_USE_TLS
+#include once "vt/vt.bi"</pre>
+<ul class="section-toc">
+  <li><a href="#vt_tls_connect">vt_tls_connect</a> &mdash; TLS handshake on a connected TCP socket</li>
+  <li><a href="#vt_tls_send">vt_tls_send</a> &mdash; send data over TLS</li>
+  <li><a href="#vt_tls_recv">vt_tls_recv</a> &mdash; receive data over TLS</li>
+  <li><a href="#vt_tls_fingerprint">vt_tls_fingerprint</a> &mdash; SHA-256 certificate fingerprint (TOFU)</li>
+  <li><a href="#vt_tls_disconnect">vt_tls_disconnect</a> &mdash; graceful close and resource release</li>
+</ul>
+
+<!-- ------------------------------------------------------------------ -->
+<h3 id="vt_tls_connect">vt_tls_connect</h3>
+<p>
+  Perform a TLS handshake on an already-connected TCP socket obtained from
+  <a href="#vt_net_connect">vt_net_connect</a>.
+  <code>hostname</code> is used for SNI and must match the server's certificate hostname.
+  On success, <code>conn</code> receives an opaque connection handle that is passed to
+  all other <code>vt_tls_*</code> functions; on failure it is set to <code>0</code>.
+</p>
+<div class="syntax">Function vt_tls_connect(sock           As SOCKET,
+                        hostname       As String,
+                        ByRef conn     As Any Ptr) As Long</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+  <tr><td>sock</td><td>SOCKET</td><td>An already-connected TCP socket (from <code>vt_net_connect</code>).</td></tr>
+  <tr><td>hostname</td><td>String</td><td>Server hostname for SNI &mdash; must match the certificate CN / SAN.</td></tr>
+  <tr><td>conn</td><td>Any Ptr (ByRef)</td><td>Receives the opaque TLS handle on success, <code>0</code> on failure.</td></tr>
+</table>
+<h4>Return value</h4>
+<div class="ret">
+  <code>0</code> on success.<br>
+  <code>-1</code> if the TLS handshake failed (certificate mismatch, protocol error, etc.).
+</div>
+<pre>Dim sock As SOCKET  = vt_net_open()
+Dim ip   As Long    = vt_net_resolve("example.com")
+vt_net_connect sock, ip, 443
+
+Dim conn As Any Ptr
+If vt_tls_connect(sock, "example.com", conn) &lt;&gt; 0 Then
+    vt_print "TLS handshake failed." &amp; VT_NEWLINE
+    vt_net_close(sock)
+End If</pre>
+
+<!-- ------------------------------------------------------------------ -->
+<h3 id="vt_tls_send">vt_tls_send</h3>
+<p>
+  Send <code>nbytes</code> bytes from <code>buf</code> over an established TLS connection.
+  Like the underlying TCP send, this may send fewer bytes than requested &mdash;
+  loop until all bytes are consumed when full delivery is required.
+</p>
+<div class="syntax">Function vt_tls_send(conn   As Any Ptr,
+                     buf    As ZString Ptr,
+                     nbytes As Long) As Long</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+  <tr><td>conn</td><td>Any Ptr</td><td>Opaque TLS handle from <code>vt_tls_connect</code>.</td></tr>
+  <tr><td>buf</td><td>ZString Ptr</td><td>Data to send.</td></tr>
+  <tr><td>nbytes</td><td>Long</td><td>Number of bytes to send from <code>buf</code>.</td></tr>
+</table>
+<h4>Return value</h4>
+<div class="ret">
+  Number of bytes sent (&ge; 1) on success.<br>
+  <code>-1</code> on error.
+</div>
+<pre>Dim req As String = "GET / HTTP/1.0" &amp; Chr(13,10) &amp; _
+                    "Host: example.com" &amp; Chr(13,10,13,10)
+Dim sent As Long = 0
+Do While sent &lt; Len(req)
+    Dim n As Long = vt_tls_send(conn, StrPtr(req) + sent, Len(req) - sent)
+    If n &lt; 1 Then Exit Do
+    sent += n
+Loop</pre>
+
+<!-- ------------------------------------------------------------------ -->
+<h3 id="vt_tls_recv">vt_tls_recv</h3>
+<p>
+  Receive up to <code>nbytes</code> bytes into <code>buf</code> from an established TLS connection.
+  When the underlying socket is set to non-blocking mode via
+  <a href="#vt_net_nonblocking">vt_net_nonblocking</a>, returns <code>0</code> immediately
+  if no data is available yet.
+</p>
+<div class="syntax">Function vt_tls_recv(conn   As Any Ptr,
+                     buf    As ZString Ptr,
+                     nbytes As Long) As Long</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+  <tr><td>conn</td><td>Any Ptr</td><td>Opaque TLS handle from <code>vt_tls_connect</code>.</td></tr>
+  <tr><td>buf</td><td>ZString Ptr</td><td>Buffer that receives the incoming data.</td></tr>
+  <tr><td>nbytes</td><td>Long</td><td>Maximum number of bytes to read into <code>buf</code>.</td></tr>
+</table>
+<h4>Return value</h4>
+<div class="ret">
+  Number of bytes received (&ge; 1) on success.<br>
+  <code>0</code> &mdash; no data available yet (non-blocking socket only).<br>
+  <code>-1</code> &mdash; peer closed the connection cleanly (TLS <code>close_notify</code> received).<br>
+  <code>-2</code> &mdash; connection error.
+</div>
+<pre>Dim rxbuf As ZString * 4097
+Dim n     As Long
+Do
+    n = vt_tls_recv(conn, @rxbuf, 4096)
+    If n &gt; 0 Then
+        rxbuf[n] = 0
+        vt_print rxbuf &amp; VT_NEWLINE
+    End If
+Loop While n &gt; 0</pre>
+
+<!-- ------------------------------------------------------------------ -->
+<h3 id="vt_tls_fingerprint">vt_tls_fingerprint</h3>
+<p>
+  Returns the SHA-256 fingerprint of the peer's certificate DER encoding as a
+  64-character lowercase hex string.
+  Use for Trust On First Use (TOFU): store the fingerprint on first contact
+  and compare on subsequent connections to detect certificate changes.
+</p>
+<div class="syntax">Function vt_tls_fingerprint(conn As Any Ptr) As String</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+  <tr><td>conn</td><td>Any Ptr</td><td>Opaque TLS handle from <code>vt_tls_connect</code>.</td></tr>
+</table>
+<h4>Return value</h4>
+<div class="ret">
+  64-character lowercase hex string (SHA-256 of the peer DER certificate).<br>
+  Empty string <code>""</code> if <code>conn</code> is <code>0</code> or no peer certificate is available.
+</div>
+<pre>Dim fp As String = vt_tls_fingerprint(conn)
+vt_print "Certificate SHA-256: " &amp; fp &amp; VT_NEWLINE</pre>
+
+<!-- ------------------------------------------------------------------ -->
+<h3 id="vt_tls_disconnect">vt_tls_disconnect</h3>
+<p>
+  Send a TLS <code>close_notify</code> alert, free all internal TLS resources,
+  and set <code>conn</code> to <code>0</code>.
+  Always call this before <a href="#vt_net_close">vt_net_close</a> on the same socket
+  to ensure a clean protocol shutdown.
+</p>
+<div class="syntax">Sub vt_tls_disconnect(ByRef conn As Any Ptr)</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+  <tr><td>conn</td><td>Any Ptr (ByRef)</td><td>Opaque TLS handle. Set to <code>0</code> on return.</td></tr>
+</table>
+<pre>vt_tls_disconnect(conn)
+vt_net_close(sock)
+vt_net_shutdown()</pre>
+
+<!-- ------------------------------------------------------------------ -->
+<h4>Complete example &mdash; HTTPS GET request</h4>
+<pre>#Define VT_USE_NET
+#Define VT_USE_TLS
+#include once "vt/vt.bi"
+
+vt_screen VT_SCREEN_0
+If vt_net_init() &lt;&gt; 0 Then
+    vt_print "Network init failed." &amp; VT_NEWLINE
+    vt_sleep 0 : End
+End If
+
+Dim sock As SOCKET = vt_net_open()
+Dim ip   As Long   = vt_net_resolve("example.com")
+
+If vt_net_connect(sock, ip, 443) = 0 Then
+    vt_print "TCP connect failed." &amp; VT_NEWLINE
+    vt_net_close(sock) : vt_net_shutdown() : vt_sleep 0 : End
+End If
+
+Dim conn As Any Ptr
+If vt_tls_connect(sock, "example.com", conn) &lt;&gt; 0 Then
+    vt_print "TLS handshake failed." &amp; VT_NEWLINE
+    vt_net_close(sock) : vt_net_shutdown() : vt_sleep 0 : End
+End If
+
+vt_print "Fingerprint: " &amp; vt_tls_fingerprint(conn) &amp; VT_NEWLINE
+
+Dim req As String = "GET / HTTP/1.0" &amp; Chr(13,10) &amp; _
+                    "Host: example.com" &amp; Chr(13,10,13,10)
+vt_tls_send conn, StrPtr(req), Len(req)
+
+Dim rxbuf As ZString * 4097
+Dim n     As Long
+Do
+    n = vt_tls_recv(conn, @rxbuf, 4096)
+    If n &gt; 0 Then rxbuf[n] = 0 : vt_print rxbuf
+Loop While n &gt; 0
+
+vt_tls_disconnect(conn)
+vt_net_close(sock)
+vt_net_shutdown()
+vt_sleep 0
+vt_shutdown</pre>
+
 <hr>
 <p style="font-size:0.85em; color:#555;">
-  VT Virtual Text Screen Library &mdash; API Reference &mdash; v1.7.0<br>
+  VT Virtual Text Screen Library &mdash; API Reference &mdash; v1.8.0<br>
   FreeBASIC 1.10.1 / SDL2 / Windows + Linux
 </p>
 
