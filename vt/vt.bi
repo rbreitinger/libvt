@@ -206,10 +206,10 @@ End Type
 ' -----------------------------------------------------------------------------
 Type vt_internal_state
     ' --- SDL handles ---
-    sdl_window   As DRV_Window Ptr
-    sdl_renderer As DRV_Renderer Ptr
-    sdl_texture  As DRV_Texture Ptr
-    sdl_buffer   As DRV_Texture Ptr
+    sdl_window   As _VT_DRV_Window Ptr
+    sdl_renderer As _VT_DRV_Renderer Ptr
+    sdl_texture  As _VT_DRV_Texture Ptr
+    sdl_buffer   As _VT_DRV_Texture Ptr
 
     ' --- screen geometry ---
     scr_cols    As Long
@@ -324,7 +324,7 @@ Type vt_internal_state
     cp_scroll_tick As ULong  ' last auto-scroll tick during drag
 
     ' --- close callback ---
-    ' If set, called on DRV_QUIT instead of the default shutdown+End.
+    ' If set, called on _VT_DRV_QUIT instead of the default shutdown+End.
     ' Return 0 = proceed with shutdown. Return 1 = veto (user handles it).
     close_cb As Function() As Byte
 End Type
