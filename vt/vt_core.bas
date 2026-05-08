@@ -289,7 +289,7 @@ Function vt_internal_unicode_to_cp437(codepoint As Long) As UByte
 End Function
 
 ' -----------------------------------------------------------------------------
-' Internal: SDL event pump
+' Internal: event pump
 ' -----------------------------------------------------------------------------
 Sub vt_pump()
     If vt_internal.ready = 0 Then Exit Sub
@@ -1359,14 +1359,6 @@ Sub vt_title(txt As String)
 End Sub
 
 ' -----------------------------------------------------------------------------
-' vt_key_repeat - configure key repeat timing
-' -----------------------------------------------------------------------------
-Sub vt_key_repeat(initial_ms As Long, rate_ms As Long)
-    vt_internal.rep_initial = initial_ms
-    vt_internal.rep_rate    = rate_ms
-End Sub
-
-' -----------------------------------------------------------------------------
 ' Internal: auto-present for vt_inkey -- throttled, skips if not dirty
 ' -----------------------------------------------------------------------------
 Sub vt_internal_present_if_dirty()
@@ -1377,6 +1369,14 @@ Sub vt_internal_present_if_dirty()
     If now_tick - last_auto_tick < 2 Then Exit Sub
     vt_present()
     last_auto_tick = vt_internal_ticks()
+End Sub
+
+' -----------------------------------------------------------------------------
+' vt_key_repeat - configure key repeat timing
+' -----------------------------------------------------------------------------
+Sub vt_key_repeat(initial_ms As Long, rate_ms As Long)
+    vt_internal.rep_initial = initial_ms
+    vt_internal.rep_rate    = rate_ms
 End Sub
 
 ' -----------------------------------------------------------------------------

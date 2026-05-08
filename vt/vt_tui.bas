@@ -75,7 +75,7 @@ Enum
     VT_FORM_BUTTON         ' push button
     VT_FORM_CHECKBOX       ' toggleable  [ ] / [x]
     VT_FORM_RADIO          ' radio in group  ( ) / (*)
-    VT_FORM_LABEL          ' static text — never receives focus, Tab skips it
+    VT_FORM_LABEL          ' static text Â— never receives focus, Tab skips it
 End Enum
 ' Alignment for vt_tui_label_draw and VT_FORM_LABEL items
 Const VT_ALIGN_LEFT   = 0
@@ -528,7 +528,7 @@ End Sub
 ' Draw a single-row text label at 1-based (x, y), clipped/padded to wid cells.
 ' align: VT_ALIGN_LEFT (default), VT_ALIGN_CENTER, VT_ALIGN_RIGHT.
 ' Text longer than wid is silently truncated. Remaining cells filled with bg.
-' No state struct — purely passive. Call each frame like any other draw primitive.
+' No state struct - purely passive. Call each frame like any other draw primitive.
 ' =============================================================================
 Sub vt_tui_label_draw(x As Long, y As Long, wid As Long, txt As String, _
                       align As Long, fg As UByte, bg As UByte)

@@ -5,6 +5,7 @@ vt_screen
 
 vt_color VT_WHITE, VT_BLUE
 vt_locate 12, 20
+vt_copypaste 1
 
 Dim was_cancelled As Byte
 Dim result As String = vt_input( 30, "Hello World", "", @was_cancelled )
@@ -21,3 +22,5 @@ end if
 
 vt_sleep  
 vt_shutdown
+
+'äääööüüßßßß

@@ -17,7 +17,7 @@ End Function
     ' ================================================================
     
     ' ----------------------------------------------------------------
-    '  SHELLSORT_VAL  –  direct value comparison (ASC or DESC)
+    '  SHELLSORT_VAL  Â–  direct value comparison (ASC or DESC)
     '  variables suffixed _ to avoid shadowing caller-side names
     ' ----------------------------------------------------------------
     #Macro SHELLSORT_VAL(arr, order, T)
@@ -49,7 +49,7 @@ End Function
     #Endmacro
     
     ' ----------------------------------------------------------------
-    '  SHELLSORT_CMP  –  comparator callback variant
+    '  SHELLSORT_CMP  Â–  comparator callback variant
     '  cmp(a, b): return < 0  ?  a belongs before b
     '             return   0  ?  equal
     '             return > 0  ?  b belongs before a  (swap)
@@ -76,7 +76,7 @@ End Function
     #Endmacro
     
     ' ================================================================
-    '  vt_sort  –  VT_ASCENDING / VT_DESCENDING overloads
+    '  vt_sort  Â–  VT_ASCENDING / VT_DESCENDING overloads
     ' ================================================================
     
     sub vt_sort overload (arr() as byte, order as long)
@@ -126,7 +126,7 @@ End Function
     #Undef SHELLSORT_VAL
     
     ' ================================================================
-    '  vt_sort  –  comparator callback overloads
+    '  vt_sort  Â–  comparator callback overloads
     '  the comparator defines the order; no separate order parameter
     ' ================================================================
     

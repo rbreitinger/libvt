@@ -277,7 +277,7 @@ Function vt_utf8_to_cp437(src As String) As String
     Next enc_i
     Return src
 
-do_decode:
+    do_decode:
     Dim dst   As String = Space(slen)
     Dim si    As Long   = 0
     Dim di    As Long   = 0
