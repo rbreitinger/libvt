@@ -260,59 +260,72 @@ Sub vt_view_print(top_row As Long = -1, bot_row As Long = -1, _
     If rgt_col >= 1 AndAlso rgt_col <= vt_internal.scr_cols Then vt_internal.view_right = rgt_col
 End Sub
 
-#macro __UTF8_PREPASS()
-' --- UTF-8 -> CP437 pre-pass ---
-    ' FB source files are UTF-8, so string literals like "ä" or "♥" contain
-    ' multi-byte sequences. Decode them to single CP437 bytes here so the
-    ' rest of the loop can treat every byte as one cell glyph, as always.
-    ' Pure ASCII strings skip the conversion entirely (fast path).
-    Dim enc_i   As Long
-    Dim enc_has As Byte = 0
-    For enc_i = 0 To slen - 1
-        If txt[enc_i] >= &h80 Then enc_has = 1 : Exit For
-    Next enc_i
 
-    If enc_has Then
-        Dim enc_dst As String = Space(slen)   ' worst-case same length
-        Dim enc_d   As Long   = 0
-        Dim enc_s   As Long   = 0
-        Dim enc_b0  As UByte
-        Dim enc_b1  As UByte
-        Dim enc_b2  As UByte
-        Dim enc_cp  As Long
-        Dim enc_out As UByte
-        Do While enc_s < slen
-            enc_b0 = txt[enc_s]
-            If enc_b0 < &h80 Then
-                enc_dst[enc_d] = enc_b0
-                enc_d += 1
-                enc_s += 1
-            ElseIf (enc_b0 And &hE0) = &hC0 AndAlso enc_s + 1 < slen Then
-                enc_b1 = txt[enc_s + 1]
-                enc_cp  = ((CLng(enc_b0) And &h1F) Shl 6) Or (CLng(enc_b1) And &h3F)
-                enc_out = vt_internal_unicode_to_cp437(enc_cp)
-                If enc_out > 0 Then enc_dst[enc_d] = enc_out : enc_d += 1
-                enc_s += 2
-            ElseIf (enc_b0 And &hF0) = &hE0 AndAlso enc_s + 2 < slen Then
-                enc_b1 = txt[enc_s + 1]
-                enc_b2 = txt[enc_s + 2]
-                enc_cp  = ((CLng(enc_b0) And &h0F) Shl 12) _
-                       Or ((CLng(enc_b1) And &h3F) Shl 6) _
-                       Or  (CLng(enc_b2) And &h3F)
-                enc_out = vt_internal_unicode_to_cp437(enc_cp)
-                If enc_out > 0 Then enc_dst[enc_d] = enc_out : enc_d += 1
-                enc_s += 3
-            ElseIf (enc_b0 And &hF8) = &hF0 AndAlso enc_s + 3 < slen Then
-                enc_s += 4   ' 4-byte (beyond BMP): no CP437 equivalent, skip
-            Else
-                enc_s += 1   ' stray continuation byte or truncated seq: skip
-            End If
-        Loop
-        txt  = Left(enc_dst, enc_d)
-        slen = enc_d
-        If slen = 0 Then Exit Sub
-    End If
-#endmacro
+' =============================================================================
+' vt_utf8_to_cp437
+' Decode a UTF-8 string to CP437 bytes suitable for vt_print / vt_set_cell.
+' Pure ASCII strings are returned unchanged (fast path, no allocation).
+' Multi-byte sequences with no CP437 equivalent are silently dropped.
+' Supports 2-byte and 3-byte UTF-8; 4-byte (beyond BMP) always dropped.
+' =============================================================================
+Function vt_utf8_to_cp437(src As String) As String
+    Dim slen  As Long = Len(src)
+    Dim enc_i As Long
+
+    For enc_i = 0 To slen - 1
+        If src[enc_i] >= &h80 Then GoTo do_decode
+    Next enc_i
+    Return src
+
+do_decode:
+    Dim dst   As String = Space(slen)
+    Dim si    As Long   = 0
+    Dim di    As Long   = 0
+    Dim b0    As UByte
+    Dim b1    As UByte
+    Dim b2    As UByte
+    Dim cp    As Long
+    Dim outch As UByte
+
+    Do While si < slen
+        b0 = src[si]
+        If b0 < &h80 Then
+            ' plain ASCII -- pass through
+            dst[di] = b0 : di += 1 : si += 1
+        ElseIf (b0 And &hE0) = &hC0 AndAlso si + 1 < slen _
+               AndAlso (src[si + 1] And &hC0) = &h80 Then
+            ' valid 2-byte UTF-8 sequence
+            b1    = src[si + 1]
+            cp    = ((CLng(b0) And &h1F) Shl 6) Or (CLng(b1) And &h3F)
+            outch = vt_internal_unicode_to_cp437(cp)
+            If outch > 0 Then dst[di] = outch : di += 1
+            si += 2
+        ElseIf (b0 And &hF0) = &hE0 AndAlso si + 2 < slen _
+               AndAlso (src[si + 1] And &hC0) = &h80 _
+               AndAlso (src[si + 2] And &hC0) = &h80 Then
+            ' valid 3-byte UTF-8 sequence
+            b1    = src[si + 1]
+            b2    = src[si + 2]
+            cp    = ((CLng(b0) And &h0F) Shl 12) _
+                 Or ((CLng(b1) And &h3F) Shl  6) _
+                 Or  (CLng(b2) And &h3F)
+            outch = vt_internal_unicode_to_cp437(cp)
+            If outch > 0 Then dst[di] = outch : di += 1
+            si += 3
+        ElseIf (b0 And &hF8) = &hF0 AndAlso si + 3 < slen _
+               AndAlso (src[si + 1] And &hC0) = &h80 _
+               AndAlso (src[si + 2] And &hC0) = &h80 _
+               AndAlso (src[si + 3] And &hC0) = &h80 Then
+            ' valid 4-byte UTF-8 -- beyond BMP, no CP437 equivalent, drop
+            si += 4
+        Else
+            ' not valid UTF-8 -- treat as raw CP437 byte and pass through
+            dst[di] = b0 : di += 1 : si += 1
+        End If
+    Loop
+
+    Return Left(dst, di)
+End Function
 
 ' -----------------------------------------------------------------------------
 ' vt_print - print a string at the current cursor position, NO auto LF
@@ -331,7 +344,8 @@ Sub vt_print(txt As String)
     Dim slen As Long = Len(txt)
     If slen = 0 Then Exit Sub
 
-    __UTF8_PREPASS()
+    txt  = vt_utf8_to_cp437(txt)
+    slen = Len(txt)
 
     Dim ci   As Long
     Dim ch   As UByte

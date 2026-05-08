@@ -9,7 +9,6 @@ vt_locate 12, 20
 Dim was_cancelled As Byte
 Dim result As String = vt_input( 30, "Hello World", "", @was_cancelled )
 
-
 If was_cancelled Then   
     vt_color VT_RED, VT_BLACK
     vt_locate 14, 20
