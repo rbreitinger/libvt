@@ -260,6 +260,60 @@ Sub vt_view_print(top_row As Long = -1, bot_row As Long = -1, _
     If rgt_col >= 1 AndAlso rgt_col <= vt_internal.scr_cols Then vt_internal.view_right = rgt_col
 End Sub
 
+#macro __UTF8_PREPASS()
+' --- UTF-8 -> CP437 pre-pass ---
+    ' FB source files are UTF-8, so string literals like "ä" or "♥" contain
+    ' multi-byte sequences. Decode them to single CP437 bytes here so the
+    ' rest of the loop can treat every byte as one cell glyph, as always.
+    ' Pure ASCII strings skip the conversion entirely (fast path).
+    Dim enc_i   As Long
+    Dim enc_has As Byte = 0
+    For enc_i = 0 To slen - 1
+        If txt[enc_i] >= &h80 Then enc_has = 1 : Exit For
+    Next enc_i
+
+    If enc_has Then
+        Dim enc_dst As String = Space(slen)   ' worst-case same length
+        Dim enc_d   As Long   = 0
+        Dim enc_s   As Long   = 0
+        Dim enc_b0  As UByte
+        Dim enc_b1  As UByte
+        Dim enc_b2  As UByte
+        Dim enc_cp  As Long
+        Dim enc_out As UByte
+        Do While enc_s < slen
+            enc_b0 = txt[enc_s]
+            If enc_b0 < &h80 Then
+                enc_dst[enc_d] = enc_b0
+                enc_d += 1
+                enc_s += 1
+            ElseIf (enc_b0 And &hE0) = &hC0 AndAlso enc_s + 1 < slen Then
+                enc_b1 = txt[enc_s + 1]
+                enc_cp  = ((CLng(enc_b0) And &h1F) Shl 6) Or (CLng(enc_b1) And &h3F)
+                enc_out = vt_internal_unicode_to_cp437(enc_cp)
+                If enc_out > 0 Then enc_dst[enc_d] = enc_out : enc_d += 1
+                enc_s += 2
+            ElseIf (enc_b0 And &hF0) = &hE0 AndAlso enc_s + 2 < slen Then
+                enc_b1 = txt[enc_s + 1]
+                enc_b2 = txt[enc_s + 2]
+                enc_cp  = ((CLng(enc_b0) And &h0F) Shl 12) _
+                       Or ((CLng(enc_b1) And &h3F) Shl 6) _
+                       Or  (CLng(enc_b2) And &h3F)
+                enc_out = vt_internal_unicode_to_cp437(enc_cp)
+                If enc_out > 0 Then enc_dst[enc_d] = enc_out : enc_d += 1
+                enc_s += 3
+            ElseIf (enc_b0 And &hF8) = &hF0 AndAlso enc_s + 3 < slen Then
+                enc_s += 4   ' 4-byte (beyond BMP): no CP437 equivalent, skip
+            Else
+                enc_s += 1   ' stray continuation byte or truncated seq: skip
+            End If
+        Loop
+        txt  = Left(enc_dst, enc_d)
+        slen = enc_d
+        If slen = 0 Then Exit Sub
+    End If
+#endmacro
+
 ' -----------------------------------------------------------------------------
 ' vt_print - print a string at the current cursor position, NO auto LF
 '
@@ -276,6 +330,8 @@ Sub vt_print(txt As String)
     If vt_internal.ready = 0 Then Exit Sub
     Dim slen As Long = Len(txt)
     If slen = 0 Then Exit Sub
+
+    __UTF8_PREPASS()
 
     Dim ci   As Long
     Dim ch   As UByte

@@ -64,18 +64,48 @@ Function vt_input(max_len As Long = -1, initial As String = "", allowed As Strin
             If clip_ptr <> 0 Then
                 clip_str = *clip_ptr
                 _VT_DRV_free(clip_ptr)
-                For pi = 0 To Len(clip_str) - 1
-                    pch = clip_str[pi]
-                    ' accept printable ASCII only -- CR/LF and high bytes silently dropped
-                    If pch >= 32 AndAlso pch <= 126 Then
-                        If Len(buf) < eff_max Then
-                            If allowed = "" OrElse InStr(allowed, Chr(pch)) > 0 Then
-                                buf  = Left(buf, epos) & Chr(pch) & Mid(buf, epos + 1)
-                                epos += 1
-                            End If
+                ' SDL clipboard text is UTF-8; decode multi-byte sequences to CP437.
+                ' CR / LF and unmappable codepoints are silently dropped.
+                Dim pst_len As Long  = Len(clip_str)
+                Dim pst_b0  As UByte
+                Dim pst_b1  As UByte
+                Dim pst_b2  As UByte
+                Dim pst_cp  As Long
+                pi = 0
+                Do While pi < pst_len
+                    pst_b0 = clip_str[pi]
+                    If pst_b0 >= &h80 Then
+                        ' multi-byte UTF-8 -- decode and map to CP437
+                        pch = 0
+                        If (pst_b0 And &hE0) = &hC0 AndAlso pi + 1 < pst_len Then
+                            pst_b1 = clip_str[pi + 1]
+                            pst_cp = ((CLng(pst_b0) And &h1F) Shl 6) Or (CLng(pst_b1) And &h3F)
+                            pch = vt_internal_unicode_to_cp437(pst_cp)
+                            pi += 2
+                        ElseIf (pst_b0 And &hF0) = &hE0 AndAlso pi + 2 < pst_len Then
+                            pst_b1 = clip_str[pi + 1]
+                            pst_b2 = clip_str[pi + 2]
+                            pst_cp = ((CLng(pst_b0) And &h0F) Shl 12) _
+                                  Or ((CLng(pst_b1) And &h3F) Shl 6) _
+                                  Or  (CLng(pst_b2) And &h3F)
+                            pch = vt_internal_unicode_to_cp437(pst_cp)
+                            pi += 3
+                        Else
+                            pi += 1 : Continue Do   ' stray byte: skip
+                        End If
+                        If pch < 32 Then Continue Do   ' unmappable (returned 0) or ctrl: skip
+                    Else
+                        pch = pst_b0
+                        pi += 1
+                        If pch < 32 OrElse pch = 127 Then Continue Do   ' CR/LF/ctrl: skip
+                    End If
+                    If Len(buf) < eff_max Then
+                        If allowed = "" OrElse InStr(allowed, Chr(pch)) > 0 Then
+                            buf  = Left(buf, epos) & Chr(pch) & Mid(buf, epos + 1)
+                            epos += 1
                         End If
                     End If
-                Next pi
+                Loop
             End If
             Continue Do   ' redraw with pasted content before waiting for next key
         End If
