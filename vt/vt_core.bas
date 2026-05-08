@@ -727,7 +727,7 @@ Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Lo
         _VT_DRV_MaximizeWindow(vt_internal.sdl_window)
     End If
 
-    Dim rflags As ULong = _VT_DRV_RENDERER_ACCELERATED
+    Dim rflags As ULong = IIf(flags And VT_RENDERER_HW, _VT_DRV_RENDERER_ACCELERATED, _VT_DRV_RENDERER_SOFTWARE)
     If flags And VT_VSYNC Then rflags = rflags Or _VT_DRV_RENDERER_PRESENTVSYNC
     vt_internal.sdl_renderer = _VT_DRV_CreateRenderer(vt_internal.sdl_window, -1, rflags)
     If vt_internal.sdl_renderer = 0 Then

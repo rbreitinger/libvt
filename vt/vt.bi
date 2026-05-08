@@ -11,7 +11,7 @@
 #Define VT_NEWLINE  Chr(10)
 #Define VT_LF       VT_NEWLINE     ' short alias
 
-Const VT_VERSION = "1.9.0"         ' major.minor.patch
+Const VT_VERSION = "1.9.1"         ' major.minor.patch
 
 ' -----------------------------------------------------------------------------
 ' Init flags  (combinable with Or)
@@ -22,6 +22,7 @@ Const VT_FULLSCREEN_STRETCH = 4    ' fullscreen, fills entire display
 Const VT_NO_RESIZE          = 8    ' prevent manual window resize
 Const VT_VSYNC              = 16   ' vsync, off by default
 Const VT_WINDOWED_MAX       = 32   ' start maximized -- regular window, not fullscreen
+Const VT_RENDERER_HW        = 64   ' opt-in: hardware-accelerated renderer (default: software)
 
 ' -----------------------------------------------------------------------------
 ' Screen mode constants

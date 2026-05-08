@@ -1,5 +1,5 @@
 '' =============================================================================
-''  vtetris.bas  —  VTetris: Tetris demo for the libvt text screen library
+''  vtetris.bas  : Tetris demo for the libvt text screen library
 ''
 ''  Controls:  Left / Right   move          Up     rotate CW
 ''             X              rotate CCW    Down   soft drop  (+1 pt/row)
@@ -572,11 +572,11 @@ Randomize
 init_pieces()
 
 vt_title "VTetris"
-vt_screen VT_SCREEN_0, VT_FULLSCREEN_ASPECT, 2
-vt_key_repeat 150, 40 '' custom DAS
-vt_locate , , 0       '' hide text cursor
-vt_mouse 1            '' enable console mouse to hide OS mouse cursor
-vt_setmouse , , 0     '' hide our console mouse
+vt_screen VT_SCREEN_0,,2  '' 2 pages
+vt_key_repeat 150, 40     '' custom DAS
+vt_locate , , 0           '' hide text cursor
+vt_mouse 1                '' enable console mouse to hide OS mouse cursor
+vt_setmouse , , 0         '' hide our console mouse
 
 Do
     want_quit = 0
