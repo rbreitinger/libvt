@@ -93,18 +93,24 @@ Sub vt_internal_pixel_to_cell(px As Long, py As Long, col_out As Long Ptr, row_o
     Dim vp_y  As Long
     Dim log_w As Long
     Dim log_h As Long
-
-    _VT_DRV_RenderGetScale(vt_internal.sdl_renderer, @sx, @sy)
     _VT_DRV_GetRendererOutputSize(vt_internal.sdl_renderer, @out_w, @out_h)
-
     log_w = vt_internal.scr_cols * vt_internal.glyph_w
     log_h = vt_internal.scr_rows * vt_internal.glyph_h
-
-    ' Letterbox offset in output pixels -- matches what SDL computed internally
+    If vt_internal.init_flags And VT_RENDERER_HW Then
+        ' HW: SDL_RenderSetLogicalSize is active, RenderGetScale gives correct factors
+        _VT_DRV_RenderGetScale(vt_internal.sdl_renderer, @sx, @sy)
+    Else
+        ' SW: no logical size set -- compute letterbox scale ourselves,
+        ' same formula as the vt_present SW blit path
+        Dim sw_sx As Single = out_w / CSng(log_w)
+        Dim sw_sy As Single = out_h / CSng(log_h)
+        sx = IIf(sw_sx < sw_sy, sw_sx, sw_sy)
+        If sx < 1 Then sx = 1
+        sy = sx
+    End If
+    ' Letterbox offset in output pixels
     vp_x = (out_w - CLng(log_w * sx)) \ 2
     vp_y = (out_h - CLng(log_h * sy)) \ 2
-
-    ' Convert to logical pixel, then to 1-based cell
     *col_out = CLng((px - vp_x) / sx) \ vt_internal.glyph_w + 1
     *row_out = CLng((py - vp_y) / sy) \ vt_internal.glyph_h + 1
 End Sub
@@ -482,16 +488,21 @@ Sub vt_pump()
                     vt_present()
                 End IF
 
-            Case _VT_DRV_MOUSEMOTION
-                ' Coordinate computation hoisted so both mouse cursor and drag
-                ' selection can share it without duplicating the clamping logic.
-                new_col = evt.motion.x \ vt_internal.glyph_w + 1
-                new_row = evt.motion.y \ vt_internal.glyph_h + 1
+           Case _VT_DRV_MOUSEMOTION
+                ' HW mode: SDL_RenderSetLogicalSize pre-converts evt.motion.x/y to logical
+                ' pixels so direct glyph division is correct.
+                ' SW mode: evt.motion.x/y are raw physical pixels -- delegate to
+                ' pixel_to_cell which applies the letterbox offset and scale.
+                If vt_internal.init_flags And VT_RENDERER_HW Then
+                    new_col = evt.motion.x \ vt_internal.glyph_w + 1
+                    new_row = evt.motion.y \ vt_internal.glyph_h + 1
+                Else
+                    vt_internal_pixel_to_cell(evt.motion.x, evt.motion.y, @new_col, @new_row)
+                End If
                 If new_col < 1 Then new_col = 1
                 If new_col > vt_internal.scr_cols Then new_col = vt_internal.scr_cols
                 If new_row < 1 Then new_row = 1
                 If new_row > vt_internal.scr_rows Then new_row = vt_internal.scr_rows
-
                 If vt_internal.mouse_on Then
                     If new_col <> vt_internal.mouse_col OrElse _
                        new_row <> vt_internal.mouse_row Then
@@ -571,8 +582,13 @@ Sub vt_pump()
 
                 ' copy/paste mouse -- independent of mouse_on
                 If vt_internal.cp_flags <> 0 Then
-                    click_col = evt.button.x \ vt_internal.glyph_w + 1
-                    click_row = evt.button.y \ vt_internal.glyph_h + 1
+                    ' SW mode: evt.button.x/y are physical pixels, need letterbox correction
+                    If vt_internal.init_flags And VT_RENDERER_HW Then
+                        click_col = evt.button.x \ vt_internal.glyph_w + 1
+                        click_row = evt.button.y \ vt_internal.glyph_h + 1
+                    Else
+                        vt_internal_pixel_to_cell(evt.button.x, evt.button.y, @click_col, @click_row)
+                    End If
                     If click_col < 1 Then click_col = 1
                     If click_col > vt_internal.scr_cols Then click_col = vt_internal.scr_cols
                     If click_row < 1 Then click_row = 1
@@ -727,6 +743,9 @@ Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Lo
         _VT_DRV_MaximizeWindow(vt_internal.sdl_window)
     End If
 
+    ' hint BEFORE renderer so the internal SW surface also picks it up
+    _VT_DRV_SetHint(_VT_DRV_HINT_RENDER_SCALE_QUALITY, "1")
+
     Dim rflags As ULong = IIf(flags And VT_RENDERER_HW, _VT_DRV_RENDERER_ACCELERATED, _VT_DRV_RENDERER_SOFTWARE)
     If flags And VT_VSYNC Then rflags = rflags Or _VT_DRV_RENDERER_PRESENTVSYNC
     vt_internal.sdl_renderer = _VT_DRV_CreateRenderer(vt_internal.sdl_window, -1, rflags)
@@ -736,10 +755,16 @@ Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Lo
         Return -3
     End If
 
-    _VT_DRV_SetHint(_VT_DRV_HINT_RENDER_SCALE_QUALITY, "1")
-    _VT_DRV_RenderSetLogicalSize(vt_internal.sdl_renderer, win_w, win_h)
-    If flags And VT_FULLSCREEN_ASPECT Then
-        _VT_DRV_RenderSetIntegerScale(vt_internal.sdl_renderer, _VT_DRV_TRUE)
+    ' HW mode: SDL handles logical->physical scaling (bilinear via GPU).
+    ' SW mode: we do the final scaled blit ourselves in vt_present so bilinear
+    '          is applied by SDL_RenderCopy using the texture's linear scale mode.
+    '          SDL_RenderSetLogicalSize is NOT called in SW mode -- it would bake
+    '          nearest-neighbour into SDL_RenderPresent's internal surface blit.
+    If flags And VT_RENDERER_HW Then
+        _VT_DRV_RenderSetLogicalSize(vt_internal.sdl_renderer, win_w, win_h)
+        If flags And VT_FULLSCREEN_ASPECT Then
+            _VT_DRV_RenderSetIntegerScale(vt_internal.sdl_renderer, _VT_DRV_TRUE)
+        End If
     End If
 
     ' --- store geometry and font (must precede texture build -- helper reads these) ---
@@ -1319,8 +1344,41 @@ Sub vt_present()
     End If
     
     _VT_DRV_SetRenderTarget(vt_internal.sdl_renderer, NULL)
-    _VT_DRV_RenderCopy(vt_internal.sdl_renderer, vt_internal.sdl_buffer, NULL, NULL)
-    
+
+    If vt_internal.init_flags And VT_RENDERER_HW Then
+        ' HW: SDL_RenderSetLogicalSize already maps sdl_buffer to the window
+        _VT_DRV_RenderCopy(vt_internal.sdl_renderer, vt_internal.sdl_buffer, NULL, NULL)
+    Else
+        ' SW: compute a letterbox dst_rect matching SDL_RenderSetLogicalSize behaviour.
+        ' sdl_buffer carries SDL_ScaleModeLinear (set from hint at CreateTexture time),
+        ' so this RenderCopy uses bilinear -- unlike SDL_RenderPresent which does not.
+        Dim sw_out_w  As Long
+        Dim sw_out_h  As Long
+        Dim sw_log_w  As Long
+        Dim sw_log_h  As Long
+        Dim sw_sx     As Single
+        Dim sw_sy     As Single
+        Dim sw_sc     As Single
+        Dim sw_dst    As _VT_DRV_Rect
+
+        _VT_DRV_GetRendererOutputSize(vt_internal.sdl_renderer, @sw_out_w, @sw_out_h)
+        sw_log_w = vt_internal.scr_cols * vt_internal.glyph_w
+        sw_log_h = vt_internal.scr_rows * vt_internal.glyph_h
+        sw_sx    = sw_out_w / CSng(sw_log_w)
+        sw_sy    = sw_out_h / CSng(sw_log_h)
+        sw_sc    = Int(IIf(sw_sx < sw_sy, sw_sx, sw_sy))
+        If sw_sc < 1 Then sw_sc = 1
+        sw_dst.w = sw_log_w * sw_sc
+        sw_dst.h = sw_log_h * sw_sc
+        sw_dst.x = (sw_out_w - sw_dst.w) \ 2          ' centre horizontally
+        sw_dst.y = (sw_out_h - sw_dst.h) \ 2          ' centre vertically
+
+        ' clear letterbox bars to black before the scaled blit
+        _VT_DRV_SetRenderDrawColor(vt_internal.sdl_renderer, 0, 0, 0, 255)
+        _VT_DRV_RenderClear(vt_internal.sdl_renderer)
+        _VT_DRV_RenderCopy(vt_internal.sdl_renderer, vt_internal.sdl_buffer, NULL, @sw_dst)
+    End If
+
     vt_internal.dirty = 0
     _VT_DRV_RenderPresent(vt_internal.sdl_renderer)
 End Sub
