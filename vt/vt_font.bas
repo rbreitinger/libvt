@@ -89,6 +89,9 @@ End Function
 ' -----------------------------------------------------------------------------
 ' vt_loadfont - load a BMP font sheet and replace the active font texture.
 ' -----------------------------------------------------------------------------
+' -----------------------------------------------------------------------------
+' vt_loadfont - load a BMP font sheet and replace the active font texture.
+' -----------------------------------------------------------------------------
 Function vt_loadfont(fname As String, _
                      sheet_w As Long = -1, _
                      sheet_h As Long = -1, _
@@ -105,7 +108,9 @@ Function vt_loadfont(fname As String, _
     Dim gh         As Long
     Dim img_w      As Long
     Dim img_h      As Long
-    Dim layout     As Long   ' 1 = 16x16 grid,  2 = 256x1 strip
+    Dim src_gw     As Long
+    Dim src_gh     As Long
+    Dim layout     As Long
     Dim glyph_idx  As Long
     Dim src_gx     As Long
     Dim src_gy     As Long
@@ -113,6 +118,8 @@ Function vt_loadfont(fname As String, _
     Dim dst_gy     As Long
     Dim grow       As Long
     Dim gcol       As Long
+    Dim src_row    As Long
+    Dim src_col    As Long
     Dim src_base   As UByte Ptr
     Dim dst_base   As ULong Ptr
     Dim src_pitch  As Long
@@ -125,14 +132,14 @@ Function vt_loadfont(fname As String, _
     gw = vt_internal.glyph_w
     gh = vt_internal.glyph_h
 
-    ' --- load BMP (SDL accepts any bit depth here) ---
+    ' --- load BMP ---
     bmp_surf = _VT_DRV_LoadBMP(fname)
     If bmp_surf = 0 Then Return -2
 
     img_w = bmp_surf->w
     img_h = bmp_surf->h
 
-    ' --- dimension sanity check ---
+    ' --- optional caller-supplied dimension check ---
     If sheet_w > 0 AndAlso sheet_w <> img_w Then
         _VT_DRV_FreeSurface(bmp_surf)
         Return -3
@@ -142,20 +149,23 @@ Function vt_loadfont(fname As String, _
         Return -3
     End If
 
-    ' --- auto-detect layout from pixel dimensions ---
-    ' grid  : exactly 16*gw wide and 16*gh tall  (e.g. 128x128 for 8x8 glyphs)
-    ' strip : exactly 256*gw wide and gh tall    (e.g. 2048x8 for 8x8 glyphs)
-    If img_w = 16 * gw AndAlso img_h = 16 * gh Then
+    ' --- auto-detect layout and derive source glyph size ---
+    ' grid  : 16x16 glyph grid  -- img dimensions must be exact multiples of 16
+    ' strip : 256x1 glyph strip -- img width must be exact multiple of 256
+    If (img_w Mod 16 = 0) AndAlso (img_h Mod 16 = 0) Then
         layout = 1
-    ElseIf img_w = 256 * gw AndAlso img_h = gh Then
+        src_gw = img_w \ 16
+        src_gh = img_h \ 16
+    ElseIf (img_w Mod 256 = 0) Then
         layout = 2
+        src_gw = img_w \ 256
+        src_gh = img_h
     Else
         _VT_DRV_FreeSurface(bmp_surf)
         Return -3
     End If
 
     ' --- normalise to RGB24 for predictable 3-byte-per-pixel access ---
-    ' Handles 24bpp, 32bpp, and indexed palettes uniformly.
     sdl_fmt   = _VT_DRV_AllocFormat(_VT_DRV_PIXELFORMAT_RGB24)
     conv_surf = _VT_DRV_ConvertSurface(bmp_surf, sdl_fmt, 0)
     _VT_DRV_FreeFormat(sdl_fmt)
@@ -164,8 +174,7 @@ Function vt_loadfont(fname As String, _
 
     If conv_surf = 0 Then Return -2
 
-    ' --- create destination surface: 16x16 glyph grid, ARGB32, white on transparent ---
-    ' Same format as the texture built from the embedded fonts in vt_init_impl.
+    ' --- create destination surface: 16x16 glyph grid, ARGB32 ---
     font_surf = _VT_DRV_CreateRGBSurface(0, 16 * gw, 16 * gh, 32, _
         &h00FF0000, &h0000FF00, &h000000FF, &hFF000000)
 
@@ -179,29 +188,30 @@ Function vt_loadfont(fname As String, _
 
     src_base  = CPtr(UByte Ptr, conv_surf->pixels)
     dst_base  = CPtr(ULong Ptr, font_surf->pixels)
-    src_pitch = conv_surf->pitch     ' bytes per row  (RGB24: 3 * width, may be padded)
-    dst_pitch = font_surf->pitch \ 4 ' ULong elements per row
+    src_pitch = conv_surf->pitch
+    dst_pitch = font_surf->pitch \ 4
 
     For glyph_idx = 0 To 255
-        ' source top-left pixel coordinate inside the BMP
+        ' source top-left in BMP -- uses derived src_gw/src_gh
         If layout = 1 Then
-            src_gx = (glyph_idx Mod 16) * gw
-            src_gy = (glyph_idx \ 16)   * gh
+            src_gx = (glyph_idx Mod 16) * src_gw
+            src_gy = (glyph_idx \ 16)   * src_gh
         Else
-            src_gx = glyph_idx * gw
+            src_gx = glyph_idx * src_gw
             src_gy = 0
         End If
 
-        ' destination top-left pixel in the 16x16 texture atlas
+        ' destination top-left in the output atlas -- always gw/gh
         dst_gx = (glyph_idx Mod 16) * gw
         dst_gy = (glyph_idx \ 16)   * gh
 
         For grow = 0 To gh - 1
             For gcol = 0 To gw - 1
-                ' RGB24: 3 bytes per pixel, byte order is R, G, B
-                src_px = src_base + (src_gy + grow) * src_pitch + (src_gx + gcol) * 3
+                ' ratio-map destination pixel back to source glyph pixel
+                src_row = (grow * src_gh) \ gh
+                src_col = (gcol * src_gw) \ gw
+                src_px  = src_base + (src_gy + src_row) * src_pitch + (src_gx + src_col) * 3
 
-                ' exact 3-channel match against the mask colour
                 is_mask = (src_px[0] = mask_r) AndAlso _
                           (src_px[1] = mask_g) AndAlso _
                           (src_px[2] = mask_b)
@@ -209,12 +219,10 @@ Function vt_loadfont(fname As String, _
                 If is_mask Then
                     dst_base[(dst_gy + grow) * dst_pitch + (dst_gx + gcol)] = &h00000000
                 Else
-                    ' normalise to white so SDL colormod tints correctly in vt_present
                     dst_base[(dst_gy + grow) * dst_pitch + (dst_gx + gcol)] = &hFFFFFFFF
                 End If
             Next gcol
         Next grow
-
     Next glyph_idx
 
     _VT_DRV_UnlockSurface(font_surf)
@@ -229,7 +237,7 @@ Function vt_loadfont(fname As String, _
 
     _VT_DRV_SetTextureBlendMode(new_tex, _VT_DRV_BLENDMODE_BLEND)
 
-    ' --- hot-swap: destroy old texture, install new one ---
+    ' --- hot-swap ---
     _VT_DRV_DestroyTexture(vt_internal.sdl_texture)
     vt_internal.sdl_texture = new_tex
 

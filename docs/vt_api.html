@@ -231,11 +231,26 @@ vt_sleep 0   <em>' wait for keypress</em></pre>
   useful for tile-based games where square cells are desirable.
 </p>
 <p>
-  custom screenmode macro <code>#define VT_SCREENPARAM</code> 
-  up to 255 x 255 cells and either font 8x8, 8x14 or 8x16
-  useage:
-  vt_screen VT_SCREENPARAM(col, row, fontwid, fonthei), windowflags
+  <strong>Custom screen mode</strong> &mdash; <code>VT_SCREENPARAM(col, row, fontwid, fonthei)</code>
+  supports up to 255&times;255 cells. <code>fontwid</code> and <code>fonthei</code> select the
+  destination glyph cell size in pixels.
 </p>
+<p>
+  <strong>Scaled font support:</strong> <code>fontwid</code> must be a multiple of 8.
+  The library derives <code>scale&nbsp;=&nbsp;fontwid&nbsp;\&nbsp;8</code> and
+  <code>base_gh&nbsp;=&nbsp;fonthei&nbsp;\&nbsp;scale</code>.
+  <code>base_gh</code> must equal 8, 14, or 16 (a built-in source font).
+  Invalid combinations silently fall back to the 8&times;16 source at scale 1.
+</p>
+<table class="const-table">
+  <tr><th>VT_SCREENPARAM call</th><th>Source font</th><th>Scale</th><th>Logical resolution</th></tr>
+  <tr><td>VT_SCREENPARAM(80,25, 8,16)</td><td>8&times;16</td><td>1&times;</td><td>640&times;400</td></tr>
+  <tr><td>VT_SCREENPARAM(80,25,16,16)</td><td>8&times;8</td><td>2&times;</td><td>1280&times;400</td></tr>
+  <tr><td>VT_SCREENPARAM(80,25,16,28)</td><td>8&times;14</td><td>2&times;</td><td>1280&times;700</td></tr>
+  <tr><td>VT_SCREENPARAM(80,25,16,32)</td><td>8&times;16</td><td>2&times;</td><td>1280&times;800</td></tr>
+  <tr><td>VT_SCREENPARAM(80,25,24,24)</td><td>8&times;8</td><td>3&times;</td><td>1920&times;600</td></tr>
+  <tr><td>VT_SCREENPARAM(80,25,24,48)</td><td>8&times;16</td><td>3&times;</td><td>1920&times;1200</td></tr>
+</table>
 
 <!-- Window Flags -->
 <h3 id="c-winflags">Window Flags</h3>
@@ -1694,19 +1709,27 @@ vt_copypaste VT_DISABLED</pre>
   <code>0</code> = success<br>
   <code>-1</code> = library not ready<br>
   <code>-2</code> = BMP load or surface creation failed<br>
-  <code>-3</code> = image dimensions do not match the current screen mode glyph size (or explicit sheet_w / sheet_h mismatch)<br>
+  <code>-3</code> = BMP dimensions do not match any supported layout (not divisible by 16 for grid, not divisible by 256 for strip), or explicit sheet_w / sheet_h mismatch<br>
   <code>-4</code> = SDL texture upload failed
 </div>
 <h4>Sheet layout detection</h4>
 <p>
-  The layout is detected automatically from the BMP pixel dimensions relative to
-  the current screen mode's glyph size (<code>gw</code> &times; <code>gh</code>):
+  The layout is detected automatically from the BMP pixel dimensions alone &mdash;
+  independent of the current screen mode glyph size. The source glyph size is
+  derived from the BMP and then ratio-mapped to the current <code>glyph_w &times; glyph_h</code>
+  via integer division, so any BMP glyph size works with any screen mode.
 </p>
 <table>
-  <tr><th>Layout</th><th>BMP size</th><th>Example (8&times;8 glyphs)</th></tr>
-  <tr><td>16&times;16 grid</td><td>16&sdot;gw &times; 16&sdot;gh</td><td>128 &times; 128</td></tr>
-  <tr><td>256&times;1 strip</td><td>256&sdot;gw &times; gh</td><td>2048 &times; 8</td></tr>
+  <tr><th>Layout</th><th>Condition</th><th>Source glyph size</th></tr>
+  <tr><td>16&times;16 grid</td><td>img_w Mod 16 = 0 <em>and</em> img_h Mod 16 = 0</td><td>src_gw = img_w\16 &nbsp; src_gh = img_h\16</td></tr>
+  <tr><td>256&times;1 strip</td><td>img_w Mod 256 = 0</td><td>src_gw = img_w\256 &nbsp; src_gh = img_h</td></tr>
 </table>
+<p>
+  If neither condition matches, <code>vt_loadfont</code> returns <code>-3</code>.
+  A 128&times;128 BMP (8&times;8 source glyphs) loaded into a 32&times;32 glyph mode
+  is scaled 4&times; automatically. A 256&times;64 strip (8&times;8 source) works equally
+  well in any mode.
+</p>
 <p>Common mask colours:</p>
 <table>
   <tr><th>Colour</th><th>mask_r</th><th>mask_g</th><th>mask_b</th></tr>
@@ -1719,11 +1742,14 @@ vt_copypaste VT_DISABLED</pre>
   SDL color-mod tinting in <a href="#vt_present">vt_present</a> applies the correct
   foreground color, exactly as with the built-in embedded fonts.
 </div>
-<pre><em>' Load a magenta-keyed grid font sheet:</em>
-Dim r As Long = vt_loadfont("myfont.bmp", -1, -1, 255, 0, 255)
-If r &lt;&gt; 0 Then
-    vt_print "Font load failed: " & r & VT_NEWLINE
-End If</pre>
+<pre><em>' Load a magenta-keyed 128x128 grid sheet into a 16x16 glyph mode (scales 8x8 -> 16x16):</em>
+vt_screen VT_SCREENPARAM(40, 25, 16, 16), VT_WINDOWED
+Dim r As Long = vt_loadfont("myfont_8x8.bmp", -1, -1, 255, 0, 255)
+If r &lt;&gt; 0 Then vt_print "Font load failed: " &amp; r &amp; VT_NEWLINE
+
+<em>' Same BMP loaded into a 32x32 glyph mode -- scales 8x8 -> 32x32 automatically:</em>
+vt_screen VT_SCREENPARAM(40, 25, 32, 32), VT_WINDOWED
+r = vt_loadfont("myfont_8x8.bmp", -1, -1, 255, 0, 255)</pre>
 
 <hr>
 
@@ -4363,7 +4389,7 @@ vt_shutdown</pre>
 
 <hr>
 <p style="font-size:0.85em; color:#555;">
-  VT Virtual Text Screen Library &mdash; API Reference &mdash; v1.10.0<br>
+  VT Virtual Text Screen Library &mdash; API Reference &mdash; v1.11.0<br>
   FreeBASIC 1.10.1 / SDL2 / Windows + Linux
 </p>
 
