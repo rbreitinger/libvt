@@ -945,13 +945,26 @@ Function vt_screen(mode As Long, flags As Long, pages As Long) As Long
             If mode >= &h400 Then
                 Dim As vt_screenparam_t tmode = Any : tmode.n = mode
                 cols = tmode.w : rows = tmode.h
-                gw = tmode.fw: If gw = 0 Then gw =  8
-                gh = tmode.fh: If gh = 0 Then gh = 16
+                gw = tmode.fw : If gw = 0 Then gw =  8
+                gh = tmode.fh : If gh = 0 Then gh = 16
             Else
-                cols = 80 : rows = 25 : gw = 8  : gh = 16
+                cols = 80 : rows = 25 : gw = 8 : gh = 16
             End If
-            
-            Select Case gh
+
+            ' --- scaled font resolution ---
+            Dim As Long fscale, base_gh
+            fscale  = gw \ 8
+            If fscale < 1 Then fscale = 1
+            base_gh = gh \ fscale
+            ' validate: width is exact multiple of 8,
+            '           height divides evenly by scale,
+            '           base height maps to a known source font
+            If (gw Mod 8 <> 0) OrElse (gh Mod fscale <> 0) OrElse _
+               (base_gh <> 8 AndAlso base_gh <> 14 AndAlso base_gh <> 16) Then
+                base_gh = 16 : fscale = 1
+            End If
+
+            Select Case base_gh
                 Case 8
                     fptr = @vt_font_data_8x8(0)  : fsrc_h =  8
                 Case 14
