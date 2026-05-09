@@ -483,7 +483,7 @@ Sub vt_pump()
                     vt_internal_key_push(keyrec)
                 End If
 
-            CASE _VT_DRV_WINDOWEVENT
+           Case _VT_DRV_WINDOWEVENT
                 If evt.window.event = _VT_DRV_WINDOWEVENT_RESIZED Then
                     vt_present()
                 End IF
@@ -1062,6 +1062,29 @@ Sub vt_internal_scroll_rect(amount As Long)
         Next rr
     End If
 End Sub
+
+' -----------------------------------------------------------------------------
+' vt_screeninfo - test whether the physical output size implies a new cell grid
+' Divides renderer output pixels by the current glyph size.
+' Returns 1 and writes new dimensions into cols/rows if they differ from the
+' current scr_cols/scr_rows; returns 0 if nothing changed.
+' -----------------------------------------------------------------------------
+Function vt_screeninfo(ByRef out_cols As Long, ByRef out_rows As Long) As Long
+    If vt_internal.ready = 0 Then Return 0
+    Dim out_w    As Long
+    Dim out_h    As Long
+    Dim new_cols As Long
+    Dim new_rows As Long
+    _VT_DRV_GetRendererOutputSize(vt_internal.sdl_renderer, @out_w, @out_h)
+    new_cols = out_w \ vt_internal.glyph_w
+    new_rows = out_h \ vt_internal.glyph_h
+    If new_cols < 1 Then new_cols = 1
+    If new_rows < 1 Then new_rows = 1
+    If new_cols = vt_internal.scr_cols AndAlso new_rows = vt_internal.scr_rows Then Return 0
+    out_cols = new_cols
+    out_rows = new_rows
+    Return 1
+End Function
 
 ' -----------------------------------------------------------------------------
 ' vt_present - composite and flip the cell buffer to the screen

@@ -185,6 +185,84 @@ Sub vt_cls(bg As Long = -1)
 End Sub
 
 ' -----------------------------------------------------------------------------
+' vt_width - resize the virtual screen to a new column/row count at runtime.
+' Reallocates all page buffers and the SDL render buffer; resets cursor,
+' scroll region, and scrollback; clears the screen.
+' Returns 0 on success, -1 if the library is not initialised.
+' -----------------------------------------------------------------------------
+Function vt_width(new_cols As Long, new_rows As Long) As Long
+    If vt_internal.ready = 0 Then Return -1
+
+    ' --- clamp to sane minimum ---
+    If new_cols < 10 Then new_cols = 10
+    If new_rows < 3  Then new_rows = 3
+
+    Dim pg    As Long
+    Dim new_w As Long = new_cols * vt_internal.glyph_w
+    Dim new_h As Long = new_rows * vt_internal.glyph_h
+
+    ' --- free all existing page buffers ---
+    For pg = 0 To vt_internal.num_pages - 1
+        If vt_internal.page_buf(pg) <> 0 Then
+            DeAllocate vt_internal.page_buf(pg)
+            vt_internal.page_buf(pg) = 0
+        End If
+    Next pg
+
+    ' --- allocate at new size, no content copy ---
+    For pg = 0 To vt_internal.num_pages - 1
+        vt_internal.page_buf(pg) = CAllocate(new_cols * new_rows, SizeOf(vt_cell))
+    Next pg
+    vt_internal.work_page = 0
+    vt_internal.vis_page  = 0
+    vt_internal.cells     = vt_internal.page_buf(0)
+
+    ' --- recreate SDL render buffer at new pixel size ---
+    If vt_internal.sdl_buffer <> 0 Then
+        _VT_DRV_DestroyTexture(vt_internal.sdl_buffer)
+        vt_internal.sdl_buffer = 0
+    End If
+    vt_internal.sdl_buffer = _VT_DRV_CreateTexture(vt_internal.sdl_renderer, _
+        _VT_DRV_PIXELFORMAT_RGBA8888, _VT_DRV_TEXTUREACCESS_TARGET, new_w, new_h)
+
+    ' --- update geometry ---
+    vt_internal.scr_cols = new_cols
+    vt_internal.scr_rows = new_rows
+
+    ' HW mode: logical size must track the new buffer dimensions
+    If vt_internal.init_flags And VT_RENDERER_HW Then
+        _VT_DRV_RenderSetLogicalSize(vt_internal.sdl_renderer, new_w, new_h)
+    End If
+
+    ' --- reset scroll region ---
+    vt_internal.view_top   = 1
+    vt_internal.view_bot   = new_rows
+    vt_internal.view_left  = -1
+    vt_internal.view_right = -1
+
+    ' --- reset cursor ---
+    vt_internal.cur_col = 1
+    vt_internal.cur_row = 1
+
+    ' --- invalidate scrollback ---
+    ' Caller must call vt_scrollback() again if they want it after a resize.
+    If vt_internal.sb_cells <> 0 Then
+        DeAllocate vt_internal.sb_cells
+        vt_internal.sb_cells = 0
+    End If
+    vt_internal.sb_lines  = 0
+    vt_internal.sb_used   = 0
+    vt_internal.sb_offset = 0
+
+    ' --- clear any stale selection (coords reference old geometry) ---
+    vt_internal.sel_active = 0
+
+    vt_cls()
+    vt_present()
+    Return 0
+End Function
+
+' -----------------------------------------------------------------------------
 ' vt_get_cell / vt_set_cell
 ' Both operate on the active work page (via vt_internal.cells).
 ' -----------------------------------------------------------------------------

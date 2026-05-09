@@ -143,6 +143,7 @@
     <li><a href="#s-init">Initialization</a>
     </li>
     <li><a href="#s-display">Display</a></li>
+
     <li><a href="#s-print">Printing &amp; Cursor</a></li>
     <li><a href="#s-cells">Cell Access</a></li>
     <li><a href="#s-scroll">Scroll Region &amp; Scrollback</a></li>
@@ -546,6 +547,7 @@ End Select</pre>
   <li><a href="#vt_shutdown">vt_shutdown</a> &mdash; explicit teardown</li>
   <li><a href="#vt_title">vt_title</a> &mdash; set the window title</li>
   <li><a href="#vt_on_close">vt_on_close</a> &mdash; intercept the [X] close button</li>
+  <li><a href="#vt_width">vt_width</a> &mdash; resize the grid at runtime</li>
 </ul>
 
 <!-- vt_screen -->
@@ -669,6 +671,48 @@ vt_on_close(@on_close)
 
 <em>' Remove callback (restore default auto-close):</em>
 vt_on_close(0)</pre>
+
+<!-- vt_width -->
+<h3 id="vt_width">vt_width</h3>
+<p>
+  Resize the virtual character grid at runtime without closing the window.
+  Reallocates all page buffers at the new dimensions, destroys and recreates
+  the SDL render buffer, resets the cursor to (1,&nbsp;1), restores the scroll
+  region to the full screen, and invalidates the scrollback buffer (call
+  <a href="#vt_scrollback">vt_scrollback</a> again afterwards if needed).
+  Finishes with <a href="#vt_cls">vt_cls</a> and <a href="#vt_present">vt_present</a>
+  so the cleared screen is visible immediately.
+</p>
+<div class="syntax">Function vt_width(cols As Long, rows As Long) As Long</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+  <tr><td>cols</td><td>Long</td><td>New column count. Clamped to a minimum of 10.</td></tr>
+  <tr><td>rows</td><td>Long</td><td>New row count. Clamped to a minimum of 3.</td></tr>
+</table>
+<h4>Return value</h4>
+<div class="ret">
+  <code>0</code> &mdash; success.<br>
+  <code>-1</code> &mdash; library not initialised (<code>vt_screen</code> not called).
+</div>
+<div class="note">
+  <strong>Typical use:</strong> call <a href="#vt_screeninfo">vt_screeninfo</a> each frame
+  and pass its output directly to <code>vt_width</code> when the return value is non-zero.
+  After <code>vt_width</code> returns, re-layout any application state that depends on
+  column or row counts (panel widths, word-wrap, widget positions, etc.).
+</div>
+<pre><em>' Dynamic resize in the main loop:</em>
+Dim nc As Long, nr As Long
+Do
+    k = vt_inkey()
+    If VT_SCAN(k) = VT_KEY_ESC Then Exit Do
+
+    If vt_screeninfo(nc, nr) Then
+        vt_width nc, nr
+        relayout nc, nr   <em>' re-draw app at new grid size</em>
+    End If
+
+    vt_sleep 16
+Loop</pre>
 
 <hr>
 
@@ -1165,6 +1209,7 @@ vt_palette</pre>
   <li><a href="#vt_csrlin">vt_csrlin</a> &mdash; current cursor row</li>
   <li><a href="#vt_pos">vt_pos</a> &mdash; current cursor column</li>
   <li><a href="#vt_rows">vt_rows</a> &mdash; screen row count</li>
+  <li><a href="#vt_screeninfo">vt_screeninfo</a> &mdash; detect physical resize</li>
 </ul>
 
 <!-- vt_cols -->
@@ -1186,6 +1231,44 @@ vt_palette</pre>
 <h3 id="vt_rows">vt_rows</h3>
 <p>Returns the total number of rows in the current screen mode.</p>
 <div class="syntax">Function vt_rows() As Long</div>
+
+<!-- vt_screeninfo -->
+<h3 id="vt_screeninfo">vt_screeninfo</h3>
+<p>
+  Queries the renderer's physical output size, divides by the current glyph
+  dimensions, and compares the result to the active grid.
+  When the user resizes the window the physical pixel dimensions change but the
+  character grid does not &mdash; this function detects that delta and reports
+  the new grid size snapped to whole character cells.
+  Returns <code>1</code> and writes the new dimensions only when they differ
+  from the current grid; returns <code>0</code> when nothing has changed.
+  Pair with <a href="#vt_width">vt_width</a> in the main loop to apply the resize.
+</p>
+<div class="syntax">Function vt_screeninfo(ByRef cols As Long,
+                       ByRef rows As Long) As Long</div>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+  <tr><td>cols</td><td>Long (ByRef)</td><td>Receives the new column count when the function returns <code>1</code>. Unchanged on return <code>0</code>.</td></tr>
+  <tr><td>rows</td><td>Long (ByRef)</td><td>Receives the new row count when the function returns <code>1</code>. Unchanged on return <code>0</code>.</td></tr>
+</table>
+<h4>Return value</h4>
+<div class="ret">
+  <code>1</code> &mdash; grid dimensions changed; <code>cols</code> and <code>rows</code> have been written.<br>
+  <code>0</code> &mdash; no change, or library not initialised.
+</div>
+<div class="note">
+  The column and row values are always whole-cell counts &mdash; the physical
+  pixel width is divided by the glyph width using integer division, so odd
+  window sizes snap cleanly to the nearest full character boundary.
+  Programs that want a fixed grid regardless of window size simply never call
+  this function; the letterbox in <a href="#vt_present">vt_present</a> handles
+  any surplus pixels automatically.
+</div>
+<pre>Dim nc As Long, nr As Long
+If vt_screeninfo(nc, nr) Then
+    vt_width nc, nr
+    relayout nc, nr   <em>' re-draw app at new grid size</em>
+End If</pre>
 
 <hr>
 
@@ -4280,7 +4363,7 @@ vt_shutdown</pre>
 
 <hr>
 <p style="font-size:0.85em; color:#555;">
-  VT Virtual Text Screen Library &mdash; API Reference &mdash; v1.9.0<br>
+  VT Virtual Text Screen Library &mdash; API Reference &mdash; v1.10.0<br>
   FreeBASIC 1.10.1 / SDL2 / Windows + Linux
 </p>
 
