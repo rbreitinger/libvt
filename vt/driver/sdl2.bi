@@ -147,6 +147,10 @@ Declare Function _VT_DRV_GetKeyboardState      Alias "SDL_GetKeyboardState"     
 Declare Function _VT_DRV_GetClipboardText      Alias "SDL_GetClipboardText"      ()                                                                                                               As ZString Ptr
 Declare Sub      _VT_DRV_free                  Alias "SDL_free"                  (mem As Any Ptr)
 Declare Sub      _VT_DRV_SetWindowGrab         Alias "SDL_SetWindowGrab"         (wnd As _VT_DRV_Window Ptr, grabbed As Long)
+Declare Sub      _VT_DRV_SetWindowMinimumSize   Alias "SDL_SetWindowMinimumSize"   (wnd As _VT_DRV_Window Ptr, min_w As Long, min_h As Long)
+Declare Sub      _VT_DRV_SetWindowMaximumSize   Alias "SDL_SetWindowMaximumSize"   (wnd As _VT_DRV_Window Ptr, max_w As Long, max_h As Long)
+Declare Sub      _VT_DRV_GetWindowSize Alias "SDL_GetWindowSize" (wnd As _VT_DRV_Window Ptr, w As Long Ptr, h As Long Ptr)
+Declare Sub      _VT_DRV_SetWindowSize          Alias "SDL_SetWindowSize"          (wnd As _VT_DRV_Window Ptr, w As Long, h As Long)
 Declare Function _VT_DRV_ShowCursor            Alias "SDL_ShowCursor"            (toggle As Long)                                                                                                 As Long
 Declare Function _VT_DRV_GetMouseState         Alias "SDL_GetMouseState"         (x As Long Ptr, y As Long Ptr)                                                                                  As ULong
 Declare Function _VT_DRV_SetClipboardText      Alias "SDL_SetClipboardText"      (txt As ZString Ptr)                                                                                            As Long

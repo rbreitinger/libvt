@@ -297,6 +297,11 @@ Type vt_internal_state
     ' --- window title (stored for pre-init vt_title calls) ---
     win_title   As String
 
+    min_win_w As Long   ' pixel floor set by vt_screen_minimum  (0 = unconstrained)
+    min_win_h As Long   ' pixel floor set by vt_screen_minimum  (0 = unconstrained)
+    max_win_w As Long   ' pixel ceiling set by vt_screen_maximum (0 = unconstrained)
+    max_win_h As Long   ' pixel ceiling set by vt_screen_maximum (0 = unconstrained)
+
     ' --- flags ---
     dirty       As Byte
     ready       As Byte   ' 1 = running, 0 = not init

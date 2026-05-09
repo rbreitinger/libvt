@@ -484,9 +484,19 @@ Sub vt_pump()
                 End If
 
            Case _VT_DRV_WINDOWEVENT
-                If evt.window.event = _VT_DRV_WINDOWEVENT_RESIZED Then
-                    vt_present()
-                End IF
+               If evt.window.event = _VT_DRV_WINDOWEVENT_RESIZED Then
+                   Dim snap_w As Long = evt.window.data1
+                   Dim snap_h As Long = evt.window.data2
+                   If vt_internal.min_win_w > 0 AndAlso snap_w < vt_internal.min_win_w Then snap_w = vt_internal.min_win_w
+                   If vt_internal.min_win_h > 0 AndAlso snap_h < vt_internal.min_win_h Then snap_h = vt_internal.min_win_h
+                   If vt_internal.max_win_w > 0 AndAlso snap_w > vt_internal.max_win_w Then snap_w = vt_internal.max_win_w
+                   If vt_internal.max_win_h > 0 AndAlso snap_h > vt_internal.max_win_h Then snap_h = vt_internal.max_win_h
+                   If snap_w <> evt.window.data1 OrElse snap_h <> evt.window.data2 Then
+                       _VT_DRV_SetWindowSize(vt_internal.sdl_window, snap_w, snap_h)
+                   Else
+                       vt_present()
+                   End If
+               End If
 
            Case _VT_DRV_MOUSEMOTION
                 ' HW mode: SDL_RenderSetLogicalSize pre-converts evt.motion.x/y to logical
@@ -892,6 +902,31 @@ Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Lo
     Return 0
 End Function
 
+Sub vt_screen_minimum(cols As Long, rows As Long)
+    If vt_internal.ready = 0 Then Exit Sub
+    If cols = 0 OrElse rows = 0 Then
+        vt_internal.min_win_w = 0
+        vt_internal.min_win_h = 0
+        _VT_DRV_SetWindowMinimumSize(vt_internal.sdl_window, 0, 0)
+    Else
+        vt_internal.min_win_w = cols * vt_internal.glyph_w
+        vt_internal.min_win_h = rows * vt_internal.glyph_h
+        _VT_DRV_SetWindowMinimumSize(vt_internal.sdl_window, vt_internal.min_win_w, vt_internal.min_win_h)
+    End If
+End Sub
+
+Sub vt_screen_maximum(cols As Long, rows As Long)
+    If vt_internal.ready = 0 Then Exit Sub
+    If cols = 0 OrElse rows = 0 Then
+        vt_internal.max_win_w = 0
+        vt_internal.max_win_h = 0
+        _VT_DRV_SetWindowMaximumSize(vt_internal.sdl_window, 16384, 16384)
+    Else
+        vt_internal.max_win_w = cols * vt_internal.glyph_w
+        vt_internal.max_win_h = rows * vt_internal.glyph_h
+        _VT_DRV_SetWindowMaximumSize(vt_internal.sdl_window, vt_internal.max_win_w, vt_internal.max_win_h)
+    End If
+End Sub
 
 ' -----------------------------------------------------------------------------
 ' vt_screen - open the virtual text screen
