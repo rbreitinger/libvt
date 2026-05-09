@@ -1105,7 +1105,7 @@ Sub ShowHelp()
         "Left-click: select / move / flip / deal." & VT_LF & _
         "Double-click: auto-move top card to foundation." & VT_LF & _
         "Right-click: deselect." & VT_LF & _
-        "CTRL+Z: undo move, up to 32, costs score"
+        "CTRL+Z/BKSP: undo move, up to 32, costs score"
     vt_tui_dialog "How to Play", txt, VT_DLG_OK
 End Sub
 
@@ -1113,7 +1113,7 @@ Sub ShowInfo()
     Dim txt As String = _
         "VT-Solitaire  v" & VERSION & VT_LF & VT_LF & _
         "Written in FreeBASIC 1.10.1" & VT_LF & _
-        "using libvt v1.7.0" & VT_LF & VT_LF & _
+        "using libvt v" & VT_VERSION & VT_LF & VT_LF & _
         "(C) 2026 Rene Breitinger"
     vt_tui_dialog "About VT-Solitaire", txt, VT_DLG_OK
 End Sub
@@ -1205,7 +1205,7 @@ Do
     k = vt_inkey()
 
     ' -- keyboard shortcuts--------------------------------------------------
-    If VT_CHAR(k) = 26 Then   ' Ctrl+Z = undo
+    If VT_CHAR(k) = 26 OrElse VT_SCAN(k) = VT_KEY_BKSP Then   ' Ctrl+Z/BKSP = undo
         If is_won = 0 Then UndoPop
     End If
 
