@@ -11,7 +11,10 @@
 #Define VT_NEWLINE  Chr(10)
 #Define VT_LF       VT_NEWLINE     ' short alias
 
-Const VT_VERSION = "1.10.0"        ' major.minor.patch
+Const VT_VERSION   = "1.10.0"        ' major.minor.patch
+Const VT_VER_MAJOR = 1
+Const VT_VER_MINOR = 10
+Const VT_VER_PATCH = 0
 
 ' -----------------------------------------------------------------------------
 ' Init flags  (combinable with Or)

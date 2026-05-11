@@ -17,7 +17,7 @@ End Function
     ' ================================================================
     
     ' ----------------------------------------------------------------
-    '  SHELLSORT_VAL    direct value comparison (ASC or DESC)
+    '  SHELLSORT_VAL - direct value comparison (ASC or DESC)
     '  variables suffixed _ to avoid shadowing caller-side names
     ' ----------------------------------------------------------------
     #Macro SHELLSORT_VAL(arr, order, T)
@@ -49,7 +49,7 @@ End Function
     #Endmacro
     
     ' ----------------------------------------------------------------
-    '  SHELLSORT_CMP    comparator callback variant
+    '  SHELLSORT_CMP - comparator callback variant
     '  cmp(a, b): return < 0  ?  a belongs before b
     '             return   0  ?  equal
     '             return > 0  ?  b belongs before a  (swap)
@@ -76,7 +76,7 @@ End Function
     #Endmacro
     
     ' ================================================================
-    '  vt_sort    VT_ASCENDING / VT_DESCENDING overloads
+    '  vt_sort - VT_ASCENDING / VT_DESCENDING overloads
     ' ================================================================
     
     sub vt_sort overload (arr() as byte, order as long)
@@ -126,7 +126,7 @@ End Function
     #Undef SHELLSORT_VAL
     
     ' ================================================================
-    '  vt_sort    comparator callback overloads
+    '  vt_sort - comparator callback overloads
     '  the comparator defines the order; no separate order parameter
     ' ================================================================
     
@@ -177,7 +177,7 @@ End Function
     #Undef SHELLSORT_CMP
     
     ' ================================================================
-    '  vt_sort_apply  --  apply a permutation index to a typed array
+    '  vt_sort_apply - apply a permutation index to a typed array
     '
     '  companion to the index-sort pattern: build a Long index array,
     '  sort it via vt_sort() with a comparator, then call vt_sort_apply
@@ -249,7 +249,7 @@ End Function
     #Undef APPLY_PERM
     
     ' ================================================================
-    '  vt_sort_shuffle  --  Fisher-Yates in-place shuffle
+    '  vt_sort_shuffle - Fisher-Yates in-place shuffle
     '  seeding the RNG with Randomize is the caller's responsibility.
     '  swap is type-agnostic in FreeBASIC so T is not needed here.
     ' ================================================================

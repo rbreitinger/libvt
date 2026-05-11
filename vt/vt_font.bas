@@ -89,9 +89,6 @@ End Function
 ' -----------------------------------------------------------------------------
 ' vt_loadfont - load a BMP font sheet and replace the active font texture.
 ' -----------------------------------------------------------------------------
-' -----------------------------------------------------------------------------
-' vt_loadfont - load a BMP font sheet and replace the active font texture.
-' -----------------------------------------------------------------------------
 Function vt_loadfont(fname As String, _
                      sheet_w As Long = -1, _
                      sheet_h As Long = -1, _

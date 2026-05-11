@@ -572,7 +572,7 @@ Randomize
 init_pieces()
 
 vt_title "VTetris"
-vt_screen VT_SCREEN_0,,2  '' 2 pages
+vt_screen ,,2  '' 2 pages
 vt_key_repeat 150, 40     '' custom DAS
 vt_locate , , 0           '' hide text cursor
 vt_mouse 1                '' enable console mouse to hide OS mouse cursor

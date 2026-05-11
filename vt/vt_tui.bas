@@ -473,7 +473,7 @@ Sub vt_tui_rect_fill(x As Long, y As Long, wid As Long, hei As Long, _
         Next c
     Next r
     vt_internal.dirty = 1
-End Sub
+End Sub 
 
 ' =============================================================================
 ' vt_tui_hline
