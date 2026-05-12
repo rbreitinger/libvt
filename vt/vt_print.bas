@@ -8,7 +8,7 @@
 ' Scrollback capture always saves the full row (full context for scrollback view).
 ' Full-row fast path used when view_left = -1.
 ' -----------------------------------------------------------------------------
-Sub vt_internal_scroll_up()
+Private Sub vt_internal_scroll_up()
     Dim cols    As Long = vt_internal.scr_cols
     Dim vtop    As Long = vt_internal.view_top - 1   ' 0-based
     Dim vbot    As Long = vt_internal.view_bot - 1   ' 0-based
@@ -82,7 +82,7 @@ End Sub
 ' Respects view_left/view_right for wrap boundary and newline left edge.
 ' view_left = -1 means full width (left edge = col 1, right edge = scr_cols).
 ' -----------------------------------------------------------------------------
-Sub vt_internal_putch(ch As UByte)
+Private Sub vt_internal_putch(ch As UByte)
     Dim col_left  As Long
     Dim col_right As Long
 

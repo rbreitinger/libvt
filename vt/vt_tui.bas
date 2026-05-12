@@ -304,7 +304,7 @@ End Sub
 ' either setup function. Avoids all-black-on-black / unbound-key surprises.
 ' No ready guard -- pure struct write, screen not required.
 ' -----------------------------------------------------------------------------
-Sub vt_internal_tui_autoinit()
+Private Sub vt_internal_tui_autoinit()
     If vt_internal_tui_inited = 0 Then
         vt_tui_theme_default()
     End If
@@ -322,7 +322,7 @@ End Sub
 ' Saves a 1-based (ox, oy) rectangle of wid x hei cells into buf().
 ' ReDims buf to wid * hei - 1. No ready guard -- callers already checked.
 ' -----------------------------------------------------------------------------
-Sub vt_internal_tui_save_rect(ox As Long, oy As Long, wid As Long, hei As Long, _
+Private Sub vt_internal_tui_save_rect(ox As Long, oy As Long, wid As Long, hei As Long, _
                                buf() As vt_cell)
     Dim r   As Long
     Dim c   As Long
@@ -341,7 +341,7 @@ End Sub
 ' Restores a previously saved 1-based (ox, oy) rectangle from buf().
 ' Sets dirty. No ready guard -- callers already checked.
 ' -----------------------------------------------------------------------------
-Sub vt_internal_tui_restore_rect(ox As Long, oy As Long, wid As Long, hei As Long, _
+Private Sub vt_internal_tui_restore_rect(ox As Long, oy As Long, wid As Long, hei As Long, _
                                   buf() As vt_cell)
     Dim r   As Long
     Dim c   As Long
@@ -360,7 +360,7 @@ End Sub
 ' Draws [lbl] at 1-based (x, y) in fg/bg. Width = Len(lbl) + 2.
 ' No ready guard, no dirty -- callers handle both.
 ' -----------------------------------------------------------------------------
-Sub vt_internal_tui_draw_button(x As Long, y As Long, lbl As String, _
+Private Sub vt_internal_tui_draw_button(x As Long, y As Long, lbl As String, _
                                  fg As UByte, bg As UByte)
     Dim cel  As vt_cell Ptr
     Dim c    As Long
@@ -381,7 +381,7 @@ End Sub
 ' Uses CP437 219 (solid) for thumb, 177 (stipple) for track.
 ' No ready guard, no dirty -- callers handle both.
 ' -----------------------------------------------------------------------------
-Sub vt_internal_tui_draw_scrollbar(x As Long, y As Long, hei As Long, _
+Private Sub vt_internal_tui_draw_scrollbar(x As Long, y As Long, hei As Long, _
                                     thumb As Long, fg As UByte, bg As UByte)
     Dim cel As vt_cell Ptr
     Dim r   As Long
@@ -398,7 +398,7 @@ End Sub
 ' 0..n-1 highlights that group with inverted colours.
 ' Sets dirty. No ready guard -- callers already checked.
 ' -----------------------------------------------------------------------------
-Sub vt_internal_tui_draw_bar(row As Long, groups() As String, open_grp As Long)
+Private Sub vt_internal_tui_draw_bar(row As Long, groups() As String, open_grp As Long)
     Dim cel         As vt_cell Ptr
     Dim c           As Long
     Dim i           As Long
@@ -815,7 +815,7 @@ End Function
 ' Sets checked=1 on cur_item and clears all other RADIO items sharing the same
 ' group_id. group_id=0 is treated as "no group" -- only the item itself is set.
 ' -----------------------------------------------------------------------------
-Sub vt_internal_tui_form_radio_select(items() As vt_tui_form_item, _
+Private Sub vt_internal_tui_form_radio_select(items() As vt_tui_form_item, _
                                        item_base As Long, item_count As Long, _
                                        cur_item As Long)
     Dim i   As Long
@@ -839,7 +839,7 @@ End Sub
 ' Recalculates view_off after cpos changes in an input item so the cursor
 ' always stays inside the visible window. Call after every cpos mutation.
 ' -----------------------------------------------------------------------------
-Sub vt_internal_tui_form_scroll(ByRef itm As vt_tui_form_item)
+Private Sub vt_internal_tui_form_scroll(ByRef itm As vt_tui_form_item)
     If itm.cpos < itm.view_off Then
         itm.view_off = itm.cpos
     End If
@@ -854,7 +854,7 @@ End Sub
 ' Called whenever focus lands on an input item. Places cursor at end of text
 ' and scrolls the view so the cursor is visible.
 ' -----------------------------------------------------------------------------
-Sub vt_internal_tui_form_enter_input(ByRef itm As vt_tui_form_item)
+Private Sub vt_internal_tui_form_enter_input(ByRef itm As vt_tui_form_item)
     itm.cpos     = Len(itm.val)
     itm.view_off = itm.cpos - itm.wid + 1
     If itm.view_off < 0 Then itm.view_off = 0

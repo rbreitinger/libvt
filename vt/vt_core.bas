@@ -16,14 +16,14 @@ Declare Function vt_internal_build_embedded_tex() As _VT_DRV_Texture Ptr
     Declare Sub  vt_internal_sound_shutdown()
 #Endif
 
-Function vt_internal_ticks() As ULong
+Private Function vt_internal_ticks() As ULong
     Return _VT_DRV_GetTicks()
 End Function
 
 ' -----------------------------------------------------------------------------
 ' Internal: push one key event into the circular buffer
 ' -----------------------------------------------------------------------------
-Sub vt_internal_key_push(evt As ULong)
+Private Sub vt_internal_key_push(evt As ULong)
     If vt_internal.key_count >= VT_KEY_BUFFER_SIZE Then
         vt_internal.key_read  = (vt_internal.key_read + 1) Mod VT_KEY_BUFFER_SIZE
         vt_internal.key_count -= 1
@@ -36,7 +36,7 @@ End Sub
 ' -----------------------------------------------------------------------------
 ' Internal: map SDL scancode to VT scancode
 ' -----------------------------------------------------------------------------
-Function vt_internal_sdl_to_vtscan(sdlscan As Long) As Long
+Private Function vt_internal_sdl_to_vtscan(sdlscan As Long) As Long
     Select Case sdlscan
         Case _VT_DRV_SCANCODE_F1      : Return VT_KEY_F1
         Case _VT_DRV_SCANCODE_F2      : Return VT_KEY_F2
@@ -84,7 +84,7 @@ End Function
 ' VT_WINDOWED, VT_FULLSCREEN_ASPECT (integer scale), VT_FULLSCREEN_STRETCH,
 ' and maximized windows. No stored flags needed -- SDL tells us what it used.
 ' -----------------------------------------------------------------------------
-Sub vt_internal_pixel_to_cell(px As Long, py As Long, col_out As Long Ptr, row_out As Long Ptr)
+Private Sub vt_internal_pixel_to_cell(px As Long, py As Long, col_out As Long Ptr, row_out As Long Ptr)
     Dim sx    As Single
     Dim sy    As Single
     Dim out_w As Long
@@ -122,7 +122,7 @@ End Sub
 ' Returns 0 if there is no CP437 mapping (caller should discard the byte).
 ' Covers CP437 1..31 (graphical low chars), 127, and 128..255.
 ' =============================================================================
-Function vt_internal_unicode_to_cp437(codepoint As Long) As UByte
+Private Function vt_internal_unicode_to_cp437(codepoint As Long) As UByte
     Select Case codepoint
         ' --- CP437 1..31 : graphical low chars ---
         Case &h263A : Return 1    ' ☺
@@ -666,7 +666,7 @@ End Sub
 ' -----------------------------------------------------------------------------
 ' Internal: blink phase update
 ' -----------------------------------------------------------------------------
-Function vt_internal_blink_update() As Byte
+Private Function vt_internal_blink_update() As Byte
     Dim tick As ULong = vt_internal_ticks()
     If tick - vt_internal.blink_tick >= VT_BLINK_MS Then
         vt_internal.blink_visible = 1 - vt_internal.blink_visible
@@ -680,7 +680,7 @@ End Function
 ' Internal: free all SDL and heap resources, reset state
 ' Called by vt_shutdown and at the top of vt_init_impl for re-init(mode change)
 ' -----------------------------------------------------------------------------
-Sub vt_internal_shutdown()
+Private Sub vt_internal_shutdown()
     If vt_internal.ready = 0 Then Exit Sub
     vt_internal.ready = 0
 
@@ -711,7 +711,7 @@ End Sub
 ' -----------------------------------------------------------------------------
 ' Internal: core init -- called by vt_screen
 ' -----------------------------------------------------------------------------
-Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Long, _
+Private Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Long, _
                       fptr As UByte Ptr, fsrc_h As Long, flags As Long, _
                       pages As Long) As Long
 
@@ -1019,7 +1019,7 @@ End Function
 ' Used by: mouse cursor render, selection render, vt_internal_cp_build_text.
 ' vis_buf must be page_buf(vis_page) -- pass it in to avoid re-fetching.
 ' -----------------------------------------------------------------------------
-Function vt_internal_display_cellptr(col As Long, row_0 As Long, _
+Private Function vt_internal_display_cellptr(col As Long, row_0 As Long, _
                                      vis_buf As vt_cell Ptr) As vt_cell Ptr
     Dim cols        As Long = vt_internal.scr_cols
     Dim scroll_pos  As Long
@@ -1052,7 +1052,7 @@ End Function
 ' When view_left / view_right are -1: covers all columns (full-row path).
 ' Scrollback capture is handled by the caller (vt_scroll) -- not here.
 ' -----------------------------------------------------------------------------
-Sub vt_internal_scroll_rect(amount As Long)
+Private Sub vt_internal_scroll_rect(amount As Long)
     If amount = 0 Then Exit Sub
 
     Dim cols    As Long = vt_internal.scr_cols
@@ -1490,7 +1490,7 @@ End Sub
 ' -----------------------------------------------------------------------------
 ' Internal: auto-present for vt_inkey -- throttled, skips if not dirty
 ' -----------------------------------------------------------------------------
-Sub vt_internal_present_if_dirty()
+Private Sub vt_internal_present_if_dirty()
     If vt_internal.dirty = 0 Then Exit Sub
     Static last_auto_tick As ULong
     Dim now_tick As ULong

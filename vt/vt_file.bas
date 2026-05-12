@@ -53,7 +53,7 @@ End Function
 ' "data"   -> "data/"    "data/backup" -> "data/backup/"
 ' The trailing slash prevents "data/" from matching "database/".
 ' -----------------------------------------------------------------------
-Function vt_file_internal_normpath(ByRef p As Const String) As String
+Private Function vt_file_internal_normpath(ByRef p As Const String) As String
     Dim nrm As String
     Dim idx As Long
     nrm = LCase(p)
@@ -139,7 +139,7 @@ End Function
 ' VT_FILE_OVERWRITE propagates to per-file vt_file_copy calls.
 ' returns: 0=ok  -3=MkDir or file copy failure
 ' -----------------------------------------------------------------------
-Function vt_file_internal_copydir(ByRef src As Const String, ByRef dst As Const String, flags As Long) As Long
+Private Function vt_file_internal_copydir(ByRef src As Const String, ByRef dst As Const String, flags As Long) As Long
     Dim attrib    As Integer
     Dim scan_mask As Integer
     Dim itm       As String

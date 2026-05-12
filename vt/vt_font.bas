@@ -9,7 +9,7 @@
 ' Returns a new _VT_DRV_Texture Ptr on success, 0 on failure.
 ' Caller owns the returned texture and must set blend mode before use.
 ' -----------------------------------------------------------------------------
-Function vt_internal_build_embedded_tex() As _VT_DRV_Texture Ptr
+Private Function vt_internal_build_embedded_tex() As _VT_DRV_Texture Ptr
     Dim font_surf  As _VT_DRV_Surface Ptr
     Dim new_tex    As _VT_DRV_Texture Ptr
     Dim surf_px    As ULong Ptr

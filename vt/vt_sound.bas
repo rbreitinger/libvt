@@ -29,7 +29,7 @@ Dim Shared vt_snd As vt_internal_sound_state
 ' auto-called by vt_sound on first use
 ' returns: 0=ok, -1=SDL audio init fail, -2=device open fail
 ' -----------------------------------------------------------------------------
-Function vt_internal_sound_init() As Long
+Private Function vt_internal_sound_init() As Long
     If vt_snd.ready Then Return 0
 
     If _VT_DRV_InitSubSystem(_VT_DRV_INIT_AUDIO) <> 0 Then Return -1
@@ -58,7 +58,7 @@ End Function
 ' vt_internal_sound_shutdown - close audio device and quit audio subsystem
 ' called automatically from vt_internal_shutdown in vt_core.bas
 ' -----------------------------------------------------------------------------
-Sub vt_internal_sound_shutdown()
+Private Sub vt_internal_sound_shutdown()
     If vt_snd.ready = 0 Then Exit Sub
     _VT_DRV_CloseAudioDevice(vt_snd.dev)
     _VT_DRV_QuitSubSystem(_VT_DRV_INIT_AUDIO)

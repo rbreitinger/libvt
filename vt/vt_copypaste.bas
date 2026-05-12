@@ -16,7 +16,7 @@
 ' Respects cp_view_* snapshot: column range is clipped to effective bounds.
 ' After copy, resets cp_view_* snapshot to -1.
 ' -----------------------------------------------------------------------------
-Sub vt_internal_cp_build_text()
+Private Sub vt_internal_cp_build_text()
     Dim cols      As Long
     Dim flat1     As Long
     Dim flat2     As Long
