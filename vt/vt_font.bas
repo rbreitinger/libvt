@@ -5,7 +5,7 @@
 ' -----------------------------------------------------------------------------
 ' Internal helper: build a white-on-transparent ARGB32 font texture from the
 ' built-in bitpacked font data stored in vt_internal.
-' Used by vt_font_reset. Mirrors the texture-build block in vt_init_impl exactly.
+' Used by vt_font_reset. Mirrors the texture-build block in vt_internal_init exactly.
 ' Returns a new _VT_DRV_Texture Ptr on success, 0 on failure.
 ' Caller owns the returned texture and must set blend mode before use.
 ' -----------------------------------------------------------------------------

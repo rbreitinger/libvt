@@ -24,12 +24,12 @@ End Function
 ' Internal: push one key event into the circular buffer
 ' -----------------------------------------------------------------------------
 Private Sub vt_internal_key_push(evt As ULong)
-    If vt_internal.key_count >= VT_KEY_BUFFER_SIZE Then
-        vt_internal.key_read  = (vt_internal.key_read + 1) Mod VT_KEY_BUFFER_SIZE
+    If vt_internal.key_count >= _VT_KEY_BUFFER_SIZE Then
+        vt_internal.key_read  = (vt_internal.key_read + 1) Mod _VT_KEY_BUFFER_SIZE
         vt_internal.key_count -= 1
     End If
     vt_internal.key_buf(vt_internal.key_write) = evt
-    vt_internal.key_write = (vt_internal.key_write + 1) Mod VT_KEY_BUFFER_SIZE
+    vt_internal.key_write = (vt_internal.key_write + 1) Mod _VT_KEY_BUFFER_SIZE
     vt_internal.key_count += 1
 End Sub
 
@@ -334,8 +334,8 @@ Sub vt_pump()
             End If
         End If
         If rep_due AndAlso vt_internal.rep_rate > 0 AndAlso vt_internal.rep_initial > 0 Then
-            keyrec = vt_internal.key_buf((vt_internal.key_write + VT_KEY_BUFFER_SIZE - 1) _
-                     Mod VT_KEY_BUFFER_SIZE)
+            keyrec = vt_internal.key_buf((vt_internal.key_write + _VT_KEY_BUFFER_SIZE - 1) _
+                     Mod _VT_KEY_BUFFER_SIZE)
             keyrec = keyrec Or (1UL Shl 28)
             vt_internal_key_push(keyrec)
         End If
@@ -476,8 +476,8 @@ Sub vt_pump()
                     If (modstate And _VT_DRVKMOD_CTRL)  Then keyrec = keyrec Or (1UL Shl 30)
                     If (modstate And _VT_DRVKMOD_ALT)   Then keyrec = keyrec Or (1UL Shl 31)
                     If vt_internal.key_count > 0 Then
-                        vt_internal.key_write = (vt_internal.key_write + VT_KEY_BUFFER_SIZE - 1) _
-                                                Mod VT_KEY_BUFFER_SIZE
+                        vt_internal.key_write = (vt_internal.key_write + _VT_KEY_BUFFER_SIZE - 1) _
+                                                Mod _VT_KEY_BUFFER_SIZE
                         vt_internal.key_count -= 1
                     End If
                     vt_internal_key_push(keyrec)
@@ -554,7 +554,7 @@ Sub vt_pump()
 
                     ' auto-scroll when dragging to viewport edge (throttled)
                     If drag_row <= eff_top Then
-                        If tick - vt_internal.cp_scroll_tick >= VT_CP_SCROLL_MS Then
+                        If tick - vt_internal.cp_scroll_tick >= _VT_CP_SCROLL_MS Then
                             Dim sb_before As Long = vt_internal.sb_offset
                             vt_scroll(1)
                             vt_internal.cp_scroll_tick = tick
@@ -566,7 +566,7 @@ Sub vt_pump()
                             End If
                         End If
                     ElseIf drag_row >= eff_bot Then
-                        If tick - vt_internal.cp_scroll_tick >= VT_CP_SCROLL_MS Then
+                        If tick - vt_internal.cp_scroll_tick >= _VT_CP_SCROLL_MS Then
                             Dim sb_before As Long = vt_internal.sb_offset
                             vt_scroll(-1)
                             vt_internal.cp_scroll_tick = tick
@@ -668,7 +668,7 @@ End Sub
 ' -----------------------------------------------------------------------------
 Private Function vt_internal_blink_update() As Byte
     Dim tick As ULong = vt_internal_ticks()
-    If tick - vt_internal.blink_tick >= VT_BLINK_MS Then
+    If tick - vt_internal.blink_tick >= _VT_BLINK_MS Then
         vt_internal.blink_visible = 1 - vt_internal.blink_visible
         vt_internal.blink_tick    = tick
         Return 1
@@ -678,14 +678,14 @@ End Function
 
 ' -----------------------------------------------------------------------------
 ' Internal: free all SDL and heap resources, reset state
-' Called by vt_shutdown and at the top of vt_init_impl for re-init(mode change)
+' Called by vt_shutdown and at the top of vt_internal_init for re-init(mode change)
 ' -----------------------------------------------------------------------------
 Private Sub vt_internal_shutdown()
     If vt_internal.ready = 0 Then Exit Sub
     vt_internal.ready = 0
 
     Dim sl As Long
-    For sl = 0 To VT_PAGE_SLOTS - 1
+    For sl = 0 To _VT_PAGE_SLOTS - 1
         If vt_internal.page_buf(sl) <> 0 Then
             DeAllocate vt_internal.page_buf(sl)
             vt_internal.page_buf(sl) = 0
@@ -711,7 +711,7 @@ End Sub
 ' -----------------------------------------------------------------------------
 ' Internal: core init -- called by vt_screen
 ' -----------------------------------------------------------------------------
-Private Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph_h As Long, _
+Private Function vt_internal_init(cols As Long, rows As Long, glyph_w As Long, glyph_h As Long, _
                       fptr As UByte Ptr, fsrc_h As Long, flags As Long, _
                       pages As Long) As Long
 
@@ -802,8 +802,8 @@ Private Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph
     ' Clamp requested page count, allocate each buffer, wire cells to page 0.
     Dim pg As Long
     If pages < 1 Then pages = 1
-    If pages > VT_PAGE_SLOTS Then pages = VT_PAGE_SLOTS
-    For pg = 0 To VT_PAGE_SLOTS - 1
+    If pages > _VT_PAGE_SLOTS Then pages = _VT_PAGE_SLOTS
+    For pg = 0 To _VT_PAGE_SLOTS - 1
         vt_internal.page_buf(pg) = 0
     Next pg
     For pg = 0 To pages - 1
@@ -854,8 +854,8 @@ Private Function vt_init_impl(cols As Long, rows As Long, glyph_w As Long, glyph
 
     ' --- key repeat ---
     vt_internal.rep_scan    = 0
-    vt_internal.rep_initial = VT_KEY_REPEAT_INITIAL
-    vt_internal.rep_rate    = VT_KEY_REPEAT_RATE
+    vt_internal.rep_initial = _VT_KEY_REPEAT_INITIAL
+    vt_internal.rep_rate    = _VT_KEY_REPEAT_RATE
 
     ' --- mouse ---
     vt_internal.mouse_on    = 0
@@ -1009,7 +1009,7 @@ Function vt_screen(mode As Long, flags As Long, pages As Long) As Long
             End Select
     End Select
 
-    Return vt_init_impl(cols, rows, gw, gh, fptr, fsrc_h, flags, pages)
+    Return vt_internal_init(cols, rows, gw, gh, fptr, fsrc_h, flags, pages)
 End Function
 
 ' -----------------------------------------------------------------------------
@@ -1518,7 +1518,7 @@ Function vt_inkey() As ULong
     vt_internal_present_if_dirty()
     If vt_internal.key_count = 0 Then Return 0
     Dim evt As ULong = vt_internal.key_buf(vt_internal.key_read)
-    vt_internal.key_read  = (vt_internal.key_read + 1) Mod VT_KEY_BUFFER_SIZE
+    vt_internal.key_read  = (vt_internal.key_read + 1) Mod _VT_KEY_BUFFER_SIZE
     vt_internal.key_count -= 1
     Return evt
 End Function

@@ -170,12 +170,12 @@ Static Shared vt_default_palette(47) As UByte = { _
 ' -----------------------------------------------------------------------------
 ' Internal tuning constants
 ' -----------------------------------------------------------------------------
-Const VT_KEY_BUFFER_SIZE    = 64
-Const VT_BLINK_MS           = 250
-Const VT_PAGE_SLOTS         = 8    ' max allocatable pages (0=VT_VIDEO, 1..7 work pages)
-Const VT_KEY_REPEAT_INITIAL = 400
-Const VT_KEY_REPEAT_RATE    = 30
-Const VT_CP_SCROLL_MS       = 150  ' ms between auto-scroll steps during drag selection
+Const _VT_KEY_BUFFER_SIZE    = 64
+Const _VT_BLINK_MS           = 250
+Const _VT_PAGE_SLOTS         = 8    ' max allocatable pages (0=VT_VIDEO, 1..7 work pages)
+Const _VT_KEY_REPEAT_INITIAL = 400
+Const _VT_KEY_REPEAT_RATE    = 30
+Const _VT_CP_SCROLL_MS       = 150  ' ms between auto-scroll steps during drag selection
 
 ' -----------------------------------------------------------------------------
 ' Mouse button bitmask constants  (vt_getmouse btns param)
@@ -259,7 +259,7 @@ Type vt_internal_state
     sb_offset   As Long
 
     ' --- key event buffer ---
-    key_buf(VT_KEY_BUFFER_SIZE - 1) As ULong
+    key_buf(_VT_KEY_BUFFER_SIZE - 1) As ULong
     key_read    As Long
     key_write   As Long
     key_count   As Long
@@ -284,7 +284,7 @@ Type vt_internal_state
     ' page_buf holds all allocated cell buffers. Only 0..num_pages-1 are valid.
     ' cells = page_buf(work_page) at all times.
     ' vt_present reads page_buf(vis_page).
-    page_buf(VT_PAGE_SLOTS - 1) As vt_cell Ptr
+    page_buf(_VT_PAGE_SLOTS - 1) As vt_cell Ptr
     num_pages   As Long   ' how many pages were allocated at vt_screen() time
     work_page   As Long   ' active drawing page index
     vis_page    As Long   ' visible page index shown by vt_present
@@ -383,7 +383,7 @@ Dim Shared vt_internal As vt_internal_state
 #Undef vt_internal_key_push
 #Undef vt_internal_sdl_to_vtscan
 #Undef vt_internal_blink_update
-#Undef vt_init_impl
+#Undef vt_internal_init
 #Undef vt_internal_present_if_dirty
 #Undef vt_internal_scroll_rect
 #Undef vt_internal_pixel_to_cell

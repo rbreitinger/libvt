@@ -9,9 +9,10 @@ Const VT_WAVE_SINE        = 2       ' pure sine tone
 Const VT_WAVE_NOISE       = 3       ' 15-bit LFSR noise -- NES percussion / static
 Const VT_SOUND_BLOCKING   = 1       ' wait for note to finish, keep window alive (default)
 Const VT_SOUND_BACKGROUND = 0       ' queue and return immediately
-Const VT_SND_RATE         = 11025   ' sample rate: Hz, unsigned 8-bit mono
-Const VT_SND_QUEUE_CAP    = 220500  ' max queued bytes (~20 seconds at 11025 Hz)
-
+' << internal!
+Const _VT_SND_RATE         = 11025   ' sample rate: Hz, unsigned 8-bit mono
+Const _VT_SND_QUEUE_CAP    = 220500  ' max queued bytes (~20 seconds at 11025 Hz)
+' >>
 #Define VT_BEEP vt_sound(800, 200)
 
 ' -----------------------------------------------------------------------------
@@ -37,7 +38,7 @@ Private Function vt_internal_sound_init() As Long
     Dim want As _VT_DRV_AudioSpec
     Dim got  As _VT_DRV_AudioSpec
 
-    want.freq     = VT_SND_RATE
+    want.freq     = _VT_SND_RATE
     want.format   = _VT_DRV_AUDIO_U8
     want.channels = 1
     want.samples  = 512
@@ -108,11 +109,11 @@ Function vt_sound(freq     As Long,                   _
 
     ' use LongInt for the multiply to avoid Long overflow on large dur_ms values,
     ' then check against the queue cap before casting back down to Long
-    n_smp_64 = Clngint(VT_SND_RATE) * dur_ms \ 1000
+    n_smp_64 = Clngint(_VT_SND_RATE) * dur_ms \ 1000
     If n_smp_64 < 1 Then Return 0
 
     queued = _VT_DRV_GetQueuedAudioSize(vt_snd.dev)
-    If Clngint(queued) + n_smp_64 > VT_SND_QUEUE_CAP Then Return -2
+    If Clngint(queued) + n_smp_64 > _VT_SND_QUEUE_CAP Then Return -2
 
     n_samples = Clng(n_smp_64)
 
@@ -122,7 +123,7 @@ Function vt_sound(freq     As Long,                   _
     Select Case wave
 
         Case VT_WAVE_SQUARE
-            period = VT_SND_RATE \ freq
+            period = _VT_SND_RATE \ freq
             If period < 2 Then period = 2
             half_p = period \ 2
             For i = 0 To n_samples - 1
@@ -134,7 +135,7 @@ Function vt_sound(freq     As Long,                   _
             Next i
 
         Case VT_WAVE_TRIANGLE
-            period = VT_SND_RATE \ freq
+            period = _VT_SND_RATE \ freq
             If period < 2 Then period = 2
             half_p = period \ 2
             If half_p < 1 Then half_p = 1
@@ -149,12 +150,12 @@ Function vt_sound(freq     As Long,                   _
 
         Case VT_WAVE_SINE
             For i = 0 To n_samples - 1
-                phase_f = 2.0 * 3.14159265358979 * freq * i / VT_SND_RATE
+                phase_f = 2.0 * 3.14159265358979 * freq * i / _VT_SND_RATE
                 buf[i]  = Cubyte(128 + 110 * Sin(phase_f))
             Next i
 
         Case VT_WAVE_NOISE
-            lfsr_clk   = VT_SND_RATE \ freq
+            lfsr_clk   = _VT_SND_RATE \ freq
             If lfsr_clk < 1 Then lfsr_clk = 1
             lfsr       = 1
             lfsr_timer = 0

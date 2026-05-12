@@ -9,9 +9,9 @@
 
 ' Guard macros -- place at top of any Sub/Function that draws or reads input.
 ' Theme setters and pure variable writers do NOT need these.
-#Define VT_TUI_GUARD_SUB     If vt_internal.ready = 0 Then Exit Sub
-#Define VT_TUI_GUARD_FN      If vt_internal.ready = 0 Then Return 0
-#Define VT_TUI_GUARD_FN_STR  If vt_internal.ready = 0 Then Return ""
+#Define _VT_TUI_GUARD_SUB     If vt_internal.ready = 0 Then Exit Sub
+#Define _VT_TUI_GUARD_FN      If vt_internal.ready = 0 Then Return 0
+#Define _VT_TUI_GUARD_FN_STR  If vt_internal.ready = 0 Then Return ""
 
 ' Left mouse button edge detection: 1 on the frame the LMB transitions from
 ' up to down, 0 otherwise. cur/prev are the current and previous mouse_btns.
@@ -32,21 +32,16 @@
 ' -----------------------------------------------------------------------------
 Const VT_TUI_KEY_MASK As ULong = &hEFFF0000  ' bits 16-27 (scan) + bits 29-31 (mods)
 
-#Define VT_TUI_MKKEY(scan, sh, ct, al) _
-    CULng((CULng(scan) Shl 16) Or (CULng(sh) Shl 29) Or (CULng(ct) Shl 30) Or (CULng(al) Shl 31))
-
-#Define VT_TUI_KEY_IS(k, act) _
-    ((k) <> 0 AndAlso ((k) And VT_TUI_KEY_MASK) = (vt_internal_tui_keymap(act) And VT_TUI_KEY_MASK))
+#Define VT_TUI_MKKEY(scan, sh, ct, al)    CULng((CULng(scan) Shl 16) Or (CULng(sh) Shl 29) Or (CULng(ct) Shl 30) Or (CULng(al) Shl 31))
+#Define VT_TUI_KEY_IS(k, act)             ((k) <> 0 AndAlso ((k) And VT_TUI_KEY_MASK) = (vt_internal_tui_keymap(act) And VT_TUI_KEY_MASK))
 
 ' =============================================================================
 ' Return codes
 ' =============================================================================
-Enum VT_TUI_RET
-    VT_RET_CANCEL   ' 0
-    VT_RET_OK       ' 1
-    VT_RET_YES      ' 2
-    VT_RET_NO       ' 3
-End Enum
+Const VT_RET_CANCEL = 0
+Const VT_RET_OK     = 1
+Const VT_RET_YES    = 2
+Const VT_RET_NO     = 3
 
 ' =============================================================================
 ' Dialog button set flags  (combinable: VT_DLG_YESNOCANCEL Or VT_DLG_NO_ESC)
@@ -70,13 +65,12 @@ Const VT_TUI_ED_READONLY  = 1   ' vt_tui_editor_*: view/scroll only, no editing
 ' =============================================================================
 ' Form item kinds
 ' =============================================================================
-Enum
-    VT_FORM_INPUT          ' single-line text input
-    VT_FORM_BUTTON         ' push button
-    VT_FORM_CHECKBOX       ' toggleable  [ ] / [x]
-    VT_FORM_RADIO          ' radio in group  ( ) / (*)
-    VT_FORM_LABEL          ' static text  never receives focus, Tab skips it
-End Enum
+Const VT_FORM_INPUT      = 0    ' single-line text input
+Const VT_FORM_BUTTON     = 1    ' push button
+Const VT_FORM_CHECKBOX   = 2    ' toggleable  [ ] / [x]
+Const VT_FORM_RADIO      = 3    ' radio in group  ( ) / (*)
+Const VT_FORM_LABEL      = 4    ' static text - never receives focus, Tab skips it
+
 ' Alignment for vt_tui_label_draw and VT_FORM_LABEL items
 Const VT_ALIGN_LEFT   = 0
 Const VT_ALIGN_CENTER = 1
@@ -462,7 +456,7 @@ Sub vt_tui_rect_fill(x As Long, y As Long, wid As Long, hei As Long, _
     Dim c   As Long
     Dim cel As vt_cell Ptr
 
-    VT_TUI_GUARD_SUB
+    _VT_TUI_GUARD_SUB
 
     For r = 0 To hei - 1
         cel = vt_internal.cells + (y - 1 + r) * vt_internal.scr_cols + (x - 1)
@@ -485,7 +479,7 @@ Sub vt_tui_hline(x As Long, y As Long, wid As Long, fg As UByte, bg As UByte)
     Dim cel As vt_cell Ptr
     Dim hch As UByte
 
-    VT_TUI_GUARD_SUB
+    _VT_TUI_GUARD_SUB
     vt_internal_tui_autoinit()
 
     hch = IIf(vt_internal_tui_theme.border_style = 0, 196, 205)
@@ -509,7 +503,7 @@ Sub vt_tui_vline(x As Long, y As Long, hei As Long, fg As UByte, bg As UByte)
     Dim cel As vt_cell Ptr
     Dim vch As UByte
 
-    VT_TUI_GUARD_SUB
+    _VT_TUI_GUARD_SUB
     vt_internal_tui_autoinit()
 
     vch = IIf(vt_internal_tui_theme.border_style = 0, 179, 186)
@@ -537,7 +531,7 @@ Sub vt_tui_label_draw(x As Long, y As Long, wid As Long, txt As String, _
     Dim offset As Long
     Dim c      As Long
 
-    VT_TUI_GUARD_SUB
+    _VT_TUI_GUARD_SUB
 
     If wid <= 0 Then Exit Sub
 
@@ -600,7 +594,7 @@ Sub vt_tui_window(x As Long, y As Long, wid As Long, hei As Long, _
     Dim shx     As Long
     Dim shy     As Long
 
-    VT_TUI_GUARD_SUB
+    _VT_TUI_GUARD_SUB
     vt_internal_tui_autoinit()
 
     tfg     = vt_internal_tui_theme.title_fg
@@ -702,7 +696,7 @@ Sub vt_tui_statusbar(row As Long, caption As String)
     Dim bfg  As UByte
     Dim bbg  As UByte
 
-    VT_TUI_GUARD_SUB
+    _VT_TUI_GUARD_SUB
     vt_internal_tui_autoinit()
 
     bfg  = vt_internal_tui_theme.bar_fg
@@ -741,7 +735,7 @@ Sub vt_tui_progress(x As Long, y As Long, wid As Long, _
     Dim lstart   As Long
     Dim cur_bg   As UByte
 
-    VT_TUI_GUARD_SUB
+    _VT_TUI_GUARD_SUB
     vt_internal_tui_autoinit()
 
     full_bg  = vt_internal_tui_theme.title_bg
@@ -794,7 +788,7 @@ End Sub
 ' =============================================================================
 Function vt_tui_mouse_in_rect(x As Long, y As Long, _
                                wid As Long, hei As Long) As Byte
-    VT_TUI_GUARD_FN
+    _VT_TUI_GUARD_FN
     If vt_internal.mouse_on = 0 Then Return 0
 
     If vt_internal.mouse_col >= x AndAlso _
@@ -886,7 +880,7 @@ Sub vt_tui_listbox_draw(x As Long, y As Long, wid As Long, hei As Long, _
     Dim txt         As String
     Dim tlen        As Long
 
-    VT_TUI_GUARD_SUB
+    _VT_TUI_GUARD_SUB
     vt_internal_tui_autoinit()
 
     item_count = UBound(items) - LBound(items) + 1
@@ -971,7 +965,7 @@ Function vt_tui_listbox_handle(x As Long, y As Long, wid As Long, hei As Long, _
     Dim clicked_item As Long
     Dim whl          As Long
 
-    VT_TUI_GUARD_FN
+    _VT_TUI_GUARD_FN
 
     item_count = UBound(items) - LBound(items) + 1
     If item_count <= 0 Then Return VT_FORM_PENDING
@@ -1076,7 +1070,7 @@ Sub vt_tui_editor_draw(x As Long, y As Long, wid As Long, hei As Long, _
     Dim ifg         As UByte
     Dim ibg         As UByte
 
-    VT_TUI_GUARD_SUB
+    _VT_TUI_GUARD_SUB
     vt_internal_tui_autoinit()
 
     readonly_f = IIf((st.flags And VT_TUI_ED_READONLY) <> 0, 1, 0)
@@ -1198,7 +1192,7 @@ Function vt_tui_editor_handle(x As Long, y As Long, wid As Long, hei As Long, _
     Dim ch            As UByte
     Dim whl           As Long
 
-    VT_TUI_GUARD_FN
+    _VT_TUI_GUARD_FN
 
     readonly_f = IIf((st.flags And VT_TUI_ED_READONLY) <> 0, 1, 0)
     
@@ -1433,7 +1427,7 @@ Function vt_tui_dialog(caption As String, txt As String, _
     Dim result        As Long
     Dim pad           As Long
     
-    VT_TUI_GUARD_FN
+    _VT_TUI_GUARD_FN
     vt_internal_tui_autoinit()
 
     btn_set = flags And 7
@@ -1674,7 +1668,7 @@ Function vt_tui_file_dialog(title As String, start_path As String, _
     Dim vis_fname_cpos  As Long
     Dim result          As String
 
-    VT_TUI_GUARD_FN_STR
+    _VT_TUI_GUARD_FN_STR
     vt_internal_tui_autoinit()
 
     cur_path = vt_str_replace(start_path, "\", "/")
@@ -1869,7 +1863,7 @@ Function vt_tui_file_dialog(title As String, start_path As String, _
 
         ' OK and Cancel buttons
         vt_internal_tui_draw_button(ok_x,     btn_row, " " & title & " ", bfg, bbg)
-        vt_internal_tui_draw_button(cancel_x, btn_row, " Cancel ",         bfg, bbg)
+        vt_internal_tui_draw_button(cancel_x, btn_row, " Cancel ",        bfg, bbg)
 
         vt_internal.dirty = 1
 
@@ -2165,7 +2159,7 @@ End Function
 ' Does not block. Does not save/restore background.
 ' =============================================================================
 Sub vt_tui_menubar_draw(row As Long, groups() As String)
-    VT_TUI_GUARD_SUB
+    _VT_TUI_GUARD_SUB
     vt_internal_tui_autoinit()
     vt_internal_tui_draw_bar(row, groups(), -1)
 End Sub
@@ -2226,7 +2220,7 @@ Function vt_tui_menubar_handle(row As Long, groups() As String, _
     Dim alt_ch          As UByte   ' letter from Alt+key combo (outer trigger)
     Dim alt_ch2         As UByte   ' letter from Alt+key combo (inner dropdown)
 
-    VT_TUI_GUARD_FN
+    _VT_TUI_GUARD_FN
     vt_internal_tui_autoinit()
 
     group_count = UBound(groups) - LBound(groups) + 1
@@ -2539,7 +2533,7 @@ Sub vt_tui_form_draw(items() As vt_tui_form_item, ByRef focused As Long)
     Dim lbl_len    As Long
     Dim lbl_c      As Long
 
-    VT_TUI_GUARD_SUB
+    _VT_TUI_GUARD_SUB
     vt_internal_tui_autoinit()
 
     ifg = vt_internal_tui_theme.inp_fg
@@ -2684,7 +2678,7 @@ Function vt_tui_form_handle(items() As vt_tui_form_item, ByRef focused As Long, 
     Dim clicked_col As Long
     Dim tab_steps   As Long
 
-    VT_TUI_GUARD_FN
+    _VT_TUI_GUARD_FN
     vt_internal_tui_autoinit()
 
     item_count = UBound(items) - LBound(items) + 1
