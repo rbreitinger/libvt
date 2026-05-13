@@ -3,11 +3,29 @@
 ' -----------------------------------------------------------------------
 #Include Once "dir.bi"
 
-#Define VT_FILE_SHOW_HIDDEN   1  ' vt_file_list: include hidden items
-#Define VT_FILE_SHOW_DIRS     2  ' vt_file_list: include subdir names
-#Define VT_FILE_DIRS_ONLY     4  ' vt_file_list: only return subdirs
-#Define VT_FILE_OVERWRITE     8  ' vt_file_copy: allow clobbering dst
-#Define VT_FILE_RECURSIVE    16  ' vt_file_rmdir: delete contents too
+'>>>
+':topic c_fileflags
+':short File helper flags (opt-in: VT_USE_FILE)
+':group Constants
+'Bit-flags for vt_file_copy, vt_file_rmdir,
+'and vt_file_list. Combine with Or.
+':params
+#Define VT_FILE_SHOW_HIDDEN   1
+'      vt_file_list: include hidden items.
+#Define VT_FILE_SHOW_DIRS     2
+'      vt_file_list: include subdirectory names.
+#Define VT_FILE_DIRS_ONLY     4
+'      vt_file_list: only subdirectory names.
+#Define VT_FILE_OVERWRITE     8
+'      vt_file_copy: allow overwrite of dst.
+#Define VT_FILE_RECURSIVE    16
+'      vt_file_rmdir: delete all contents first.
+'      Destructive -- no undo.
+':see
+'vt_file_copy
+'vt_file_rmdir
+'vt_file_list
+'<<<
 
 Declare Function vt_file_exists(ByRef path As Const String) As Byte
 Declare Function vt_file_isdir(ByRef path As Const String) As Byte

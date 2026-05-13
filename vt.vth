@@ -39,6 +39,28 @@ vt_color
 vt_cls
 vt_set_cell
 
+:topic c_fileflags
+:short File helper flags (opt-in: VT_USE_FILE)
+:group Constants
+Bit-flags for vt_file_copy, vt_file_rmdir,
+and vt_file_list. Combine with Or.
+:params
+#Define VT_FILE_SHOW_HIDDEN   1
+      vt_file_list: include hidden items.
+#Define VT_FILE_SHOW_DIRS     2
+      vt_file_list: include subdirectory names.
+#Define VT_FILE_DIRS_ONLY     4
+      vt_file_list: only subdirectory names.
+#Define VT_FILE_OVERWRITE     8
+      vt_file_copy: allow overwrite of dst.
+#Define VT_FILE_RECURSIVE    16
+      vt_file_rmdir: delete all contents first.
+      Destructive -- no undo.
+:see
+vt_file_copy
+vt_file_rmdir
+vt_file_list
+
 :topic c_keymacros
 :short Key-event extraction macros
 :group Constants
@@ -130,23 +152,46 @@ vt_inkey
 vt_getkey
 vt_key_held
 
+:topic c_mathconsts
+:short Math macros (opt-in: VT_USE_MATH)
+:group Constants
+Available when #define VT_USE_MATH is placed
+before #include once "vt/vt.bi".
+
+:params
+#define VT_MIN(a, b)          iif((a) < (b), (a), (b))
+  Returns the smaller of two values.
+#define VT_MAX(a, b)          iif((a) > (b), (a), (b))
+  Returns the larger of two values.
+#define VT_CLAMP(v, lo, hi)   iif((v) < (lo), (lo), iif((v) > (hi), (hi), (v)))
+  Clamps v to the range [lo .. hi]
+#define VT_SIGN(x)            iif((x) > 0, 1, iif((x) < 0, -1, 0))
+  Returns -1, 0, or 1 depending on the sign of x.
+
+:notes
+Macros use IIf() which evaluates both
+sides -- avoid expressions with side effects
+(function calls, increments) as arguments.
+
+:see
+vt_wrap
+vt_lerp
+vt_approach
+
 :topic c_misc
 :short Miscellaneous constants
 :group Constants
 Miscellaneous library constants
 :params
-#Define VT_NEWLINE  Chr(10)        ' newline for vt_print
-#Define VT_LF       VT_NEWLINE     ' short alias
-
-Const VT_VERSION     = "1.10.0"    ' major.minor.patch
-#Define VT_VER_MAJOR = 1           ' preprocessor Versioning
+Const   VT_VERSION   = "1.10.0"   ' major.minor.patch
+#Define VT_VER_MAJOR = 1          ' preprocessor Versioning
 #Define VT_VER_MINOR = 10
 #Define VT_VER_PATCH = 0
-
-Const VT_VIDEO = 0                 ' the visible display page
-
-Const VT_DISABLED = 0              ' generic on/off flags
-Const VT_ENABLED  = 1
+Const   VT_VIDEO     = 0          ' the visible display page
+Const   VT_DISABLED  = 0          ' generic on/off flags
+Const   VT_ENABLED   = 1
+#Define VT_NEWLINE     Chr(10)    ' newline for vt_print
+#Define VT_LF          VT_NEWLINE ' short alias
 :see
 vt_print
 vt_copypaste
@@ -209,6 +254,45 @@ VT_SCREENPARAM(col, row, fontwid, fonthei)
 :see
 vt_screen
 c_winflags
+
+:topic c_sortconsts
+:short Sort constants (opt-in: VT_USE_SORT)
+:group Constants
+Available when #define VT_USE_SORT is placed
+before #include once "vt/vt.bi".
+
+:params
+Const VT_ASCENDING  = 0
+    Sort direction: smallest value first.
+Const VT_DESCENDING = 1
+    Sort direction: largest value first.
+:see
+vt_sort
+
+:topic c_soundconsts
+:short Sound constants (opt-in: VT_USE_SOUND)
+:group Constants
+Available when #define VT_USE_SOUND is placed
+before #include once "vt/vt.bi".
+
+:params
+ Waveforms (wave parameter of vt_sound):
+Const VT_WAVE_SQUARE      = 0       ' PC speaker / chiptune square wave (default)
+Const VT_WAVE_TRIANGLE    = 1       ' NES triangle channel -- softer, bass feel
+Const VT_WAVE_SINE        = 2       ' pure sine tone
+Const VT_WAVE_NOISE       = 3       ' 15-bit LFSR noise -- NES percussion / static
+ Blocking mode (blocking parameter):
+Const VT_SOUND_BLOCKING   = 1       ' wait for note to finish, keep window alive (default)
+    Wait for the note to finish (default).
+Const VT_SOUND_BACKGROUND = 0       ' queue and return immediately
+    Queue and return immediately. 
+    Use vt_sound_wait to sync.
+
+#Define VT_BEEP vt_sound(800, 200)  ' convenience macro
+
+:see
+vt_sound
+vt_sound_wait
 
 :topic c_winflags
 :short Window flag constants for vt_screen

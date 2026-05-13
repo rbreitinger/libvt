@@ -4,14 +4,16 @@
 #Include once "vt_strings.bas"
 #Include Once "vt_file.bas"
 
-#Define VT_TUI_INVERT_FG(fg)  ((fg) Xor 15)
-#Define VT_TUI_INVERT_BG(bg)  ((bg) Xor 15)
-
 ' Guard macros -- place at top of any Sub/Function that draws or reads input.
 ' Theme setters and pure variable writers do NOT need these.
 #Define _VT_TUI_GUARD_SUB     If vt_internal.ready = 0 Then Exit Sub
 #Define _VT_TUI_GUARD_FN      If vt_internal.ready = 0 Then Return 0
 #Define _VT_TUI_GUARD_FN_STR  If vt_internal.ready = 0 Then Return ""
+' =============================================================================
+
+#Define VT_TUI_INVERT_FG(fg)  ((fg) Xor 15)
+#Define VT_TUI_INVERT_BG(bg)  ((bg) Xor 15)
+
 
 ' Left mouse button edge detection: 1 on the frame the LMB transitions from
 ' up to down, 0 otherwise. cur/prev are the current and previous mouse_btns.

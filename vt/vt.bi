@@ -14,18 +14,15 @@
 ':group Constants
 'Miscellaneous library constants
 ':params
-#Define VT_NEWLINE  Chr(10)        ' newline for vt_print
-#Define VT_LF       VT_NEWLINE     ' short alias
-'
-Const VT_VERSION     = "1.10.0"    ' major.minor.patch
-#Define VT_VER_MAJOR = 1           ' preprocessor Versioning
+Const   VT_VERSION   = "1.10.0"   ' major.minor.patch
+#Define VT_VER_MAJOR = 1          ' preprocessor Versioning
 #Define VT_VER_MINOR = 10
 #Define VT_VER_PATCH = 0
-'
-Const VT_VIDEO = 0                 ' the visible display page
-'
-Const VT_DISABLED = 0              ' generic on/off flags
-Const VT_ENABLED  = 1
+Const   VT_VIDEO     = 0          ' the visible display page
+Const   VT_DISABLED  = 0          ' generic on/off flags
+Const   VT_ENABLED   = 1
+#Define VT_NEWLINE     Chr(10)    ' newline for vt_print
+#Define VT_LF          VT_NEWLINE ' short alias
 ':see
 'vt_print
 'vt_copypaste

@@ -11,12 +11,26 @@ Function vt_rnd(lo As Long, hi As Long) As Long
     Return Int(Rnd * (hi - lo + 1)) + lo
 End Function
 
+' ================================================================
+'  vt_sort : opt-in generic array sort via overloading (shellsort)
+' ================================================================
 #Ifdef VT_USE_SORT
-    Const VT_ASCENDING = 0, VT_DESCENDING = 1
-    ' ================================================================
-    '  vt_sort : opt-in generic array sort via overloading (shellsort)
-    ' ================================================================
-    
+'>>>
+':topic c_sortconsts
+':short Sort constants (opt-in: VT_USE_SORT)
+':group Constants
+'Available when #define VT_USE_SORT is placed
+'before #include once "vt/vt.bi".
+'
+':params
+Const VT_ASCENDING  = 0
+'    Sort direction: smallest value first.
+Const VT_DESCENDING = 1
+'    Sort direction: largest value first.
+':see
+'vt_sort
+'<<<
+
     ' ----------------------------------------------------------------
     '  SHELLSORT_VAL - direct value comparison (ASC or DESC)
     '  variables suffixed _ to avoid shadowing caller-side names

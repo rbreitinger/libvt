@@ -2,19 +2,33 @@
 ' vt_math.bas : opt-in Math Helpers Extension
 '===============================================================================
 
-'-------------------------------------------------------------------------------
-' VT_MIN(a, b)          smaller of two values
-' VT_MAX(a, b)          larger of two values
-' VT_CLAMP(v, lo, hi)   clamp v to [lo..hi]
-' VT_SIGN(x)            -1, 0, or 1
+'>>>
+':topic c_mathconsts
+':short Math macros (opt-in: VT_USE_MATH)
+':group Constants
+'Available when #define VT_USE_MATH is placed
+'before #include once "vt/vt.bi".
 '
-' Note: macros use iif() which evaluates both sides -- avoid passing expressions
-' with side effects (function calls, increments) as arguments.
-'-------------------------------------------------------------------------------
+':params
 #define VT_MIN(a, b)          iif((a) < (b), (a), (b))
+'  Returns the smaller of two values.
 #define VT_MAX(a, b)          iif((a) > (b), (a), (b))
+'  Returns the larger of two values.
 #define VT_CLAMP(v, lo, hi)   iif((v) < (lo), (lo), iif((v) > (hi), (hi), (v)))
+'  Clamps v to the range [lo .. hi]
 #define VT_SIGN(x)            iif((x) > 0, 1, iif((x) < 0, -1, 0))
+'  Returns -1, 0, or 1 depending on the sign of x.
+'
+':notes 
+'Macros use IIf() which evaluates both
+'sides -- avoid expressions with side effects
+'(function calls, increments) as arguments.
+'
+':see
+'vt_wrap
+'vt_lerp
+'vt_approach
+'<<<
 
 '-------------------------------------------------------------------------------
 ' vt_wrap(v, lo, hi) As Long
