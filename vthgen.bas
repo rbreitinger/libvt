@@ -15,7 +15,7 @@
 '   'plain text          body paragraph text
 '   real code line       verbatim, no leading ' required
 ' =============================================================================
-#cmdline "-gen gcc -O 2"
+#cmdline "-g -exx -gen gcc -O 2"
 #include once "dir.bi"
 
 Const MAX_TOPICS  = 2048
@@ -41,6 +41,8 @@ Dim Shared ngrps As Long
 
 Dim Shared src_files(MAX_FILES - 1) As String
 Dim Shared nfiles As Long
+
+Dim Shared tidxs(MAX_TOPICS - 1) As Long
 
 ' -----------------------------------------------------------------------
 ' str_trim  --  strip leading/trailing whitespace
@@ -274,7 +276,7 @@ Sub sort_grps()
     For i = 1 To ngrps - 1
         tmp = grps(i)
         j   = i - 1
-        Do While j >= 0 And str_lower(grps(j)) > str_lower(tmp)
+        Do While j >= 0 AndAlso str_lower(grps(j)) > str_lower(tmp)
             grps(j + 1) = grps(j)
             j -= 1
         Loop
@@ -287,7 +289,7 @@ End Sub
 '                     sorted alphabetically by topic name.
 '                     Returns count; caller declares tidxs() As Long.
 ' -----------------------------------------------------------------------
-Function get_grp_topics(grp As String, tidxs() As Long) As Long
+Function get_grp_topics(grp As String) As Long
     Dim cnt As Long = 0
     Dim i   As Long, j As Long
     Dim tmp As Long
@@ -297,7 +299,6 @@ Function get_grp_topics(grp As String, tidxs() As Long) As Long
     Next
     If cnt = 0 Then Return 0
 
-    ReDim tidxs(cnt - 1)
     cnt = 0
     For i = 0 To ntopics - 1
         If topics(i).tgroup = grp Then
@@ -310,7 +311,7 @@ Function get_grp_topics(grp As String, tidxs() As Long) As Long
     For i = 1 To cnt - 1
         tmp = tidxs(i)
         j   = i - 1
-        Do While j >= 0 And str_lower(topics(tidxs(j)).tname) > str_lower(topics(tmp).tname)
+        Do While j >= 0 AndAlso str_lower(topics(tidxs(j)).tname) > str_lower(topics(tmp).tname)
             tidxs(j + 1) = tidxs(j)
             j -= 1
         Loop
@@ -331,7 +332,6 @@ Sub write_vth(fname As String)
     End If
 
     Dim gi    As Long
-    Dim tidxs() As Long
     Dim tcnt  As Long
     Dim ti    As Long
     Dim idx   As Long
@@ -342,7 +342,7 @@ Sub write_vth(fname As String)
     Dim bln   As String
 
     For gi = 0 To ngrps - 1
-        tcnt = get_grp_topics(grps(gi), tidxs())
+        tcnt = get_grp_topics(grps(gi))
         For ti = 0 To tcnt - 1
             idx = tidxs(ti)
 

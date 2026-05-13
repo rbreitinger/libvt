@@ -1,3 +1,44 @@
+:topic c_colors
+:short Color index constants (0-15 + VT_BLINK)
+:group Constants
+Used with vt_color, vt_cls, vt_set_cell etc.
+These are VT_COLOR_IDX enum values 0-15.
+OR any foreground color with VT_BLINK (16)
+to enable character blinking.
+
+:params
+Enum
+    VT_BLACK          ' 0
+    VT_BLUE           ' 1
+    VT_GREEN          ' 2
+    VT_CYAN           ' 3
+    VT_RED            ' 4
+    VT_MAGENTA        ' 5
+    VT_BROWN          ' 6
+    VT_LIGHT_GREY     ' 7
+    VT_DARK_GREY      ' 8
+    VT_BRIGHT_BLUE    ' 9
+    VT_BRIGHT_GREEN   ' 10
+    VT_BRIGHT_CYAN    ' 11
+    VT_BRIGHT_RED     ' 12  
+    VT_BRIGHT_MAGENTA ' 13
+    VT_YELLOW         ' 14
+    VT_WHITE          ' 15
+    VT_BLINK          ' 16 
+End Enum
+
+:example
+'Blinking white text on blue:
+ vt_screen()
+ vt_color(VT_RED Or VT_BLINK)
+ vt_print("Warning, are you sure?")
+ vt_sleep()
+ vt_shutdown()
+:see
+vt_color
+vt_cls
+vt_set_cell
+
 :topic c_misc
 :short Miscellaneous constants
 :group Constants
@@ -44,6 +85,7 @@ Const VT_SCREEN_120_50  = 301  ' 120x50  8x8   960x400  -- hi-res ultrawide pack
 #define VT_SCREENPARAM(_p...) type<vt_screenparam_t>(_p).n ' custom mode
 :syntax
 VT_SCREENPARAM(col, row, fontwid, fonthei) 
+
 :notes
   supports up to 255×255 cells. 
   fontwid and fonthei select the destination glyph cell size in pixels.
