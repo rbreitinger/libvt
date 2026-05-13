@@ -154,9 +154,11 @@ Sub parse_file(fname As String)
             Continue Do
         End If
 
+        Dim ftrim As String = str_trim(fln)
+
         ' --- Classify line ---
-        If Left(fln, 1) = "'" Then
-            content = Mid(fln, 2)   ' strip leading comment marker
+        If Left(ftrim, 1) = "'" Then
+            content = Mid(ftrim, 2)   ' strip leading comment marker
             is_cmnt = 1
         Else
             content = fln           ' verbatim code line, keep as-is

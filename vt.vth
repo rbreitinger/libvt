@@ -239,18 +239,18 @@ Const VT_SCREEN_120_50  = 301 ' 120x50 8x8   960x400 - hi-res ultrawide packed
 
 #define VT_SCREENPARAM(_p...) type<vt_screenparam_t>(_p).n ' custom mode
 :syntax
-VT_SCREENPARAM(col, row, fontwid, fonthei) 
+VT_SCREENPARAM(col, row, fontwid, fonthei)
 
 :notes
-  supports up to 255×255 cells. 
+  supports up to 255×255 cells.
   fontwid and fonthei select the destination glyph cell size in pixels.
- 
-  Scaled font support: 
-  fontwid must be a multiple of 8. 
-  The library derives scale = fontwid \ 8 and base_gh = fonthei \ scale. 
+
+  Scaled font support:
+  fontwid must be a multiple of 8.
+  The library derives scale = fontwid \ 8 and base_gh = fonthei \ scale.
   base_gh must equal 8, 14, or 16 (a built-in source font).
   Invalid combinations silently fall back to the 8×16 source at scale 1.
-   
+
 :see
 vt_screen
 c_winflags
@@ -285,7 +285,7 @@ Const VT_WAVE_NOISE       = 3       ' 15-bit LFSR noise -- NES percussion / stat
 Const VT_SOUND_BLOCKING   = 1       ' wait for note to finish, keep window alive (default)
     Wait for the note to finish (default).
 Const VT_SOUND_BACKGROUND = 0       ' queue and return immediately
-    Queue and return immediately. 
+    Queue and return immediately.
     Use vt_sound_wait to sync.
 
 #Define VT_BEEP vt_sound(800, 200)  ' convenience macro
@@ -324,13 +324,14 @@ Function vt_screen(mode As Long = VT_SCREEN_0, flags As Long = VT_WINDOWED, page
 :params
 mode   Screen mode. One of the VT_SCREEN_*
        constants. Default VT_SCREEN_0.
-       
+
 flags  Window flags. VT_WINDOWED,
        VT_FULLSCREEN_* etc., combined with Or.
+
 pages  Cell buffer count (1-8). Page 0 is
        always VT_VIDEO. Extra pages are used
        with vt_page / vt_pcopy.
-       
+
 :notes
 Return values:
    0  success
@@ -339,12 +340,12 @@ Return values:
   -3  SDL renderer creation failed
   -4  font texture creation failed
   -5  page buffer alloc failed
-  
-  custom modes up to 255x255 cells and 
+
+  custom modes up to 255x255 cells and
   either font 8x8, 8x14 or 8x16
   use the macro VT_SCREENPARAM(col, row, fw, fh)
   as mode parameter
-  
+
 :example
 If vt_screen(VT_SCREEN_12, _
              VT_WINDOWED Or VT_NO_RESIZE) _
