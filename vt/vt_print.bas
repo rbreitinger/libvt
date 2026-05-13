@@ -184,13 +184,42 @@ Sub vt_cls(bg As Long = -1)
     vt_internal.dirty   = 1
 End Sub
 
-' -----------------------------------------------------------------------------
-' vt_width - resize the virtual screen to a new column/row count at runtime.
-' Reallocates all page buffers and the SDL render buffer; resets cursor,
-' scroll region, and scrollback; clears the screen.
-' Returns 0 on success, -1 if the library is not initialised.
-' -----------------------------------------------------------------------------
+
+'>>>
+':topic vt_width
+':short Resize the virtual character grid at runtime without closing the window.
+':group Initialization
+'Reallocates all page buffers at the new dimensions, destroys and recreates 
+'the SDL render buffer, resets the cursor to (1, 1), restores the scroll 
+'region to the full screen, and invalidates the scrollback buffer 
+'(call vt_scrollback again afterwards if needed). 
+'Finishes with vt_cls and vt_present so the cleared screen 
+'is visible immediately.
+':syntax
 Function vt_width(new_cols As Long, new_rows As Long) As Long
+        ':params
+        'cols  Long  New column count. Clamped to a minimum of 10.
+        'rows  Long  New row count.    Clamped to a minimum of 3.
+        '
+        'Return value
+        '  0 - success.
+        ' -1 - library not initialized (vt_screen not called).
+        '
+        ':example
+        '' Dynamic resize in the main loop:
+        'Dim nc As Long, nr As Long
+        'Do
+        '    k = vt_inkey()
+        '    If VT_SCAN(k) = VT_KEY_ESC Then Exit Do
+        '
+        '    If vt_screeninfo(nc, nr) Then
+        '        vt_width nc, nr
+        '        relayout nc, nr   ' re-draw app at new grid size
+        '    End If
+        '
+        '    vt_sleep(16)
+        'Loop
+    '<<<
     If vt_internal.ready = 0 Then Return -1
 
     ' --- clamp to sane minimum ---
