@@ -125,20 +125,53 @@ Private Sub vt_internal_putch(ch As UByte)
     End Select
 End Sub
 
-' -----------------------------------------------------------------------------
-' vt_scroll_enable - enable or disable automatic scrolling (default: on)
-' -----------------------------------------------------------------------------
+'>>>
+':topic vt_scroll_enable
+':short Enable or disable auto-scrolling
+':group Printing
+'Enable or disable automatic scrolling of the
+'scroll region. When disabled, text printed past
+'the bottom of the scroll region stays on the
+'last row. Scrolling is ENABLED by default.
+':syntax
 Sub vt_scroll_enable(state As Byte)
+        ':params
+        'state  1 = enable scrolling, 0 = disable.
+        ':see
+        'vt_view_print
+        'vt_print
+    '<<<
     If vt_internal.ready = 0 Then Exit Sub
     vt_internal.scroll_on = state
 End Sub
 
-' -----------------------------------------------------------------------------
-' vt_cls - clear the screen
-' Respects view_top/view_bot and view_left/view_right.
-' When column bounds are active, only that column range is cleared per row.
-' -----------------------------------------------------------------------------
+'>>>
+':topic vt_cls
+':short Clear the screen to the current background
+':group Printing
+'Clear the active screen region to spaces using
+'the current foreground and background colours.
+'Resets the cursor to row 1, column 1 of the
+'scroll region. Does not call vt_present.
+'Respects the viewport set by vt_view_print,
+'including column bounds. When column bounds are
+'active only the cells within view_left..
+'view_right are cleared per row.
+':syntax
 Sub vt_cls(bg As Long = -1)
+        ':params
+        'bg  Background colour index (0-15).
+        '    empty keeps the current background colour.
+        ':example
+        'vt_color(VT_LIGHT_GREY, VT_BLACK)
+        'vt_cls()
+        'vt_present()
+        ':see
+        'vt_color
+        'vt_locate
+        'vt_print
+        'vt_view_print
+    '<<<
     If vt_internal.ready = 0 Then Exit Sub
     If bg >= 0 Then vt_internal.clr_bg = bg And 15
 
@@ -190,7 +223,7 @@ End Sub
 ':short Resize the virtual character grid at runtime without closing the window.
 ':group Initialization
 'Reallocates all page buffers at the new dimensions, destroys and recreates 
-'the SDL render buffer, resets the cursor to (1, 1), restores the scroll 
+'the render buffer, resets the cursor to (1, 1), restores the scroll 
 'region to the full screen, and invalidates the scrollback buffer 
 '(call vt_scrollback again afterwards if needed). 
 'Finishes with vt_cls and vt_present so the cleared screen 
@@ -291,11 +324,32 @@ Function vt_width(new_cols As Long, new_rows As Long) As Long
     Return 0
 End Function
 
-' -----------------------------------------------------------------------------
-' vt_get_cell / vt_set_cell
-' Both operate on the active work page (via vt_internal.cells).
-' -----------------------------------------------------------------------------
-Sub vt_get_cell(col As Long, row As Long, ByRef ch As UByte, ByRef fg As UByte, ByRef bg As UByte)
+'>>>
+':topic vt_get_cell
+':short Read one character cell from the work page
+':group Cells
+'Read the character, foreground colour, and
+'background colour of a single cell on the
+'active work page. Coordinates are 1-based.
+'Out-of-range coordinates are ignored.
+':syntax
+Sub vt_get_cell(col As Long, row As Long, _
+                ByRef ch As UByte, _
+                ByRef fg As UByte, ByRef bg As UByte)
+        ':params
+        'col  Column, 1-based.
+        'row  Row, 1-based.
+        'ch   Receives the CP437 character code.
+        'fg   Receives the foreground colour index
+        '     (may include blink bit 16).
+        'bg   Receives the background colour index.
+        ':example
+        'Dim ch As UByte, fg As UByte, bg As UByte
+        'vt_get_cell(5, 3, ch, fg, bg)
+        'vt_print("Char at (5,3): " & Chr(ch))
+        ':see
+        'vt_set_cell
+    '<<<
     If vt_internal.ready = 0 Then Exit Sub
     If col < 1 Or col > vt_internal.scr_cols Then Exit Sub
     If row < 1 Or row > vt_internal.scr_rows Then Exit Sub
@@ -305,7 +359,33 @@ Sub vt_get_cell(col As Long, row As Long, ByRef ch As UByte, ByRef fg As UByte, 
     bg = cellptr->bg
 End Sub
 
-Sub vt_set_cell(col As Long, row As Long, ch As UByte, fg As UByte, bg As UByte)
+'>>>
+':topic vt_set_cell
+':short Write one character cell directly
+':group Cells
+'Write a character cell directly on the active
+'work page without moving the cursor. Does not
+'call vt_present. Out-of-range coordinates are
+'silently ignored.
+':syntax
+Sub vt_set_cell(col As Long, row As Long, _
+                ch As UByte, _
+                fg As UByte, bg As UByte)
+        ':params
+        'col  Column, 1-based.
+        'row  Row, 1-based.
+        'ch   CP437 character code (0-255).
+        'fg   Foreground colour (0-15), optionally
+        '     OR'd with 16 for blink.
+        'bg   Background colour (0-15).
+        ':example
+        '' Draw a solid blue block at (10, 5):
+        'vt_set_cell(10, 5, 219, VT_WHITE, VT_BLUE)
+        'vt_present()
+        ':see
+        'vt_get_cell
+        'vt_color
+    '<<<
     If vt_internal.ready = 0 Then Exit Sub
     If col < 1 Or col > vt_internal.scr_cols Then Exit Sub
     If row < 1 Or row > vt_internal.scr_rows Then Exit Sub
@@ -316,18 +396,69 @@ Sub vt_set_cell(col As Long, row As Long, ch As UByte, fg As UByte, bg As UByte)
     vt_internal.dirty = 1
 End Sub
 
-' -----------------------------------------------------------------------------
-' vt_color - set active foreground and/or background colour
-' -----------------------------------------------------------------------------
+'>>>
+':topic vt_color
+':short Set the active foreground and background colour
+':group Printing
+'Set the active foreground and/or background
+'colour used by vt_print, vt_cls, and vt_input.
+'Pass -1 for either parameter to keep the current
+'value unchanged.
+':syntax
 Sub vt_color(fg As Long = -1, bg As Long = -1)
+        ':params
+        'fg  Foreground colour (0-15), optionally OR'd
+        '    with VT_BLINK (16). -1 = keep current.
+        'bg  Background colour (0-15). -1 = keep current.
+        ':example
+        '' Set only foreground:
+        'vt_color(VT_BRIGHT_GREEN)
+        '
+        '' Set both:
+        'vt_color(VT_WHITE, VT_BLUE)
+        '
+        '' Blinking foreground:
+        'vt_color(VT_RED Or VT_BLINK, VT_BLACK)
+        ':see
+        'vt_print
+        'vt_cls
+        'vt_locate
+        'c_colors
+    '<<<
     If fg >= 0 Then vt_internal.clr_fg = fg And 31
     If bg >= 0 Then vt_internal.clr_bg = bg And 15
 End Sub
 
-' -----------------------------------------------------------------------------
-' vt_locate - move cursor, optionally set visibility and cursor glyph
-' -----------------------------------------------------------------------------
-Sub vt_locate(row As Long = -1, col As Long = -1, vis As Long = -1, cursor_ch As Long = -1)
+'>>>
+':topic vt_locate
+':short Move the cursor and optionally change its style
+':group Printing
+'Move the text cursor and optionally change its
+'visibility and glyph. Coordinates are 1-based.
+'Parameters with value -1 are left unchanged.
+'vt_locate is always absolute -- column bounds
+'from vt_view_print do not affect it.
+':syntax
+Sub vt_locate(row As Long = -1, col As Long = -1, _
+              vis As Long = -1, _
+              cursor_ch As Long = -1)
+        ':params
+        'row         Target row, 1-based. -1 = keep.
+        'col         Target column, 1-based. -1 = keep.
+        'vis         1 = show cursor, 0 = hide, -1 = keep.
+        'cursor_ch   CP437 glyph index (0-255) for cursor.
+        '            Default is 219 (solid block). -1=keep.
+        ':example
+        'vt_locate(1, 1)
+        'vt_print("Top-left corner")
+        'vt_locate(12, 40)
+        'vt_print("Center-ish")
+        ':see
+        'vt_print
+        'vt_color
+        'vt_csrlin
+        'vt_pos
+    '<<<
     If vt_internal.ready = 0 Then Exit Sub
     If row >= 1 AndAlso row <= vt_internal.scr_rows Then vt_internal.cur_row = row
     If col >= 1 AndAlso col <= vt_internal.scr_cols Then vt_internal.cur_col = col
@@ -343,14 +474,48 @@ Function vt_pos()    As Long : Return vt_internal.cur_col  : End Function
 Function vt_cols()   As Long : Return vt_internal.scr_cols : End Function
 Function vt_rows()   As Long : Return vt_internal.scr_rows : End Function
 
-' -----------------------------------------------------------------------------
-' vt_view_print - restrict scroll/print region to a row and/or column range
-' All -1 (or omitted): full reset of all four viewport bounds.
-' Partial call (e.g. only top/bot): column bounds stay unchanged.
-' vt_locate is always absolute -- never affected by the viewport.
-' -----------------------------------------------------------------------------
-Sub vt_view_print(top_row As Long = -1, bot_row As Long = -1, _
-                  lft_col As Long = -1, rgt_col As Long = -1)
+'>>>
+':topic vt_view_print
+':short Restrict the scroll and print region
+':group Scroll
+'Restrict the scroll region and print region to
+'a range of rows and/or columns (like QBasic
+'VIEW PRINT, extended with column bounds). Rows
+'and columns outside the active viewport are
+'unaffected by vt_cls, vt_print, and scrolling.
+'Call with no arguments (or all -1) to reset the
+'full viewport including column bounds.
+':syntax
+Sub vt_view_print(top_row As Long = -1, _
+                  bot_row As Long = -1, _
+                  lft_col As Long = -1, _
+                  rgt_col As Long = -1)
+        ':params
+        'top_row  First row of the scroll region, 1-based.
+        '         -1 resets all four bounds to full screen.
+        'bot_row  Last row of the scroll region. Must be
+        '         >= top_row.
+        'lft_col  First column of the print region.
+        '         -1 means full screen width. vt_print
+        '         newlines land at this column.
+        'rgt_col  Last column of the print region. Must
+        '         be >= lft_col. vt_print wraps here.
+        ':notes
+        'vt_locate is always absolute -- column bounds
+        'do not affect it. Calling with all -1 resets
+        'the entire viewport: row bounds, column bounds,
+        'and cursor position.
+        ':example
+        '' Leave row 1 and row 25 untouched (status bars):
+        'vt_view_print(2, 24)
+        '
+        '' Reset to full viewport:
+        'vt_view_print()
+        ':see
+        'vt_cls
+        'vt_print
+        'vt_scroll_enable
+    '<<<
     If vt_internal.ready = 0 Then Exit Sub
     ' all sentinel -1 = full reset of all four bounds
     If top_row = -1 AndAlso bot_row = -1 AndAlso lft_col = -1 AndAlso rgt_col = -1 Then
@@ -434,19 +599,42 @@ Function vt_utf8_to_cp437(src As String) As String
     Return Left(dst, di)
 End Function
 
-' -----------------------------------------------------------------------------
-' vt_print - print a string at the current cursor position, NO auto LF
-'
-' With VT_USE_ANSI: ESC[ sequences are parsed before reaching the cell buffer.
-' Supported sequences:
-'   SGR  ESC [ <params> m   -- color / blink attributes
-'   CUP  ESC [ row ; col H  -- cursor position (1-based; omitted = 1)
-'        ESC [ row ; col f  -- same as H
-'   ED   ESC [ 2 J          -- clear screen (only param 2 for M1)
-' Unknown final chars: raw bytes emitted as CP437 glyphs.
-' Without VT_USE_ANSI: plain byte feed, CRLF collapse only.
-' -----------------------------------------------------------------------------
+'>>>
+':topic vt_print
+':short Print a string at the current cursor position
+':group Printing
+'Print a string at the current cursor position
+'using the active colour. The cursor advances
+'after each character; the display is not
+'automatically flipped. No implicit newline --
+'use VT_LF or Chr(10) within the string
+'for line breaks. CRLF pairs are collapsed to
+'a single line feed. Characters beyond the
+'right edge of the print region are wrapped
+'to the start again in the same row.
+':syntax
 Sub vt_print(txt As String)
+        ':params
+        'txt  The string to print. May contain Chr(10)
+        '     for newlines.
+        ':notes
+        'When #Define VT_USE_ANSI is set before the
+        'include, vt_print parses ANSI/VT100 escape
+        'sequences. Supported: SGR (ESC[...m colours),
+        'CUP (ESC[row;colH cursor), ED (ESC[2J clear).
+        'Use Chr(27) or !"\x1b" for the escape byte --
+        'do NOT use !"\e" as FreeBASIC drops \e silently.
+        ':example
+        'vt_locate(5, 1)
+        'vt_color(VT_CYAN, VT_BLACK)
+        'vt_print("Line one" & VT_LF & "Line two")
+        'vt_present()
+        ':see
+        'vt_locate
+        'vt_color
+        'vt_cls
+        'vt_print_center
+    '<<<
     If vt_internal.ready = 0 Then Exit Sub
     Dim slen As Long = Len(txt)
     If slen = 0 Then Exit Sub
@@ -638,7 +826,28 @@ Sub vt_print(txt As String)
     Next ci
 End Sub
 
+'>>>
+':topic vt_print_center
+':short Print a string horizontally centred on a row
+':group Printing
+'Print a string horizontally centred on the
+'given screen row. Uses the current colour and
+'does not call vt_present.
+':syntax
 Sub vt_print_center(row As Long, txt As String)
+        ':params
+        'row  Target row, 1-based.
+        'txt  The string to centre and print.
+        ':example
+        'vt_color(VT_YELLOW, VT_BLACK)
+        'vt_print_center(12, "Hello, World!")
+        'vt_color(VT_LIGHT_GREY, VT_BLACK)
+        'vt_print_center(14, "Press any key...")
+        'vt_sleep()
+        ':see
+        'vt_print
+        'vt_color
+    '<<<
     If vt_internal.ready = 0 Then Exit Sub
     Dim txt_len   As Long = Len(txt)
     Dim start_col As Long = (vt_internal.scr_cols - txt_len) \ 2 + 1

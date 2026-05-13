@@ -1192,11 +1192,31 @@ Function vt_screeninfo(ByRef out_cols As Long, ByRef out_rows As Long) As Long
     Return 1
 End Function
 
-' -----------------------------------------------------------------------------
-' vt_present - composite and flip the cell buffer to the screen
-' Always renders from vis_page -- independent of the active work_page.
-' -----------------------------------------------------------------------------
+'>>>
+':topic vt_present
+':short Composite the visible page and flip to screen
+':group Display
+'Composite the visible page and flip it to the
+'screen. Always renders the vis_page, which may
+'differ from the active work page in multi-page
+'mode. Drawing functions such as vt_print and
+'vt_cls do not call vt_present automatically --
+'you must call it to make changes visible.
+'vt_inkey and vt_sleep call vt_present
+'automatically (throttled) to keep the display
+'alive during wait loops.
+':syntax
 Sub vt_present()
+        ':example
+        'vt_locate(5, 1)
+        'vt_color(VT_CYAN, VT_BLACK)
+        'vt_print("Hello!")
+        'vt_present()
+        ':see
+        'vt_inkey
+        'vt_sleep
+        'vt_page
+    '<<<
     If vt_internal.ready = 0 Then Exit Sub
     vt_pump()
 
@@ -1512,33 +1532,88 @@ Sub vt_present()
     _VT_DRV_RenderPresent(vt_internal.sdl_renderer)
 End Sub
 
-' -----------------------------------------------------------------------------
-' vt_on_close - register a callback for the window [X] button
-'
-' cb() As Byte:
-'   Return 0  ->  library shuts down and calls End  (same as default)
-'   Return 1  ->  close vetoed; user is responsible for handling it
-'
-' The pump guard is released before calling cb, so VT input functions
-' (vt_inkey, vt_getkey, vt_sleep, etc.) are safe to call inside cb.
-'
-' Pass 0 to restore default auto-close behaviour.
-' -----------------------------------------------------------------------------
+'>>>
+':topic vt_on_close
+':short Register a callback for the [X] button
+':group Initialization
+'Register a function invoked when the user
+'clicks the window [X] button. Without a
+'callback, the default is to call vt_shutdown
+'and End immediately. With a callback, your
+'function is called first and acts on the
+'return value. VT functions are safe to call
+'inside the callback (drawing, vt_inkey, etc.).
+'Pass 0 to remove the callback and restore the
+'default auto-close behaviour.
+':syntax
 Sub vt_on_close(cb As Function() As Byte)
+        ':params
+        'cb  Pointer to a Function() As Byte.
+        '    Pass 0 to restore default auto-close.
+        ':notes
+        'Callback return values:
+        '  0  Allow close: library calls vt_shutdown
+        '     then End.
+        '  1  Veto close: window stays open, program
+        '     continues normally.
+        ':example
+        'Function on_close() As Byte
+        '    vt_color(VT_BLACK, VT_LIGHT_GREY)
+        '    vt_locate(25, 1)
+        '    vt_print("Quit? (Y/N)" & String(48, " "))
+        '    Dim ans As String = vt_getchar("YyNn")
+        '    If LCase(ans) = "y" Then Return 0
+        '    draw_statusbar()
+        '    vt_present()
+        '    Return 1
+        'End Function
+        '
+        'vt_screen(VT_SCREEN_0)
+        'vt_on_close(@on_close)
+        '' Remove callback:
+        'vt_on_close(0)
+        ':see
+        'vt_screen
+        'vt_shutdown
+    '<<<
     vt_internal.close_cb = cb
 End Sub
 
-' -----------------------------------------------------------------------------
-' vt_shutdown - explicit teardown
-' -----------------------------------------------------------------------------
+'>>>
+':topic vt_shutdown
+':short Tear down the library and free resources
+':group Initialization
+'Explicitly close the window and free all
+'resources. No VT drawing calls should be made 
+'after vt_shutdown returns.
+'It is safe to call even if vt_screen was never
+'called.
+':syntax
 Sub vt_shutdown()
+        ':see
+        'vt_screen
+    '<<<
     vt_internal_shutdown()
 End Sub
 
-' -----------------------------------------------------------------------------
-' vt_title - set the window title
-' -----------------------------------------------------------------------------
+'>>>
+':topic vt_title
+':short Set the window title bar text
+':group Initialization
+'Set the window title. Safe to call before or
+'after vt_screen. Before: the title is stored
+'and applied when the window is created. After:
+'applied immediately to the live window.
+':syntax
 Sub vt_title(txt As String)
+        ':params
+        'txt   the title bar text.
+        ':example
+        'vt_title("My Application")
+        'vt_screen(VT_SCREEN_0)
+        ':see
+        'vt_screen
+    '<<<
     vt_internal.win_title = txt
     If vt_internal.ready Then
         _VT_DRV_SetWindowTitle(vt_internal.sdl_window, txt)

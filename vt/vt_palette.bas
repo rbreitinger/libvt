@@ -35,10 +35,26 @@ Sub vt_palette(idx As Long = -1, r As Long = -1, g As Long = -1, b As Long = -1)
     vt_internal.palette(idx * 3 + 2) = b And 255
 End Sub
 
-' -----------------------------------------------------------------------------
-' vt_border_color - letterbox colour outside the logical viewport
-' -----------------------------------------------------------------------------
+'>>>
+':topic vt_border_color
+':short Set the letterbox border colour
+':group Display
+'Set the colour of the letterbox bars that
+'appear outside the logical viewport in windowed
+'or fullscreen-aspect modes. Default is black
+'(0, 0, 0). Each channel is in the range 0-255.
+':syntax
 Sub vt_border_color(r As Long, g As Long, b As Long)
+        ':params
+        'r  Red channel   (0-255)
+        'g  Green channel (0-255)
+        'b  Blue channel  (0-255)
+        ':example
+        '' Dark navy letterbox:
+        'vt_border_color(0, 0, 64)
+        ':see
+        'vt_screen
+    '<<<
     vt_internal.border_r = r And 255
     vt_internal.border_g = g And 255
     vt_internal.border_b = b And 255

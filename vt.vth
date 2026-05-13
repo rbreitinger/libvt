@@ -1,3 +1,54 @@
+:topic vt_get_cell
+:short Read one character cell from the work page
+:group Cells
+Read the character, foreground colour, and
+background colour of a single cell on the
+active work page. Coordinates are 1-based.
+Out-of-range coordinates are ignored.
+:syntax
+Sub vt_get_cell(col As Long, row As Long, _
+                ByRef ch As UByte, _
+                ByRef fg As UByte, ByRef bg As UByte)
+:params
+col  Column, 1-based.
+row  Row, 1-based.
+ch   Receives the CP437 character code.
+fg   Receives the foreground colour index
+     (may include blink bit 16).
+bg   Receives the background colour index.
+:example
+Dim ch As UByte, fg As UByte, bg As UByte
+vt_get_cell(5, 3, ch, fg, bg)
+vt_print("Char at (5,3): " & Chr(ch))
+:see
+vt_set_cell
+
+:topic vt_set_cell
+:short Write one character cell directly
+:group Cells
+Write a character cell directly on the active
+work page without moving the cursor. Does not
+call vt_present. Out-of-range coordinates are
+silently ignored.
+:syntax
+Sub vt_set_cell(col As Long, row As Long, _
+                ch As UByte, _
+                fg As UByte, bg As UByte)
+:params
+col  Column, 1-based.
+row  Row, 1-based.
+ch   CP437 character code (0-255).
+fg   Foreground colour (0-15), optionally
+     OR'd with 16 for blink.
+bg   Background colour (0-15).
+:example
+' Draw a solid blue block at (10, 5):
+vt_set_cell(10, 5, 219, VT_WHITE, VT_BLUE)
+vt_present()
+:see
+vt_get_cell
+vt_color
+
 :topic c_colors
 :short Color index constants (0-15 + VT_BLINK)
 :group Constants
@@ -72,19 +123,25 @@ Use these macros to extract fields from it.
   ASCII code of the resulting character
   (Ctrl+letter gives 1-26). 0 for special
   keys -- use VT_SCAN for those.
+
 #Define VT_SCAN(k)    (((k) Shr 16) And &hFFF)
   VT scancode (bits 16-27). Only meaningful
   for VT_KEY_* constants. Returns 0 for
   regular letter/digit/symbol keys.
   Always compare via this macro.
+
 #Define VT_REPEAT(k)  (((k) Shr 28) And 1)
   1 if this is an auto-repeat event.
+
 #Define VT_SHIFT(k)   (((k) Shr 29) And 1)
   1 if Shift was held.
+
 #Define VT_CTRL(k)    (((k) Shr 30) And 1)
   1 if Ctrl was held.
+
 #Define VT_ALT(k)     (((k) Shr 31) And 1)
   1 if Alt was held.
+
 
 :example
 Dim k As ULong = vt_getkey()
@@ -120,6 +177,7 @@ Const VT_KEY_F9     = 67
 Const VT_KEY_F10    = 68
 Const VT_KEY_F11    = 133
 Const VT_KEY_F12    = 134
+
 Navigation:
 Const VT_KEY_UP     = 72
 Const VT_KEY_DOWN   = 80
@@ -131,6 +189,7 @@ Const VT_KEY_PGUP   = 73
 Const VT_KEY_PGDN   = 81
 Const VT_KEY_INS    = 82
 Const VT_KEY_DEL    = 83
+
 Special:
 Const VT_KEY_ESC    = 1
 Const VT_KEY_ENTER  = 28
@@ -310,6 +369,144 @@ Const VT_RENDERER_HW        = 64  ' Use HW rendering (default: software).
 vt_screen
 c_screenmodes
 
+:topic vt_border_color
+:short Set the letterbox border colour
+:group Display
+Set the colour of the letterbox bars that
+appear outside the logical viewport in windowed
+or fullscreen-aspect modes. Default is black
+(0, 0, 0). Each channel is in the range 0-255.
+:syntax
+Sub vt_border_color(r As Long, g As Long, b As Long)
+:params
+r  Red channel   (0-255)
+g  Green channel (0-255)
+b  Blue channel  (0-255)
+:example
+' Dark navy letterbox:
+vt_border_color(0, 0, 64)
+:see
+vt_screen
+
+:topic vt_present
+:short Composite the visible page and flip to screen
+:group Display
+Composite the visible page and flip it to the
+screen. Always renders the vis_page, which may
+differ from the active work page in multi-page
+mode. Drawing functions such as vt_print and
+vt_cls do not call vt_present automatically --
+you must call it to make changes visible.
+vt_inkey and vt_sleep call vt_present
+automatically (throttled) to keep the display
+alive during wait loops.
+:syntax
+Sub vt_present()
+:example
+vt_locate(5, 1)
+vt_color(VT_CYAN, VT_BLACK)
+vt_print("Hello!")
+vt_present()
+:see
+vt_inkey
+vt_sleep
+vt_page
+
+:topic hk_alt
+:short Alt+letter intercept for the TUI menubar
+:group Hotkeys
+VT intercepts Alt+letter combinations before
+they reach your program and delivers them to
+the TUI menubar. The key event arrives with
+VT_ALT(k) = 1 and VT_CHAR(k) set to the
+letter that was pressed. Used by
+vt_tui_menubar_draw to open a menu group by
+its first letter.
+:see
+vt_tui_menubar_draw
+c_keymacros
+hk_copypaste
+
+:topic hk_copypaste
+:short Internal copy/paste key and mouse bindings
+:group Hotkeys
+Available only when vt_copypaste has been called
+to enable it.
+
+  LMB drag        Select a region. Activates
+                  only once the mouse moves.
+  RMB click       Copy selection to clipboard
+                  and deselect.
+  MMB click       Paste clipboard (vt_input only)
+  Shift+Ins       Paste clipboard (vt_input only,
+                  always available regardless of
+                  copy/paste mode setting).
+:see
+vt_copypaste
+vt_input
+vt_tui_menubar_draw
+hk_alt
+
+:topic hk_scrollback
+:short Internal scrollback navigation key bindings
+:group Hotkeys
+VT intercepts these combinations before they
+reach your program. Scrollback must be enabled
+with vt_scrollback for these to have any effect.
+Any key not listed below exits scrollback and
+returns to the live view.
+
+  Shift+PgUp       Scroll back 1 line
+  Shift+PgDn       Scroll forward 1 line
+  Ctrl+Shift+PgUp  Scroll back half a page
+  Ctrl+Shift+PgDn  Scroll forward half a page
+:see
+vt_scrollback
+vt_scroll
+
+:topic vt_on_close
+:short Register a callback for the [X] button
+:group Initialization
+Register a function invoked when the user
+clicks the window [X] button. Without a
+callback, the default is to call vt_shutdown
+and End immediately. With a callback, your
+function is called first and acts on the
+return value. VT functions are safe to call
+inside the callback (drawing, vt_inkey, etc.).
+Pass 0 to remove the callback and restore the
+default auto-close behaviour.
+:syntax
+Sub vt_on_close(cb As Function() As Byte)
+:params
+cb  Pointer to a Function() As Byte.
+    Pass 0 to restore default auto-close.
+:notes
+Callback return values:
+  0  Allow close: library calls vt_shutdown
+     then End.
+  1  Veto close: window stays open, program
+     continues normally.
+:example
+Function on_close() As Byte
+    vt_color(VT_BLACK, VT_LIGHT_GREY)
+    vt_locate(25, 1)
+    vt_print("Quit? (Y/N)" & String(48, " "))
+    Dim ans As String = vt_getchar("YyNn")
+    If LCase(ans) = "y" Then Return 0
+    draw_statusbar()
+    vt_present()
+    Return 1
+End Function
+
+vt_screen(VT_SCREEN_0)
+vt_on_close(@on_close)
+' Remove callback:
+vt_on_close(0)
+:see
+vt_screen
+vt_shutdown
+
 :topic vt_screen
 :short Open or reopen the virtual text screen
 :group Initialization
@@ -365,11 +562,60 @@ vt_copypaste
 c_screenmodes
 c_winflags
 
+:topic vt_scrollback
+:short Allocate or resize the scrollback buffer
+:group Initialization
+Allocate, resize, or disable the scrollback
+history buffer. Must be called after vt_screen.
+Calling it again clears any existing history.
+Scrollback captures lines scrolled off the top
+of the scroll region. See the Hotkeys section
+for the key bindings that activate scrollback.
+:syntax
+Sub vt_scrollback(lines As Long)
+:params
+lines  History lines to keep. Pass 0 to
+       disable scrollback and free the buffer.
+:see
+vt_screen
+vt_scroll
+hk_scrollback
+
+:topic vt_shutdown
+:short Tear down the library and free resources
+:group Initialization
+Explicitly close the window and free all
+resources. No VT drawing calls should be made
+after vt_shutdown returns.
+It is safe to call even if vt_screen was never
+called.
+:syntax
+Sub vt_shutdown()
+:see
+vt_screen
+
+:topic vt_title
+:short Set the window title bar text
+:group Initialization
+Set the window title. Safe to call before or
+after vt_screen. Before: the title is stored
+and applied when the window is created. After:
+applied immediately to the live window.
+:syntax
+Sub vt_title(txt As String)
+:params
+txt   the title bar text.
+:example
+vt_title("My Application")
+vt_screen(VT_SCREEN_0)
+:see
+vt_screen
+
 :topic vt_width
 :short Resize the virtual character grid at runtime without closing the window.
 :group Initialization
 Reallocates all page buffers at the new dimensions, destroys and recreates
-the SDL render buffer, resets the cursor to (1, 1), restores the scroll
+the render buffer, resets the cursor to (1, 1), restores the scroll
 region to the full screen, and invalidates the scrollback buffer
 (call vt_scrollback again afterwards if needed).
 Finishes with vt_cls and vt_present so the cleared screen
@@ -398,4 +644,303 @@ Do
 
     vt_sleep(16)
 Loop
+
+:topic vt_page
+:short Set the active draw and display page
+:group Pages
+Set the active drawing page and the visible
+display page independently. All drawing commands
+write to the work page; vt_present reads from
+the vis page. Multiple pages are allocated at
+vt_screen time via the pages argument (up to 8
+pages, indices 0-7). Page 0 (VT_VIDEO) is always
+the startup visible page. Invalid indices are
+silently ignored.
+:syntax
+Sub vt_page(work As Long, vis As Long)
+:params
+work  Drawing page index (0 <= work < pages).
+      All drawing commands go here.
+vis   Display page index (0 <= vis < pages).
+      This page is shown by vt_present.
+:example
+' Classic double-buffer: draw on page 1:
+vt_page(1, VT_VIDEO)
+' ... draw on page 1 freely ...
+vt_pcopy(1, VT_VIDEO)
+vt_present()
+' Swap back:
+vt_page(VT_VIDEO, VT_VIDEO)
+:see
+vt_pcopy
+vt_present
+vt_screen
+
+:topic vt_pcopy
+:short Copy one page buffer to another
+:group Pages
+Copy one page buffer to another (equivalent to
+QBasic PCOPY). Marks the display dirty but does
+not call vt_present. src = dst is a no-op.
+Invalid indices are silently ignored.
+:syntax
+Sub vt_pcopy(src As Long, dst As Long)
+:params
+src  Source page index.
+dst  Destination page index.
+:see
+vt_page
+vt_present
+
+:topic vt_cls
+:short Clear the screen to the current background
+:group Printing
+Clear the active screen region to spaces using
+the current foreground and background colours.
+Resets the cursor to row 1, column 1 of the
+scroll region. Does not call vt_present.
+Respects the viewport set by vt_view_print,
+including column bounds. When column bounds are
+active only the cells within view_left..
+view_right are cleared per row.
+:syntax
+Sub vt_cls(bg As Long = -1)
+:params
+bg  Background colour index (0-15).
+    empty keeps the current background colour.
+:example
+vt_color(VT_LIGHT_GREY, VT_BLACK)
+vt_cls()
+vt_present()
+:see
+vt_color
+vt_locate
+vt_print
+vt_view_print
+
+:topic vt_color
+:short Set the active foreground and background colour
+:group Printing
+Set the active foreground and/or background
+colour used by vt_print, vt_cls, and vt_input.
+Pass -1 for either parameter to keep the current
+value unchanged.
+:syntax
+Sub vt_color(fg As Long = -1, bg As Long = -1)
+:params
+fg  Foreground colour (0-15), optionally OR'd
+    with VT_BLINK (16). -1 = keep current.
+bg  Background colour (0-15). -1 = keep current.
+:example
+' Set only foreground:
+vt_color(VT_BRIGHT_GREEN)
+
+' Set both:
+vt_color(VT_WHITE, VT_BLUE)
+
+' Blinking foreground:
+vt_color(VT_RED Or VT_BLINK, VT_BLACK)
+:see
+vt_print
+vt_cls
+vt_locate
+c_colors
+
+:topic vt_locate
+:short Move the cursor and optionally change its style
+:group Printing
+Move the text cursor and optionally change its
+visibility and glyph. Coordinates are 1-based.
+Parameters with value -1 are left unchanged.
+vt_locate is always absolute -- column bounds
+from vt_view_print do not affect it.
+:syntax
+Sub vt_locate(row As Long = -1, col As Long = -1, _
+              vis As Long = -1, _
+              cursor_ch As Long = -1)
+:params
+row         Target row, 1-based. -1 = keep.
+col         Target column, 1-based. -1 = keep.
+vis         1 = show cursor, 0 = hide, -1 = keep.
+cursor_ch   CP437 glyph index (0-255) for cursor.
+            Default is 219 (solid block). -1=keep.
+:example
+vt_locate(1, 1)
+vt_print("Top-left corner")
+vt_locate(12, 40)
+vt_print("Center-ish")
+:see
+vt_print
+vt_color
+vt_csrlin
+vt_pos
+
+:topic vt_print
+:short Print a string at the current cursor position
+:group Printing
+Print a string at the current cursor position
+using the active colour. The cursor advances
+after each character; the display is not
+automatically flipped. No implicit newline --
+use VT_LF or Chr(10) within the string
+for line breaks. CRLF pairs are collapsed to
+a single line feed. Characters beyond the
+right edge of the print region are wrapped
+to the start again in the same row.
+:syntax
+Sub vt_print(txt As String)
+:params
+txt  The string to print. May contain Chr(10)
+     for newlines.
+:notes
+When #Define VT_USE_ANSI is set before the
+include, vt_print parses ANSI/VT100 escape
+sequences. Supported: SGR (ESC[...m colours),
+CUP (ESC[row;colH cursor), ED (ESC[2J clear).
+Use Chr(27) or !"\x1b" for the escape byte --
+do NOT use !"\e" as FreeBASIC drops \e silently.
+:example
+vt_locate(5, 1)
+vt_color(VT_CYAN, VT_BLACK)
+vt_print("Line one" & VT_LF & "Line two")
+vt_present()
+:see
+vt_locate
+vt_color
+vt_cls
+vt_print_center
+
+:topic vt_print_center
+:short Print a string horizontally centred on a row
+:group Printing
+Print a string horizontally centred on the
+given screen row. Uses the current colour and
+does not call vt_present.
+:syntax
+Sub vt_print_center(row As Long, txt As String)
+:params
+row  Target row, 1-based.
+txt  The string to centre and print.
+:example
+vt_color(VT_YELLOW, VT_BLACK)
+vt_print_center(12, "Hello, World!")
+vt_color(VT_LIGHT_GREY, VT_BLACK)
+vt_print_center(14, "Press any key...")
+vt_sleep()
+:see
+vt_print
+vt_color
+
+:topic vt_scroll_enable
+:short Enable or disable auto-scrolling
+:group Printing
+Enable or disable automatic scrolling of the
+scroll region. When disabled, text printed past
+the bottom of the scroll region stays on the
+last row. Scrolling is ENABLED by default.
+:syntax
+Sub vt_scroll_enable(state As Byte)
+:params
+state  1 = enable scrolling, 0 = disable.
+:see
+vt_view_print
+vt_print
+
+:topic vt_screen_to_live_row
+:short Map a screen row to a live buffer row
+:group Scroll
+Translate a screen row number to the
+corresponding live buffer row while the
+scrollback view is offset. Useful for
+click-to-locate: call this before snapping
+back to the live view with vt_scroll(-99999).
+:syntax
+Function vt_screen_to_live_row(screen_row As Long) As Long
+:params
+screen_row  1-based screen row as seen during
+            the current scrollback offset.
+:notes
+Return values:
+  > 0  Live buffer row corresponding to
+       screen_row.
+    0  Screen row is pure history with no
+       live equivalent.
+  (pass-through when scrollback is inactive)
+:example
+Dim lr As Long = vt_screen_to_live_row(clk_row)
+If lr > 0 Then
+    vt_scroll(-99999)
+    vt_locate(lr, clk_col)
+End If
+:see
+vt_scroll
+vt_scrollback
+
+:topic vt_scroll
+:short Move the scrollback view by a number of lines
+:group Scroll
+Move the scrollback view offset. Positive values
+scroll toward older history; negative values
+scroll toward the live view. Scrollback must be
+enabled with vt_scrollback first. Does not call
+vt_present. vt_scroll is called automatically
+by the library for the built-in hotkeys -- you
+only need to call it directly for custom input
+such as a mouse wheel handler.
+:syntax
+Function vt_scroll(amount As Long) As Byte
+:params
+amount  Lines to scroll. Positive = back in
+        history, negative = toward live view.
+        Clamped to valid range automatically.
+:notes
+Return values:
+  1  Offset changed.
+  0  Already at limit, amount is zero, or
+     scrollback is disabled.
+:see
+vt_scrollback
+hk_scrollback
+vt_screen_to_live_row
+
+:topic vt_view_print
+:short Restrict the scroll and print region
+:group Scroll
+Restrict the scroll region and print region to
+a range of rows and/or columns (like QBasic
+VIEW PRINT, extended with column bounds). Rows
+and columns outside the active viewport are
+unaffected by vt_cls, vt_print, and scrolling.
+Call with no arguments (or all -1) to reset the
+full viewport including column bounds.
+:syntax
+Sub vt_view_print(top_row As Long = -1, _
+                  bot_row As Long = -1, _
+                  lft_col As Long = -1, _
+                  rgt_col As Long = -1)
+:params
+top_row  First row of the scroll region, 1-based.
+         -1 resets all four bounds to full screen.
+bot_row  Last row of the scroll region. Must be
+         >= top_row.
+lft_col  First column of the print region.
+         -1 means full screen width. vt_print
+         newlines land at this column.
+rgt_col  Last column of the print region. Must
+         be >= lft_col. vt_print wraps here.
+:notes
+vt_locate is always absolute -- column bounds
+do not affect it. Calling with all -1 resets
+the entire viewport: row bounds, column bounds,
+and cursor position.
+:example
+' Leave row 1 and row 25 untouched (status bars):
+vt_view_print(2, 24)
+
+' Reset to full viewport:
+vt_view_print()
+:see
+vt_cls
+vt_print
+vt_scroll_enable
 

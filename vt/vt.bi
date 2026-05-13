@@ -173,19 +173,25 @@ End Enum
 '  ASCII code of the resulting character
 '  (Ctrl+letter gives 1-26). 0 for special
 '  keys -- use VT_SCAN for those.
+'
 #Define VT_SCAN(k)    (((k) Shr 16) And &hFFF)
 '  VT scancode (bits 16-27). Only meaningful
 '  for VT_KEY_* constants. Returns 0 for
 '  regular letter/digit/symbol keys.
 '  Always compare via this macro.
+'
 #Define VT_REPEAT(k)  (((k) Shr 28) And 1)
 '  1 if this is an auto-repeat event.
+'
 #Define VT_SHIFT(k)   (((k) Shr 29) And 1)
 '  1 if Shift was held.
+'
 #Define VT_CTRL(k)    (((k) Shr 30) And 1)
 '  1 if Ctrl was held.
+'
 #Define VT_ALT(k)     (((k) Shr 31) And 1)
 '  1 if Alt was held.
+'
 
 ':example
 'Dim k As ULong = vt_getkey()
@@ -223,6 +229,7 @@ Const VT_KEY_F9     = 67
 Const VT_KEY_F10    = 68
 Const VT_KEY_F11    = 133
 Const VT_KEY_F12    = 134
+'
 'Navigation:
 Const VT_KEY_UP     = 72
 Const VT_KEY_DOWN   = 80
@@ -234,6 +241,7 @@ Const VT_KEY_PGUP   = 73
 Const VT_KEY_PGDN   = 81
 Const VT_KEY_INS    = 82
 Const VT_KEY_DEL    = 83
+'
 'Special:
 Const VT_KEY_ESC    = 1
 Const VT_KEY_ENTER  = 28
@@ -478,3 +486,64 @@ Dim Shared vt_internal As vt_internal_state
 #Undef vt_font_data_8x14
 #Undef vt_font_data_8x16
 '#Undef vt_internal
+
+' =============================================================================
+' additional vth topics below
+' =============================================================================
+'>>>
+    ':topic hk_scrollback
+    ':short Internal scrollback navigation key bindings
+    ':group Hotkeys
+    'VT intercepts these combinations before they
+    'reach your program. Scrollback must be enabled
+    'with vt_scrollback for these to have any effect.
+    'Any key not listed below exits scrollback and
+    'returns to the live view.
+    '
+    '  Shift+PgUp       Scroll back 1 line
+    '  Shift+PgDn       Scroll forward 1 line
+    '  Ctrl+Shift+PgUp  Scroll back half a page
+    '  Ctrl+Shift+PgDn  Scroll forward half a page
+    ':see
+    'vt_scrollback
+    'vt_scroll
+    '<<<
+
+    '>>>
+    ':topic hk_copypaste
+    ':short Internal copy/paste key and mouse bindings
+    ':group Hotkeys
+    'Available only when vt_copypaste has been called
+    'to enable it.
+    '
+    '  LMB drag        Select a region. Activates
+    '                  only once the mouse moves.
+    '  RMB click       Copy selection to clipboard
+    '                  and deselect.
+    '  MMB click       Paste clipboard (vt_input only)
+    '  Shift+Ins       Paste clipboard (vt_input only,
+    '                  always available regardless of
+    '                  copy/paste mode setting).
+    ':see
+    'vt_copypaste
+    'vt_input
+    'vt_tui_menubar_draw
+    'hk_alt
+    '<<<
+
+    '>>>
+    ':topic hk_alt
+    ':short Alt+letter intercept for the TUI menubar
+    ':group Hotkeys
+    'VT intercepts Alt+letter combinations before
+    'they reach your program and delivers them to
+    'the TUI menubar. The key event arrives with
+    'VT_ALT(k) = 1 and VT_CHAR(k) set to the
+    'letter that was pressed. Used by
+    'vt_tui_menubar_draw to open a menu group by
+    'its first letter.
+    ':see
+    'vt_tui_menubar_draw
+    'c_keymacros
+    'hk_copypaste
+'<<<
