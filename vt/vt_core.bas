@@ -934,17 +934,61 @@ Sub vt_screen_maximum(cols As Long, rows As Long)
     End If
 End Sub
 
-' -----------------------------------------------------------------------------
-' vt_screen - open the virtual text screen
-' -----------------------------------------------------------------------------
-Function vt_screen(mode As Long, flags As Long, pages As Long) As Long
-    ' :group Initialization
-    ' :short initializes a text screen. 
-    ' :params
-    ' mode: Use VT_SCREEN_* modes or custom VT_SCREENPARAM(cols, rows, fontwid, fonthei)
-    ' flags:
-    ' pages: 
-
+'>>>
+':topic vt_screen
+':short Open or reopen the virtual text screen
+':group Initialization
+'Open or reopen the VT window. Calling again
+'closes and reinitialises with the new settings.
+'Call vt_title before to set the title before
+'the window appears. Call vt_scrollback after
+'to enable the scrollback buffer. Call
+'vt_copypaste after to enable clipboard support.
+':syntax
+Function vt_screen(mode As Long = VT_SCREEN_0, flags As Long = VT_WINDOWED, pages As Long = 1) As Long
+':params
+'mode   Screen mode. One of the VT_SCREEN_*
+'       constants. Default VT_SCREEN_0.
+'       
+'flags  Window flags. VT_WINDOWED,
+'       VT_FULLSCREEN_* etc., combined with Or.
+'pages  Cell buffer count (1-8). Page 0 is
+'       always VT_VIDEO. Extra pages are used
+'       with vt_page / vt_pcopy.
+'       
+':notes
+'Return values:
+'   0  success
+'  -1  SDL_Init failed
+'  -2  SDL window creation failed
+'  -3  SDL renderer creation failed
+'  -4  font texture creation failed
+'  -5  page buffer alloc failed
+'  
+'  custom modes up to 255x255 cells and 
+'  either font 8x8, 8x14 or 8x16
+'  use the macro VT_SCREENPARAM(col, row, fw, fh)
+'  as mode parameter
+'  
+':example
+'If vt_screen(VT_SCREEN_12, _
+'             VT_WINDOWED Or VT_NO_RESIZE) _
+'             <> 0 Then
+'    Print "Failed to open screen"
+'    End 1
+'End If
+'
+''custom mode:
+'vt_screen VT_SCREENPARAM(80, 10, 8, 8), VT_WINDOWED
+'
+':see
+'vt_shutdown
+'vt_title
+'vt_scrollback
+'vt_copypaste
+'c_screenmodes
+'c_winflags
+'<<<
     Dim cols   As Long
     Dim rows   As Long
     Dim gw     As Long
