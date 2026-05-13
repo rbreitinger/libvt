@@ -28,7 +28,7 @@ Enum
 End Enum
 
 :example
-'Blinking white text on blue:
+'Blinking red warning text :
  vt_screen()
  vt_color(VT_RED Or VT_BLINK)
  vt_print("Warning, are you sure?")
@@ -38,6 +38,97 @@ End Enum
 vt_color
 vt_cls
 vt_set_cell
+
+:topic c_keymacros
+:short Key-event extraction macros
+:group Constants
+vt_inkey and vt_getkey return a packed ULong.
+Use these macros to extract fields from it.
+
+:params
+#Define VT_CHAR(k)    ((k) And &hFF)
+  ASCII code of the resulting character
+  (Ctrl+letter gives 1-26). 0 for special
+  keys -- use VT_SCAN for those.
+#Define VT_SCAN(k)    (((k) Shr 16) And &hFFF)
+  VT scancode (bits 16-27). Only meaningful
+  for VT_KEY_* constants. Returns 0 for
+  regular letter/digit/symbol keys.
+  Always compare via this macro.
+#Define VT_REPEAT(k)  (((k) Shr 28) And 1)
+  1 if this is an auto-repeat event.
+#Define VT_SHIFT(k)   (((k) Shr 29) And 1)
+  1 if Shift was held.
+#Define VT_CTRL(k)    (((k) Shr 30) And 1)
+  1 if Ctrl was held.
+#Define VT_ALT(k)     (((k) Shr 31) And 1)
+  1 if Alt was held.
+
+:example
+Dim k As ULong = vt_getkey()
+Select Case VT_SCAN(k)
+    Case VT_KEY_UP    : ' move up
+    Case VT_KEY_DOWN  : ' move down
+    Case VT_KEY_ENTER : ' confirm
+    Case Else
+        If VT_CHAR(k) = Asc("q") Then End
+End Select
+:see
+vt_inkey
+vt_getkey
+c_keyscans
+
+:topic c_keyscans
+:short VT_KEY_* scancode constants
+:group Constants
+Compare these against VT_SCAN(k). Never
+compare them directly against the raw ULong
+value returned by vt_inkey.
+:params
+F-keys:
+Const VT_KEY_F1     = 59
+Const VT_KEY_F2     = 60
+Const VT_KEY_F3     = 61
+Const VT_KEY_F4     = 62
+Const VT_KEY_F5     = 63
+Const VT_KEY_F6     = 64
+Const VT_KEY_F7     = 65
+Const VT_KEY_F8     = 66
+Const VT_KEY_F9     = 67
+Const VT_KEY_F10    = 68
+Const VT_KEY_F11    = 133
+Const VT_KEY_F12    = 134
+Navigation:
+Const VT_KEY_UP     = 72
+Const VT_KEY_DOWN   = 80
+Const VT_KEY_LEFT   = 75
+Const VT_KEY_RIGHT  = 77
+Const VT_KEY_HOME   = 71
+Const VT_KEY_END    = 79
+Const VT_KEY_PGUP   = 73
+Const VT_KEY_PGDN   = 81
+Const VT_KEY_INS    = 82
+Const VT_KEY_DEL    = 83
+Special:
+Const VT_KEY_ESC    = 1
+Const VT_KEY_ENTER  = 28
+Const VT_KEY_BKSP   = 14
+Const VT_KEY_TAB    = 15
+Const VT_KEY_SPACE  = 57
+Const VT_KEY_LSHIFT = 42
+Const VT_KEY_RSHIFT = 54
+Const VT_KEY_LCTRL  = 29
+Const VT_KEY_RCTRL  = 157
+Const VT_KEY_LALT   = 56
+Const VT_KEY_RALT   = 184
+Const VT_KEY_LWIN   = 219
+Const VT_KEY_RWIN   = 220
+
+:see
+c_keymacros
+vt_inkey
+vt_getkey
+vt_key_held
 
 :topic c_misc
 :short Miscellaneous constants
@@ -62,6 +153,25 @@ vt_copypaste
 vt_page
 vt_pcopy
 
+:topic c_mousebtns
+:short Mouse button bitmask constants
+:group Constants
+Bitmask values returned in the btns parameter
+of vt_getmouse.
+:params
+Const VT_MOUSE_BTN_LEFT   = 1   ' bit 0
+Const VT_MOUSE_BTN_RIGHT  = 2   ' bit 1
+Const VT_MOUSE_BTN_MIDDLE = 4   ' bit 2
+:example
+Dim mb As Long
+vt_getmouse( , , @mb)
+If mb And VT_MOUSE_BTN_LEFT Then
+    ' left button is held
+End If
+:see
+vt_getmouse
+vt_mouse
+
 :topic c_screenmodes
 :short Screen mode constants for vt_screen
 :group Constants
@@ -69,18 +179,18 @@ Passed as the mode argument to vt_screen.
 VT_SCREEN_TILES uses 8x8 font data scaled to
 16x16 glyphs -- useful for square-cell tiles.
 :params
-Const VT_SCREEN_0       = 0    ' 80x25  8x16  640x400  -- VGA text (default)
-Const VT_SCREEN_2       = 2    ' 80x25  8x8   640x200  -- CGA hi-res text grid
-Const VT_SCREEN_9       = 9    ' 80x25  8x14  640x350  -- EGA text grid
-Const VT_SCREEN_12      = 12   ' 80x30  8x16  640x480  -- VGA hi-res text grid
-Const VT_SCREEN_13      = 13   ' 40x25  8x8   320x200  -- VGA Mode 13h text grid
-Const VT_SCREEN_EGA43   = 43   ' 80x43  8x8   640x344  -- EGA 43-line
-Const VT_SCREEN_VGA50   = 50   ' 80x50  8x8   640x400  -- VGA 50-line
-Const VT_SCREEN_TILES   = 100  ' 40x25  16x16 640x400  -- square tiles, game-friendly
-Const VT_SCREEN_100_40  = 200  ' 100x40  8x16  800x640  -- hi-res wide
-Const VT_SCREEN_100_50  = 201  ' 100x50  8x8   800x400  -- hi-res wide packed
-Const VT_SCREEN_120_45  = 300  ' 120x45  8x16  960x720  -- hi-res ultrawide
-Const VT_SCREEN_120_50  = 301  ' 120x50  8x8   960x400  -- hi-res ultrawide packed
+Const VT_SCREEN_0       = 0   ' 80x25  8x16  640x400 - VGA text (default)
+Const VT_SCREEN_2       = 2   ' 80x25  8x8   640x200 - CGA hi-res text grid
+Const VT_SCREEN_9       = 9   ' 80x25  8x14  640x350 - EGA text grid
+Const VT_SCREEN_12      = 12  ' 80x30  8x16  640x480 - VGA hi-res text grid
+Const VT_SCREEN_13      = 13  ' 40x25  8x8   320x200 - VGA Mode 13h text grid
+Const VT_SCREEN_EGA43   = 43  ' 80x43  8x8   640x344 - EGA 43-line
+Const VT_SCREEN_VGA50   = 50  ' 80x50  8x8   640x400 - VGA 50-line
+Const VT_SCREEN_TILES   = 100 ' 40x25  16x16 640x400 - square tiles, game-friendly
+Const VT_SCREEN_100_40  = 200 ' 100x40 8x16  800x640 - hi-res wide
+Const VT_SCREEN_100_50  = 201 ' 100x50 8x8   800x400 - hi-res wide packed
+Const VT_SCREEN_120_45  = 300 ' 120x45 8x16  960x720 - hi-res ultrawide
+Const VT_SCREEN_120_50  = 301 ' 120x50 8x8   960x400 - hi-res ultrawide packed
 
 #define VT_SCREENPARAM(_p...) type<vt_screenparam_t>(_p).n ' custom mode
 :syntax

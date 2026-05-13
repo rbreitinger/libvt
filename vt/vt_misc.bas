@@ -12,6 +12,7 @@ Function vt_rnd(lo As Long, hi As Long) As Long
 End Function
 
 #Ifdef VT_USE_SORT
+    Const VT_ASCENDING = 0, VT_DESCENDING = 1
     ' ================================================================
     '  vt_sort : opt-in generic array sort via overloading (shellsort)
     ' ================================================================

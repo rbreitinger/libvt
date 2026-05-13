@@ -51,7 +51,7 @@ Const VT_RENDERER_HW        = 64  ' Use HW rendering (default: software).
 'c_screenmodes
 '<<<
 
-' custom screenmodes...
+' custom screenmodes
 Union vt_screenparam_t
   Type
     w  As ubyte
@@ -70,18 +70,18 @@ End Union
 'VT_SCREEN_TILES uses 8x8 font data scaled to
 '16x16 glyphs -- useful for square-cell tiles.
 ':params
-Const VT_SCREEN_0       = 0    ' 80x25  8x16  640x400  -- VGA text (default)
-Const VT_SCREEN_2       = 2    ' 80x25  8x8   640x200  -- CGA hi-res text grid
-Const VT_SCREEN_9       = 9    ' 80x25  8x14  640x350  -- EGA text grid
-Const VT_SCREEN_12      = 12   ' 80x30  8x16  640x480  -- VGA hi-res text grid
-Const VT_SCREEN_13      = 13   ' 40x25  8x8   320x200  -- VGA Mode 13h text grid
-Const VT_SCREEN_EGA43   = 43   ' 80x43  8x8   640x344  -- EGA 43-line
-Const VT_SCREEN_VGA50   = 50   ' 80x50  8x8   640x400  -- VGA 50-line
-Const VT_SCREEN_TILES   = 100  ' 40x25  16x16 640x400  -- square tiles, game-friendly
-Const VT_SCREEN_100_40  = 200  ' 100x40  8x16  800x640  -- hi-res wide
-Const VT_SCREEN_100_50  = 201  ' 100x50  8x8   800x400  -- hi-res wide packed
-Const VT_SCREEN_120_45  = 300  ' 120x45  8x16  960x720  -- hi-res ultrawide
-Const VT_SCREEN_120_50  = 301  ' 120x50  8x8   960x400  -- hi-res ultrawide packed
+Const VT_SCREEN_0       = 0   ' 80x25  8x16  640x400 - VGA text (default)
+Const VT_SCREEN_2       = 2   ' 80x25  8x8   640x200 - CGA hi-res text grid
+Const VT_SCREEN_9       = 9   ' 80x25  8x14  640x350 - EGA text grid
+Const VT_SCREEN_12      = 12  ' 80x30  8x16  640x480 - VGA hi-res text grid
+Const VT_SCREEN_13      = 13  ' 40x25  8x8   320x200 - VGA Mode 13h text grid
+Const VT_SCREEN_EGA43   = 43  ' 80x43  8x8   640x344 - EGA 43-line
+Const VT_SCREEN_VGA50   = 50  ' 80x50  8x8   640x400 - VGA 50-line
+Const VT_SCREEN_TILES   = 100 ' 40x25  16x16 640x400 - square tiles, game-friendly
+Const VT_SCREEN_100_40  = 200 ' 100x40 8x16  800x640 - hi-res wide
+Const VT_SCREEN_100_50  = 201 ' 100x50 8x8   800x400 - hi-res wide packed
+Const VT_SCREEN_120_45  = 300 ' 120x45 8x16  960x720 - hi-res ultrawide
+Const VT_SCREEN_120_50  = 301 ' 120x50 8x8   960x400 - hi-res ultrawide packed
 '
 #define VT_SCREENPARAM(_p...) type<vt_screenparam_t>(_p).n ' custom mode
 ':syntax
@@ -101,6 +101,25 @@ Const VT_SCREEN_120_50  = 301  ' 120x50  8x8   960x400  -- hi-res ultrawide pack
 'vt_screen
 'c_winflags
 '<<<
+
+Static Shared vt_default_palette(47) As UByte = { _
+    0,   0,   0,  _ '  0 Black
+    0,   0, 170,  _ '  1 Blue
+    0, 170,   0,  _ '  2 Green
+    0, 170, 170,  _ '  3 Cyan
+  170,   0,   0,  _ '  4 Red
+  170,   0, 170,  _ '  5 Magenta
+  170,  85,   0,  _ '  6 Brown
+  170, 170, 170,  _ '  7 Light Grey
+   85,  85,  85,  _ '  8 Dark Grey
+   85,  85, 255,  _ '  9 Bright Blue
+   85, 255,  85,  _ ' 10 Bright Green
+   85, 255, 255,  _ ' 11 Bright Cyan
+  255,  85,  85,  _ ' 12 Bright Red
+  255,  85, 255,  _ ' 13 Bright Magenta
+  255, 255,  85,  _ ' 14 Yellow
+  255, 255, 255   _ ' 15 White
+}
 
 '>>>
 ':topic c_colors
@@ -145,59 +164,85 @@ End Enum
 'vt_set_cell
 '<<<
 
-' -----------------------------------------------------------------------------
-' vt_inkey return value layout (ULong, 32 bits)
-'
-'   Bit  0 -  7 : ASCII character  (0 if non-printable or special key)
-'   Bit  8 - 15 : reserved
-'   Bit 16 - 27 : VT scancode
-'   Bit 28      : repeat flag  (1 = key-held auto-repeat event)
-'   Bit 29      : Shift held
-'   Bit 30      : Ctrl held
-'   Bit 31      : Alt held
-'
-' Extraction macros:
-' -----------------------------------------------------------------------------
+'>>>
+':topic c_keymacros
+':short Key-event extraction macros
+':group Constants
+'vt_inkey and vt_getkey return a packed ULong.
+'Use these macros to extract fields from it.
+
+':params
 #Define VT_CHAR(k)    ((k) And &hFF)
+'  ASCII code of the resulting character
+'  (Ctrl+letter gives 1-26). 0 for special
+'  keys -- use VT_SCAN for those.
 #Define VT_SCAN(k)    (((k) Shr 16) And &hFFF)
+'  VT scancode (bits 16-27). Only meaningful
+'  for VT_KEY_* constants. Returns 0 for
+'  regular letter/digit/symbol keys.
+'  Always compare via this macro.
 #Define VT_REPEAT(k)  (((k) Shr 28) And 1)
+'  1 if this is an auto-repeat event.
 #Define VT_SHIFT(k)   (((k) Shr 29) And 1)
+'  1 if Shift was held.
 #Define VT_CTRL(k)    (((k) Shr 30) And 1)
+'  1 if Ctrl was held.
 #Define VT_ALT(k)     (((k) Shr 31) And 1)
+'  1 if Alt was held.
 
-' -----------------------------------------------------------------------------
-' VT key scancodes
-' -----------------------------------------------------------------------------
-Const VT_KEY_F1  = 59
-Const VT_KEY_F2  = 60
-Const VT_KEY_F3  = 61
-Const VT_KEY_F4  = 62
-Const VT_KEY_F5  = 63
-Const VT_KEY_F6  = 64
-Const VT_KEY_F7  = 65
-Const VT_KEY_F8  = 66
-Const VT_KEY_F9  = 67
-Const VT_KEY_F10 = 68
-Const VT_KEY_F11 = 133
-Const VT_KEY_F12 = 134
+':example
+'Dim k As ULong = vt_getkey()
+'Select Case VT_SCAN(k)
+'    Case VT_KEY_UP    : ' move up
+'    Case VT_KEY_DOWN  : ' move down
+'    Case VT_KEY_ENTER : ' confirm
+'    Case Else
+'        If VT_CHAR(k) = Asc("q") Then End
+'End Select
+':see
+'vt_inkey
+'vt_getkey
+'c_keyscans
+'<<<
 
-Const VT_KEY_UP    = 72
-Const VT_KEY_DOWN  = 80
-Const VT_KEY_LEFT  = 75
-Const VT_KEY_RIGHT = 77
-Const VT_KEY_HOME  = 71
-Const VT_KEY_END   = 79
-Const VT_KEY_PGUP  = 73
-Const VT_KEY_PGDN  = 81
-Const VT_KEY_INS   = 82
-Const VT_KEY_DEL   = 83
-
-Const VT_KEY_ESC   = 1
-Const VT_KEY_ENTER = 28
-Const VT_KEY_BKSP  = 14
-Const VT_KEY_TAB   = 15
-Const VT_KEY_SPACE = 57
-
+'>>>
+':topic c_keyscans
+':short VT_KEY_* scancode constants
+':group Constants
+'Compare these against VT_SCAN(k). Never
+'compare them directly against the raw ULong
+'value returned by vt_inkey.
+':params
+'F-keys:
+Const VT_KEY_F1     = 59
+Const VT_KEY_F2     = 60
+Const VT_KEY_F3     = 61
+Const VT_KEY_F4     = 62
+Const VT_KEY_F5     = 63
+Const VT_KEY_F6     = 64
+Const VT_KEY_F7     = 65
+Const VT_KEY_F8     = 66
+Const VT_KEY_F9     = 67
+Const VT_KEY_F10    = 68
+Const VT_KEY_F11    = 133
+Const VT_KEY_F12    = 134
+'Navigation:
+Const VT_KEY_UP     = 72
+Const VT_KEY_DOWN   = 80
+Const VT_KEY_LEFT   = 75
+Const VT_KEY_RIGHT  = 77
+Const VT_KEY_HOME   = 71
+Const VT_KEY_END    = 79
+Const VT_KEY_PGUP   = 73
+Const VT_KEY_PGDN   = 81
+Const VT_KEY_INS    = 82
+Const VT_KEY_DEL    = 83
+'Special:
+Const VT_KEY_ESC    = 1
+Const VT_KEY_ENTER  = 28
+Const VT_KEY_BKSP   = 14
+Const VT_KEY_TAB    = 15
+Const VT_KEY_SPACE  = 57
 Const VT_KEY_LSHIFT = 42
 Const VT_KEY_RSHIFT = 54
 Const VT_KEY_LCTRL  = 29
@@ -206,32 +251,36 @@ Const VT_KEY_LALT   = 56
 Const VT_KEY_RALT   = 184
 Const VT_KEY_LWIN   = 219
 Const VT_KEY_RWIN   = 220
+'
+':see
+'c_keymacros
+'vt_inkey
+'vt_getkey
+'vt_key_held
+'<<<
 
-' -----------------------------------------------------------------------------
-' Default CGA / DOS palette - 16 colours, 3 bytes each (R, G, B)
-' -----------------------------------------------------------------------------
-Static Shared vt_default_palette(47) As UByte = { _
-    0,   0,   0,  _ '  0 Black
-    0,   0, 170,  _ '  1 Blue
-    0, 170,   0,  _ '  2 Green
-    0, 170, 170,  _ '  3 Cyan
-  170,   0,   0,  _ '  4 Red
-  170,   0, 170,  _ '  5 Magenta
-  170,  85,   0,  _ '  6 Brown
-  170, 170, 170,  _ '  7 Light Grey
-   85,  85,  85,  _ '  8 Dark Grey
-   85,  85, 255,  _ '  9 Bright Blue
-   85, 255,  85,  _ ' 10 Bright Green
-   85, 255, 255,  _ ' 11 Bright Cyan
-  255,  85,  85,  _ ' 12 Bright Red
-  255,  85, 255,  _ ' 13 Bright Magenta
-  255, 255,  85,  _ ' 14 Yellow
-  255, 255, 255   _ ' 15 White
-}
+'>>>
+':topic c_mousebtns
+':short Mouse button bitmask constants
+':group Constants
+'Bitmask values returned in the btns parameter
+'of vt_getmouse.
+':params
+Const VT_MOUSE_BTN_LEFT   = 1   ' bit 0
+Const VT_MOUSE_BTN_RIGHT  = 2   ' bit 1
+Const VT_MOUSE_BTN_MIDDLE = 4   ' bit 2
+':example
+'Dim mb As Long
+'vt_getmouse( , , @mb)
+'If mb And VT_MOUSE_BTN_LEFT Then
+'    ' left button is held
+'End If
+':see
+'vt_getmouse
+'vt_mouse
+'<<<
 
-' -----------------------------------------------------------------------------
 ' Internal tuning constants
-' -----------------------------------------------------------------------------
 Const _VT_KEY_BUFFER_SIZE    = 64
 Const _VT_BLINK_MS           = 250
 Const _VT_PAGE_SLOTS         = 8    ' max allocatable pages (0=VT_VIDEO, 1..7 work pages)
@@ -239,32 +288,16 @@ Const _VT_KEY_REPEAT_INITIAL = 400
 Const _VT_KEY_REPEAT_RATE    = 30
 Const _VT_CP_SCROLL_MS       = 150  ' ms between auto-scroll steps during drag selection
 
-' -----------------------------------------------------------------------------
-' Mouse button bitmask constants  (vt_getmouse btns param)
-' -----------------------------------------------------------------------------
-Const VT_MOUSE_BTN_LEFT   = 1   ' bit 0
-Const VT_MOUSE_BTN_RIGHT  = 2   ' bit 1
-Const VT_MOUSE_BTN_MIDDLE = 4   ' bit 2
-
-' -----------------------------------------------------------------------------
-' Sorting Constants
-' -----------------------------------------------------------------------------
-Const VT_ASCENDING = 0, VT_DESCENDING = 1
-
-' -----------------------------------------------------------------------------
 ' vt_cell - one character cell on the virtual screen
-' -----------------------------------------------------------------------------
 Type vt_cell
     ch  As UByte
     fg  As UByte
     bg  As ubyte
 End Type
 
-' -----------------------------------------------------------------------------
 ' vt_internal_state - complete internal library state
-' -----------------------------------------------------------------------------
 Type vt_internal_state
-    ' --- SDL handles ---
+    ' --- (SDL) handles ---
     sdl_window   As _VT_DRV_Window Ptr
     sdl_renderer As _VT_DRV_Renderer Ptr
     sdl_texture  As _VT_DRV_Texture Ptr
@@ -278,7 +311,7 @@ Type vt_internal_state
 
     ' --- font ---
     font_ptr    As UByte Ptr   ' points to active font data array
-    font_src_h  As Long        ' source glyph height: 8, 14, or 16
+    font_src_h  As Long        ' source glyph height
 
     ' --- cell buffer ---
     ' cells always points to page_buf(work_page).
