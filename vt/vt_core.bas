@@ -295,9 +295,11 @@ Private Function vt_internal_unicode_to_cp437(codepoint As Long) As UByte
 End Function
 
 ' -----------------------------------------------------------------------------
-' Internal: event pump
+' (Internal): event pump
 ' -----------------------------------------------------------------------------
 Sub vt_pump()
+    ' pump events (rarely needed manual - only if no vt_present or vt_inkey happens for a longer time)
+
     If vt_internal.ready = 0 Then Exit Sub
 
     Static pump_active As Byte
@@ -903,6 +905,8 @@ Private Function vt_internal_init(cols As Long, rows As Long, glyph_w As Long, g
 End Function
 
 Sub vt_screen_minimum(cols As Long, rows As Long)
+    ' set the minimum allowed width of a window
+
     If vt_internal.ready = 0 Then Exit Sub
     If cols = 0 OrElse rows = 0 Then
         vt_internal.min_win_w = 0
@@ -916,6 +920,8 @@ Sub vt_screen_minimum(cols As Long, rows As Long)
 End Sub
 
 Sub vt_screen_maximum(cols As Long, rows As Long)
+    ' set the maximum allowed width of a window
+
     If vt_internal.ready = 0 Then Exit Sub
     If cols = 0 OrElse rows = 0 Then
         vt_internal.max_win_w = 0
@@ -932,6 +938,13 @@ End Sub
 ' vt_screen - open the virtual text screen
 ' -----------------------------------------------------------------------------
 Function vt_screen(mode As Long, flags As Long, pages As Long) As Long
+    ' :group Initialization
+    ' :short initializes a text screen. 
+    ' :params
+    ' mode: Use VT_SCREEN_* modes or custom VT_SCREENPARAM(cols, rows, fontwid, fonthei)
+    ' flags:
+    ' pages: 
+
     Dim cols   As Long
     Dim rows   As Long
     Dim gw     As Long

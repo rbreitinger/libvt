@@ -8,28 +8,68 @@
     #Include Once "driver/vt.bas"
 #Endif
     
-#Define VT_NEWLINE  Chr(10)
+'>>>
+':topic c_misc
+':short Miscellaneous constants
+':group Constants
+'Miscellaneous library constants
+':params
+#Define VT_NEWLINE  Chr(10)        ' newline for vt_print
 #Define VT_LF       VT_NEWLINE     ' short alias
+'
+Const VT_VERSION     = "1.10.0"    ' major.minor.patch
+#Define VT_VER_MAJOR = 1           ' preprocessor Versioning
+#Define VT_VER_MINOR = 10
+#Define VT_VER_PATCH = 0
+'
+Const VT_VIDEO = 0                 ' the visible display page
+'
+Const VT_DISABLED = 0              ' generic on/off flags
+Const VT_ENABLED  = 1
+':see
+'vt_print
+'vt_copypaste
+'vt_page
+'vt_pcopy
+'<<<
 
-Const VT_VERSION   = "1.10.0"        ' major.minor.patch
-Const VT_VER_MAJOR = 1
-Const VT_VER_MINOR = 10
-Const VT_VER_PATCH = 0
+'>>>
+':topic c_winflags
+':short Window flag constants for vt_screen
+':group Constants
+'Passed as the flags argument to vt_screen. Combine multiple flags with Or.
+':params
+Const VT_WINDOWED           = 1   ' Start in a resizable window (default).
+Const VT_FULLSCREEN_ASPECT  = 2   ' Fullscreen, integer-scaled, letterboxed.
+Const VT_FULLSCREEN_STRETCH = 4   ' Fullscreen, stretches to fill display.
+Const VT_NO_RESIZE          = 8   ' Prevent user from resizing the window.
+Const VT_VSYNC              = 16  ' Enable vsync, off by default.
+Const VT_WINDOWED_MAX       = 32  ' Start regular window maximized.
+Const VT_RENDERER_HW        = 64  ' Use HW rendering (default: software).
+':see 
+'vt_screen
+'c_screenmodes
+'<<<
 
-' -----------------------------------------------------------------------------
-' Init flags  (combinable with Or)
-' -----------------------------------------------------------------------------
-Const VT_WINDOWED           = 1    ' start in a resizable window (default)
-Const VT_FULLSCREEN_ASPECT  = 2    ' fullscreen, integer-scaled, black bars
-Const VT_FULLSCREEN_STRETCH = 4    ' fullscreen, fills entire display
-Const VT_NO_RESIZE          = 8    ' prevent manual window resize
-Const VT_VSYNC              = 16   ' vsync, off by default
-Const VT_WINDOWED_MAX       = 32   ' start maximized -- regular window, not fullscreen
-Const VT_RENDERER_HW        = 64   ' opt-in: hardware-accelerated renderer (default: software)
+' custom screenmodes...
+Union vt_screenparam_t
+  Type
+    w  As ubyte
+    h  As ubyte
+    fw As ubyte
+    fh As ubyte
+  End Type
+  n As long
+End Union
 
-' -----------------------------------------------------------------------------
-' Screen mode constants
-' -----------------------------------------------------------------------------
+'>>>
+':topic c_screenmodes
+':short Screen mode constants for vt_screen
+':group Constants
+'Passed as the mode argument to vt_screen.
+'VT_SCREEN_TILES uses 8x8 font data scaled to
+'16x16 glyphs -- useful for square-cell tiles.
+':params
 Const VT_SCREEN_0       = 0    ' 80x25  8x16  640x400  -- VGA text (default)
 Const VT_SCREEN_2       = 2    ' 80x25  8x8   640x200  -- CGA hi-res text grid
 Const VT_SCREEN_9       = 9    ' 80x25  8x14  640x350  -- EGA text grid
@@ -42,23 +82,24 @@ Const VT_SCREEN_100_40  = 200  ' 100x40  8x16  800x640  -- hi-res wide
 Const VT_SCREEN_100_50  = 201  ' 100x50  8x8   800x400  -- hi-res wide packed
 Const VT_SCREEN_120_45  = 300  ' 120x45  8x16  960x720  -- hi-res ultrawide
 Const VT_SCREEN_120_50  = 301  ' 120x50  8x8   960x400  -- hi-res ultrawide packed
-
-' custom screenmodes...
-Union vt_screenparam_t
-  Type
-    w  As ubyte
-    h  As ubyte
-    fw As ubyte
-    fh As ubyte
-  End Type
-  n As long
-End Union
-#define VT_SCREENPARAM(_p...) type<vt_screenparam_t>(_p).n
-
-' -----------------------------------------------------------------------------
-' Page constants
-' -----------------------------------------------------------------------------
-Const VT_VIDEO = 0   ' the visible display page
+'
+#define VT_SCREENPARAM(_p...) type<vt_screenparam_t>(_p).n ' custom mode
+':syntax
+'VT_SCREENPARAM(col, row, fontwid, fonthei) 
+':notes
+'  supports up to 255×255 cells. 
+'  fontwid and fonthei select the destination glyph cell size in pixels.
+' 
+'  Scaled font support: 
+'  fontwid must be a multiple of 8. 
+'  The library derives scale = fontwid \ 8 and base_gh = fonthei \ scale. 
+'  base_gh must equal 8, 14, or 16 (a built-in source font).
+'  Invalid combinations silently fall back to the 8×16 source at scale 1.
+'   
+':see
+'vt_screen
+'c_winflags
+'<<<
 
 ' -----------------------------------------------------------------------------
 ' Colour constants
@@ -183,13 +224,6 @@ Const _VT_CP_SCROLL_MS       = 150  ' ms between auto-scroll steps during drag s
 Const VT_MOUSE_BTN_LEFT   = 1   ' bit 0
 Const VT_MOUSE_BTN_RIGHT  = 2   ' bit 1
 Const VT_MOUSE_BTN_MIDDLE = 4   ' bit 2
-
-' -----------------------------------------------------------------------------
-' Generic on/off flags -- usable with any function accepting an on/off flag
-' e.g. vt_copypaste(VT_ENABLED), vt_mouse(VT_ENABLED)
-' -----------------------------------------------------------------------------
-Const VT_DISABLED = 0
-Const VT_ENABLED  = 1
 
 ' -----------------------------------------------------------------------------
 ' Sorting Constants

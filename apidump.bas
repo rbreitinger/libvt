@@ -2,6 +2,7 @@
 ' apidump.bas  -  Public API scanner for libvt
 '
 ' Scans .bas files  : vt_* subs/functions (skips vt_internal_*)
+'                     leading body comments captured as doc
 '                     VT_* consts, #define
 '                     Enum / End Enum blocks
 ' Scans vt.bi       : VT_* consts, #define, #macro blocks
@@ -93,30 +94,40 @@ End Function
 ' ============================================================
 
 Sub scanBas(filename As String, outFH As Long, ByRef totalFns As Long)
-    Dim fh       As Long
-    Dim rawLn    As String
-    Dim trimmed  As String
-    Dim lnlow    As String
-    Dim logLn    As String
-    Dim checkLn  As String
-    Dim nameOff  As Long
-    Dim nameLow  As String
-    Dim isSub    As Byte
-    Dim isFn     As Byte
+    Dim fh         As Long
+    Dim rawLn      As String
+    Dim trimmed    As String
+    Dim lnlow      As String
+    Dim logLn      As String
+    Dim checkLn    As String
+    Dim nameOff    As Long
+    Dim nameLow    As String
+    Dim isSub      As Byte
+    Dim isFn       As Byte
 
-    Dim constBuf As String
-    Dim defBuf   As String
-    Dim enumBuf  As String
+    Dim constBuf   As String
+    Dim defBuf     As String
+    Dim enumBuf    As String
 
-    Dim cnt      As Long
-    Dim cntConst As Long
-    Dim cntDef   As Long
-    Dim cntEnum  As Long
-    Dim inEnum   As Byte
+    Dim cnt        As Long
+    Dim cntConst   As Long
+    Dim cntDef     As Long
+    Dim cntEnum    As Long
+    Dim inEnum     As Byte
+
+    ' one-line push-back for doc-comment peek
+    Dim pendingLn  As String
+    Dim hasPending As Byte
+
+    ' doc comment collection
+    Dim docLn      As String
+    Dim docTrimmed As String
+    Dim docBuf     As String
 
     cnt      = 0 : cntConst = 0 : cntDef = 0 : cntEnum = 0
     inEnum   = 0
     constBuf = "" : defBuf = "" : enumBuf = ""
+    pendingLn = "" : hasPending = 0
     fh       = FreeFile()
 
     If Open(filename For Input As #fh) <> 0 Then
@@ -128,8 +139,17 @@ Sub scanBas(filename As String, outFH As Long, ByRef totalFns As Long)
     Print "  bas: "; filename
     Print #outFH, "  [" & filename & "]"
 
-    Do While Not EOF(fh)
-        Line Input #fh, rawLn
+    Do
+        ' consume pending push-back line first, then read normally
+        If hasPending Then
+            rawLn      = pendingLn
+            hasPending = 0
+        ElseIf Not EOF(fh) Then
+            Line Input #fh, rawLn
+        Else
+            Exit Do
+        End If
+
         trimmed = strTrim(rawLn)
         lnlow   = LCase(trimmed)
 
@@ -199,6 +219,25 @@ Sub scanBas(filename As String, outFH As Long, ByRef totalFns As Long)
         logLn = strTrim(stripComment(readLogicalLine(fh, trimmed)))
 
         Print #outFH, "    " & logLn
+
+        ' ---- peek at first body lines for doc comments ----
+        ' collect consecutive comment lines right after the signature;
+        ' the first non-comment line is pushed back for normal processing
+        docBuf = ""
+        Do While Not EOF(fh)
+            Line Input #fh, docLn
+            docTrimmed = strTrim(docLn)
+            If Len(docTrimmed) = 0 Then Exit Do            ' blank = end of doc block
+            If Left(docTrimmed, 1) = "'" Then
+                docBuf &= "        " & docTrimmed & Chr(10)
+            Else
+                pendingLn  = docLn                         ' push non-comment back
+                hasPending = 1
+                Exit Do
+            End If
+        Loop
+        If Len(docBuf) > 0 Then Print #outFH, docBuf
+
         cnt      += 1
         totalFns += 1
     Loop

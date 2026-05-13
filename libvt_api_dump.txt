@@ -1,6 +1,6 @@
 ============================================================
  libvt Public API Dump
- Generated : 05-12-2026  15:35:51
+ Generated : 05-12-2026  17:01:15
  Source    : vt
 ============================================================
 
@@ -15,9 +15,22 @@
 
   [vt/vt_core.bas]
     Sub vt_pump()
+        ' pump events (rarely needed manual - only if no vt_present or vt_inkey happens for a longer time)
+
     Sub vt_screen_minimum(cols As Long, rows As Long)
+        ' set the minimum allowed width of a window
+
     Sub vt_screen_maximum(cols As Long, rows As Long)
+        ' set the maximum allowed width of a window
+
     Function vt_screen(mode As Long, flags As Long, pages As Long) As Long
+        ' :group Initialization
+        ' :short initializes a text screen.
+        ' :params
+        ' mode: Use VT_SCREEN_* modes or custom VT_SCREENPARAM(cols, rows, fontwid, fonthei)
+        ' flags:
+        ' pages:
+
     Function vt_screeninfo(ByRef out_cols As Long, ByRef out_rows As Long) As Long
     Sub vt_present()
     Sub vt_on_close(cb As Function() As Byte)
@@ -33,6 +46,8 @@
 
   [vt/vt_file.bas]
     Function vt_file_exists(ByRef path As Const String) As Byte
+        ' attrib As Integer: Dir() ByRef out_attrib requires Integer (exception to Long rule)
+
     Function vt_file_isdir(ByRef path As Const String) As Byte
     Function vt_file_copy(ByRef src As Const String, ByRef dst As Const String, flags As Long = 0) As Long
     Function vt_file_rmdir(ByRef path As Const String, flags As Long = 0) As Long
@@ -398,7 +413,7 @@
       VT_YELLOW
       VT_WHITE
       VT_BLINK           ' OR with fg to enable blinking  eg. VT_WHITE Or VT_BLINK
-    End Enum
+      End Enum
 
 
 
