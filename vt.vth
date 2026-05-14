@@ -738,6 +738,22 @@ End If
 vt_font_reset
 vt_screen
 
+:topic vt_pump
+:short Manually drain the event queue
+:group General
+Manually drain the event queue. Normally
+called automatically by vt_inkey, vt_present,
+and vt_sleep. Rarely needed directly -- useful
+in tight loops that never call any of those.
+Re-entrant safe (a second call inside returns
+immediately).
+:syntax
+Sub vt_pump()
+:see
+vt_inkey
+vt_present
+vt_sleep
+
 :topic hk_alt
 :short Alt+letter intercept for the TUI menubar
 :group Hotkeys
@@ -888,6 +904,26 @@ vt_copypaste
 c_screenmodes
 c_winflags
 
+:topic vt_screen_maximum
+:short set the maximum allowed size of a window
+:group Initialization
+Prevents the user to upsize a resizable
+window above the threshold. Call AFTER vt_screen.
+:syntax
+Sub vt_screen_maximum(cols As Long, rows As Long)
+:see
+vt_width
+
+:topic vt_screen_minimum
+:short set the minimum allowed size of a window
+:group Initialization
+Prevents the user to downsize a resizable
+window below the threshold Call AFTER vt_screen.
+:syntax
+Sub vt_screen_minimum(cols As Long, rows As Long)
+:see
+vt_width
+
 :topic vt_scrollback
 :short Allocate or resize the scrollback buffer
 :group Initialization
@@ -970,6 +1006,208 @@ Do
 
     vt_sleep(16)
 Loop
+
+:topic vt_getchar
+:short Block until a printable character is pressed
+:group Keyboard
+Block until a printable character (ASCII 32-255)
+is pressed. If allowed is non-empty, only
+characters within that string are accepted; all
+others are discarded silently. Returns the
+accepted character as a one-character String.
+:syntax
+Function vt_getchar(allowed As String = "") _
+                    As String
+:params
+allowed  Whitelist of accepted characters.
+         Empty string = accept any printable.
+:notes
+Return: single-character String containing the
+accepted character.
+:example
+vt_print("Continue? (Y/N) ")
+Dim ans As String = UCase(vt_getchar("YyNn"))
+:see
+vt_getkey
+vt_inkey
+vt_input
+
+:topic vt_getkey
+:short Block until any key is pressed
+:group Keyboard
+Block until any key (including non-printable and
+special keys) is pressed. Returns the same
+packed ULong format as vt_inkey. Use the
+VT_SCAN / VT_CHAR / VT_SHIFT / VT_CTRL /
+VT_ALT macros to extract fields.
+:syntax
+Function vt_getkey() As ULong
+:notes
+Return: packed key event value. Decode with
+VT_CHAR, VT_SCAN, VT_SHIFT, VT_CTRL, VT_ALT,
+VT_REPEAT macros.
+:example
+Dim k As ULong = vt_getkey()
+If VT_SCAN(k) = VT_KEY_ESC Then End
+If VT_CHAR(k) = Asc("q") Then End
+:see
+vt_inkey
+vt_getchar
+c_keymacros
+c_keyscans
+
+:topic vt_inkey
+:short Non-blocking key read
+:group Keyboard
+Non-blocking key read. Returns the next key
+from the buffer, or 0 if no key is pending.
+Also pumps events, updates blink, and calls
+vt_present if the display is dirty (throttled
+to 2 ms). Use VT_SCAN / VT_CHAR macros to
+decode the returned value.
+:syntax
+Function vt_inkey() As ULong
+:notes
+Return: packed key event (non-zero) if a key
+was waiting. 0 if the buffer is empty or the
+library is not ready.
+:example
+' Game loop pattern:
+Do
+    Dim k As ULong = vt_inkey()
+    If VT_SCAN(k) = VT_KEY_ESC Then Exit Do
+    ' ... update and draw ...
+    vt_sleep 16
+Loop
+:see
+vt_getkey
+vt_getchar
+vt_pump
+c_keymacros
+c_keyscans
+
+:topic vt_input
+:short Full-featured blocking single-line editor
+:group Keyboard
+Blocking single-line text editor at the current
+cursor position. Supports Home, End, Left, Right,
+Insert, Delete, Backspace, and clipboard paste
+when copy/paste is enabled. Returns the entered
+string on Enter, or "" on Escape. Colour must
+be set with vt_color before calling. The editor
+does not call vt_present directly; internal
+vt_inkey calls handle presentation.
+:syntax
+Function vt_input(max_len   As Long = -1, _
+                  initial   As String = "", _
+                  allowed   As String = "", _
+                  cancelled As Byte Ptr = 0) _
+                  As String
+:params
+max_len   Max input length. -1 fills remaining
+          columns on the current row.
+initial   Pre-filled text. Escape restores this
+          text, clears the screen, and returns "".
+allowed   Whitelist of accepted characters.
+          Empty = accept any printable ASCII.
+cancelled Optional Byte Ptr. Set to 1 on Escape,
+          0 on Enter. Pass 0 to ignore.
+:example
+Dim esc As Byte
+vt_locate(10, 1)
+vt_print("Enter amount: ")
+Dim amount As String = _
+    vt_input(8, "0", "0123456789.", @esc)
+If esc Then
+    vt_print("Cancelled" & VT_LF)
+Else
+    vt_print("Got: " & amount & VT_LF)
+End If
+vt_present()
+:see
+vt_getchar
+vt_getkey
+vt_color
+vt_locate
+vt_copypaste
+
+:topic vt_key_flush
+:short Discard all pending keys in the key buffer
+:group Keyboard
+Discard all keys currently waiting in the
+internal key buffer.
+:syntax
+Sub vt_key_flush()
+:see
+vt_inkey
+
+:topic vt_key_held
+:short Poll the real-time state of a key
+:group Keyboard
+Poll whether a key is physically held down at
+the time of the call. Returns 1 if held, 0 if
+not. Useful for smooth movement in game loops
+where event-based repeat is not fast enough.
+Accepts the same VT_KEY_* scancode constants
+used with VT_SCAN.
+:syntax
+Function vt_key_held(vtscan As Long) As Byte
+:params
+vtscan  A VT_KEY_* scancode constant.
+:notes
+Return values:
+  1  Key is currently pressed.
+  0  Not pressed, scancode not recognized,
+     or library not ready.
+:example
+If vt_key_held(VT_KEY_LEFT)  Then x -= 1
+If vt_key_held(VT_KEY_RIGHT) Then x += 1
+:see
+vt_inkey
+c_keyscans
+
+:topic vt_key_repeat
+:short Configure auto-repeat timing
+:group Keyboard
+Configure the timing of auto-repeat events
+generated when a key is held down. Default:
+400 ms initial delay, 30 ms repeat rate. Set
+either value to 0 to disable the corresponding
+phase of repeat.
+:syntax
+Sub vt_key_repeat(initial_ms As Long = 400, _
+                  rate_ms    As Long = 30)
+:params
+initial_ms  Delay in ms before the first repeat
+            event fires. Default 400.
+rate_ms     Interval in ms between subsequent
+            repeat events. Default 30.
+:see
+vt_inkey
+
+:topic vt_sleep
+:short Delay for a fixed time or wait for any key
+:group Keyboard
+Delay for a fixed number of milliseconds, or
+wait indefinitely for any keypress. Keeps the
+display alive (blink, present) during the wait.
+When ms = 0, the keypress is consumed from the
+buffer. When ms > 0, no key is consumed; the
+delay simply elapses.
+:syntax
+Sub vt_sleep(ms As Long = 0)
+:params
+ms  Delay in milliseconds. 0 = wait for any
+    keypress (key is consumed from buffer).
+:example
+' Delay 2 seconds:
+vt_sleep(2000)
+
+' Wait for any keypress:
+vt_sleep()
+:see
+vt_inkey
+vt_pump
 
 :topic vt_approach
 :short Step a value toward a target without overshoot
@@ -1567,6 +1805,44 @@ Function vt_rows() As Long
 :see
 vt_cols
 vt_csrlin
+
+:topic vt_screeninfo
+:group Query
+:short: Queries the renderer's physical output gridsize in glyphs
+Queries the renderer's physical output size, divides by the current
+glyph dimensions, and compares the result to the active grid.
+When the user resizes the window the physical pixel dimensions change
+but the character grid does not - this function detects that delta
+and reports the new grid size snapped to whole character cells.
+Returns 1 and writes the new dimensions only when they differ from the
+current grid; returns 0 when nothing has changed.
+Pair with vt_width in the main loop to apply the resize.
+:syntax
+Function vt_screeninfo(ByRef out_cols As Long, ByRef out_rows As Long) As Long
+:params
+out_cols   Receives the new column count when
+           the function returns 1. Unchanged on return 0.
+out_rows   Receives the new row count when
+           the function returns 1. Unchanged on return 0.
+:notes
+Return value
+1 - grid dimensions changed; cols and rows have been written.
+0 - no change, or library not initialised.
+
+The column and row values are always whole-cell counts.
+the physical pixel width is divided by the glyph width using integer
+division, so odd window sizes snap cleanly to the nearest full
+character boundary. Programs that want a fixed grid regardless of
+window size simply never call this function; the letterbox in
+vt_present handles any surplus pixels automatically.
+:example
+Dim nc As Long, nr As Long
+If vt_screeninfo(nc, nr) Then
+    vt_width(nc, nr)
+    relayout(nc, nr)   ' re-draw app at new grid size
+End If
+:see
+vt_width
 
 :topic vt_screen_to_live_row
 :short Map a screen row to a live buffer row

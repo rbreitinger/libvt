@@ -294,12 +294,23 @@ Private Function vt_internal_unicode_to_cp437(codepoint As Long) As UByte
     Return 0   ' no CP437 equivalent
 End Function
 
-' -----------------------------------------------------------------------------
-' (Internal): event pump
-' -----------------------------------------------------------------------------
+'>>>
+':topic vt_pump
+':short Manually drain the event queue
+':group General
+'Manually drain the event queue. Normally
+'called automatically by vt_inkey, vt_present,
+'and vt_sleep. Rarely needed directly -- useful
+'in tight loops that never call any of those.
+'Re-entrant safe (a second call inside returns
+'immediately).
+':syntax
 Sub vt_pump()
-    ' pump events (rarely needed manual - only if no vt_present or vt_inkey happens for a longer time)
-
+        ':see
+        'vt_inkey
+        'vt_present
+        'vt_sleep
+    '<<<
     If vt_internal.ready = 0 Then Exit Sub
 
     Static pump_active As Byte
@@ -904,9 +915,17 @@ Private Function vt_internal_init(cols As Long, rows As Long, glyph_w As Long, g
     Return 0
 End Function
 
+'>>>
+':topic vt_screen_minimum
+':group Initialization
+':short set the minimum allowed size of a window
+'Prevents the user to downsize a resizable
+'window below the threshold Call AFTER vt_screen.
+':syntax
 Sub vt_screen_minimum(cols As Long, rows As Long)
-    ' set the minimum allowed width of a window
-
+        ':see
+        'vt_width
+    '<<<
     If vt_internal.ready = 0 Then Exit Sub
     If cols = 0 OrElse rows = 0 Then
         vt_internal.min_win_w = 0
@@ -919,8 +938,17 @@ Sub vt_screen_minimum(cols As Long, rows As Long)
     End If
 End Sub
 
+'>>>
+':topic vt_screen_maximum
+':group Initialization
+':short set the maximum allowed size of a window
+'Prevents the user to upsize a resizable
+'window above the threshold. Call AFTER vt_screen.
+':syntax
 Sub vt_screen_maximum(cols As Long, rows As Long)
-    ' set the maximum allowed width of a window
+        ':see
+        'vt_width
+    '<<<
 
     If vt_internal.ready = 0 Then Exit Sub
     If cols = 0 OrElse rows = 0 Then
@@ -935,18 +963,18 @@ Sub vt_screen_maximum(cols As Long, rows As Long)
 End Sub
 
 '>>>
-    ':topic vt_screen
-    ':short Open or reopen the virtual text screen
-    ':group Initialization
-    'Open or reopen the VT window. Calling again
-    'closes and reinitialises with the new settings.
-    'Call vt_title before to set the title before
-    'the window appears. Call vt_scrollback after
-    'to enable the scrollback buffer. Call
-    'vt_copypaste after to enable clipboard support.
+':topic vt_screen
+':short Open or reopen the virtual text screen
+':group Initialization
+'Open or reopen the VT window. Calling again
+'closes and reinitialises with the new settings.
+'Call vt_title before to set the title before
+'the window appears. Call vt_scrollback after
+'to enable the scrollback buffer. Call
+'vt_copypaste after to enable clipboard support.
 ':syntax
 Function vt_screen(mode As Long = VT_SCREEN_0, flags As Long = VT_WINDOWED, pages As Long = 1) As Long
-    ':params
+        ':params
         'mode   Screen mode. One of the VT_SCREEN_*
         '       constants. Default VT_SCREEN_0.
         '       
@@ -1175,7 +1203,46 @@ End Sub
 ' Returns 1 and writes new dimensions into cols/rows if they differ from the
 ' current scr_cols/scr_rows; returns 0 if nothing changed.
 ' -----------------------------------------------------------------------------
+'>>>
+':topic vt_screeninfo
+':short: Queries the renderer's physical output gridsize in glyphs
+':group Query
+'Queries the renderer's physical output size, divides by the current 
+'glyph dimensions, and compares the result to the active grid. 
+'When the user resizes the window the physical pixel dimensions change 
+'but the character grid does not - this function detects that delta 
+'and reports the new grid size snapped to whole character cells. 
+'Returns 1 and writes the new dimensions only when they differ from the 
+'current grid; returns 0 when nothing has changed. 
+'Pair with vt_width in the main loop to apply the resize.
+':syntax
 Function vt_screeninfo(ByRef out_cols As Long, ByRef out_rows As Long) As Long
+        ':params
+        'out_cols   Receives the new column count when 
+        '           the function returns 1. Unchanged on return 0.
+        'out_rows   Receives the new row count when 
+        '           the function returns 1. Unchanged on return 0.
+        ':notes
+        'Return value
+        '1 - grid dimensions changed; cols and rows have been written.
+        '0 - no change, or library not initialised.
+        '
+        'The column and row values are always whole-cell counts.
+        'the physical pixel width is divided by the glyph width using integer
+        'division, so odd window sizes snap cleanly to the nearest full 
+        'character boundary. Programs that want a fixed grid regardless of 
+        'window size simply never call this function; the letterbox in 
+        'vt_present handles any surplus pixels automatically.
+        ':example
+        'Dim nc As Long, nr As Long
+        'If vt_screeninfo(nc, nr) Then
+        '    vt_width(nc, nr)
+        '    relayout(nc, nr)   ' re-draw app at new grid size
+        'End If
+        ':see
+        'vt_width
+    '<<<
+
     If vt_internal.ready = 0 Then Return 0
     Dim out_w    As Long
     Dim out_h    As Long
@@ -1633,18 +1700,61 @@ Private Sub vt_internal_present_if_dirty()
     last_auto_tick = vt_internal_ticks()
 End Sub
 
-' -----------------------------------------------------------------------------
-' vt_key_repeat - configure key repeat timing
-' -----------------------------------------------------------------------------
-Sub vt_key_repeat(initial_ms As Long, rate_ms As Long)
+'>>>
+':topic vt_key_repeat
+':short Configure auto-repeat timing
+':group Keyboard
+'Configure the timing of auto-repeat events
+'generated when a key is held down. Default:
+'400 ms initial delay, 30 ms repeat rate. Set
+'either value to 0 to disable the corresponding
+'phase of repeat.
+':syntax
+Sub vt_key_repeat(initial_ms As Long = 400, _
+                  rate_ms    As Long = 30)
+        ':params
+        'initial_ms  Delay in ms before the first repeat
+        '            event fires. Default 400.
+        'rate_ms     Interval in ms between subsequent
+        '            repeat events. Default 30.
+        ':see
+        'vt_inkey
+    '<<<
     vt_internal.rep_initial = initial_ms
     vt_internal.rep_rate    = rate_ms
 End Sub
 
-' -----------------------------------------------------------------------------
-' vt_inkey - non-blocking key read
-' -----------------------------------------------------------------------------
+'>>>
+':topic vt_inkey
+':short Non-blocking key read
+':group Keyboard
+'Non-blocking key read. Returns the next key
+'from the buffer, or 0 if no key is pending.
+'Also pumps events, updates blink, and calls
+'vt_present if the display is dirty (throttled
+'to 2 ms). Use VT_SCAN / VT_CHAR macros to
+'decode the returned value.
+':syntax
 Function vt_inkey() As ULong
+        ':notes
+        'Return: packed key event (non-zero) if a key
+        'was waiting. 0 if the buffer is empty or the
+        'library is not ready.
+        ':example
+        '' Game loop pattern:
+        'Do
+        '    Dim k As ULong = vt_inkey()
+        '    If VT_SCAN(k) = VT_KEY_ESC Then Exit Do
+        '    ' ... update and draw ...
+        '    vt_sleep 16
+        'Loop
+        ':see
+        'vt_getkey
+        'vt_getchar
+        'vt_pump
+        'c_keymacros
+        'c_keyscans
+    '<<<
     If vt_internal.ready = 0 Then Return 0
     vt_pump()
     If vt_internal_blink_update() Then vt_internal.dirty = 1
@@ -1656,10 +1766,32 @@ Function vt_inkey() As ULong
     Return evt
 End Function
 
-' -----------------------------------------------------------------------------
-' vt_key_held - real-time key state poll
-' -----------------------------------------------------------------------------
+'>>>
+':topic vt_key_held
+':short Poll the real-time state of a key
+':group Keyboard
+'Poll whether a key is physically held down at
+'the time of the call. Returns 1 if held, 0 if
+'not. Useful for smooth movement in game loops
+'where event-based repeat is not fast enough.
+'Accepts the same VT_KEY_* scancode constants
+'used with VT_SCAN.
+':syntax
 Function vt_key_held(vtscan As Long) As Byte
+        ':params
+        'vtscan  A VT_KEY_* scancode constant.
+        ':notes
+        'Return values:
+        '  1  Key is currently pressed.
+        '  0  Not pressed, scancode not recognized,
+        '     or library not ready.
+        ':example
+        'If vt_key_held(VT_KEY_LEFT)  Then x -= 1
+        'If vt_key_held(VT_KEY_RIGHT) Then x += 1
+        ':see
+        'vt_inkey
+        'c_keyscans
+    '<<<
     Dim sdl_scan As Long
     Dim numkeys  As Long
     Dim states   As Const UByte Ptr
@@ -1709,10 +1841,31 @@ Function vt_key_held(vtscan As Long) As Byte
     Return states[sdl_scan]
 End Function
 
-' -----------------------------------------------------------------------------
-' vt_sleep ms = 0 : wait for any key; ms > 0 : delay for ms milliseconds
-' -----------------------------------------------------------------------------
+'>>>
+':topic vt_sleep
+':short Delay for a fixed time or wait for any key
+':group Keyboard
+'Delay for a fixed number of milliseconds, or
+'wait indefinitely for any keypress. Keeps the
+'display alive (blink, present) during the wait.
+'When ms = 0, the keypress is consumed from the
+'buffer. When ms > 0, no key is consumed; the
+'delay simply elapses.
+':syntax
 Sub vt_sleep(ms As Long = 0)
+        ':params
+        'ms  Delay in milliseconds. 0 = wait for any
+        '    keypress (key is consumed from buffer).
+        ':example
+        '' Delay 2 seconds:
+        'vt_sleep(2000)
+        '
+        '' Wait for any keypress:
+        'vt_sleep()
+        ':see
+        'vt_inkey
+        'vt_pump
+    '<<<
     Dim t_start   As ULong
     Dim t_now     As ULong
     Dim remaining As Long
@@ -1741,10 +1894,31 @@ Sub vt_sleep(ms As Long = 0)
     Loop
 End Sub
 
-' -----------------------------------------------------------------------------
-' vt_getkey - blocking vt_inkey
-' -----------------------------------------------------------------------------
+'>>>
+':topic vt_getkey
+':short Block until any key is pressed
+':group Keyboard
+'Block until any key (including non-printable and
+'special keys) is pressed. Returns the same
+'packed ULong format as vt_inkey. Use the
+'VT_SCAN / VT_CHAR / VT_SHIFT / VT_CTRL /
+'VT_ALT macros to extract fields.
+':syntax
 Function vt_getkey() As ULong
+        ':notes
+        'Return: packed key event value. Decode with
+        'VT_CHAR, VT_SCAN, VT_SHIFT, VT_CTRL, VT_ALT,
+        'VT_REPEAT macros.
+        ':example
+        'Dim k As ULong = vt_getkey()
+        'If VT_SCAN(k) = VT_KEY_ESC Then End
+        'If VT_CHAR(k) = Asc("q") Then End
+        ':see
+        'vt_inkey
+        'vt_getchar
+        'c_keymacros
+        'c_keyscans
+    '<<<
     Dim k As ULong
     Do
         k = vt_inkey()
@@ -1753,10 +1927,32 @@ Function vt_getkey() As ULong
     Loop
 End Function
 
-' -----------------------------------------------------------------------------
-' vt_getchar - blocking single printable character
-' -----------------------------------------------------------------------------
-Function vt_getchar(allowed As String = "") As String
+'>>>
+':topic vt_getchar
+':short Block until a printable character is pressed
+':group Keyboard
+'Block until a printable character (ASCII 32-255)
+'is pressed. If allowed is non-empty, only
+'characters within that string are accepted; all
+'others are discarded silently. Returns the
+'accepted character as a one-character String.
+':syntax
+Function vt_getchar(allowed As String = "") _
+                    As String
+        ':params
+        'allowed  Whitelist of accepted characters.
+        '         Empty string = accept any printable.
+        ':notes
+        'Return: single-character String containing the
+        'accepted character.
+        ':example
+        'vt_print("Continue? (Y/N) ")
+        'Dim ans As String = UCase(vt_getchar("YyNn"))
+        ':see
+        'vt_getkey
+        'vt_inkey
+        'vt_input
+    '<<<
     Dim k  As ULong
     Dim ch As UByte
     Do
@@ -1769,10 +1965,17 @@ Function vt_getchar(allowed As String = "") As String
     Loop
 End Function
 
-' -----------------------------------------------------------------------------
-' vt_key_flush - discard all pending keys
-' -----------------------------------------------------------------------------
+'>>>
+':topic vt_key_flush
+':short Discard all pending keys in the key buffer
+':group Keyboard
+'Discard all keys currently waiting in the
+'internal key buffer.
+':syntax
 Sub vt_key_flush()
+        ':see
+        'vt_inkey
+    '<<<
     vt_internal.key_read  = 0
     vt_internal.key_write = 0
     vt_internal.key_count = 0

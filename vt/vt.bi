@@ -287,7 +287,7 @@ Const VT_MOUSE_BTN_MIDDLE = 4   ' bit 2
 
 ' Internal tuning constants
 Const _VT_KEY_BUFFER_SIZE    = 64
-Const _VT_BLINK_MS           = 250
+Const _VT_BLINK_MS           = 450
 Const _VT_PAGE_SLOTS         = 8    ' max allocatable pages (0=VT_VIDEO, 1..7 work pages)
 Const _VT_KEY_REPEAT_INITIAL = 400
 Const _VT_KEY_REPEAT_RATE    = 30

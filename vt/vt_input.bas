@@ -1,7 +1,53 @@
 ' =============================================================================
 ' vt_input.bas : single-line blocking text editor
 ' =============================================================================
-Function vt_input(max_len As Long = -1, initial As String = "", allowed As String = "", cancelled As Byte Ptr = 0) As String
+
+'>>>
+':topic vt_input
+':short Full-featured blocking single-line editor
+':group Keyboard
+'Blocking single-line text editor at the current
+'cursor position. Supports Home, End, Left, Right,
+'Insert, Delete, Backspace, and clipboard paste
+'when copy/paste is enabled. Returns the entered
+'string on Enter, or "" on Escape. Colour must
+'be set with vt_color before calling. The editor
+'does not call vt_present directly; internal
+'vt_inkey calls handle presentation.
+':syntax
+Function vt_input(max_len   As Long = -1, _
+                  initial   As String = "", _
+                  allowed   As String = "", _
+                  cancelled As Byte Ptr = 0) _
+                  As String
+        ':params
+        'max_len   Max input length. -1 fills remaining
+        '          columns on the current row.
+        'initial   Pre-filled text. Escape restores this
+        '          text, clears the screen, and returns "".
+        'allowed   Whitelist of accepted characters.
+        '          Empty = accept any printable ASCII.
+        'cancelled Optional Byte Ptr. Set to 1 on Escape,
+        '          0 on Enter. Pass 0 to ignore.
+        ':example
+        'Dim esc As Byte
+        'vt_locate(10, 1)
+        'vt_print("Enter amount: ")
+        'Dim amount As String = _
+        '    vt_input(8, "0", "0123456789.", @esc)
+        'If esc Then
+        '    vt_print("Cancelled" & VT_LF)
+        'Else
+        '    vt_print("Got: " & amount & VT_LF)
+        'End If
+        'vt_present()
+        ':see
+        'vt_getchar
+        'vt_getkey
+        'vt_color
+        'vt_locate
+        'vt_copypaste
+    '<<<
     If vt_internal.ready = 0 Then Return ""
 
     Dim start_col As Long
