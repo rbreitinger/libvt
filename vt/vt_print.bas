@@ -469,10 +469,66 @@ End Sub
 ' -----------------------------------------------------------------------------
 ' Query functions
 ' -----------------------------------------------------------------------------
-Function vt_csrlin() As Long : Return vt_internal.cur_row  : End Function
-Function vt_pos()    As Long : Return vt_internal.cur_col  : End Function
-Function vt_cols()   As Long : Return vt_internal.scr_cols : End Function
-Function vt_rows()   As Long : Return vt_internal.scr_rows : End Function
+'>>>
+':topic vt_csrlin
+':short Return the current cursor row
+':group Query
+'Returns the current cursor row (1-based).
+':syntax
+Function vt_csrlin() As Long
+        ':see
+        'vt_pos
+        'vt_locate
+        'vt_rows
+    '<<<
+    Return vt_internal.cur_row
+End Function
+
+'>>>
+':topic vt_pos
+':short Return the current cursor column
+':group Query
+'Returns the current cursor column (1-based).
+':syntax
+Function vt_pos() As Long
+        ':see
+        'vt_csrlin
+        'vt_locate
+        'vt_cols
+    '<<<
+    Return vt_internal.cur_col
+End Function
+
+'>>>
+':topic vt_cols
+':short Return the number of columns on screen
+':group Query
+'Returns the total number of columns in the
+'current screen mode.
+':syntax
+Function vt_cols() As Long
+        ':see
+        'vt_rows
+        'vt_csrlin
+        'vt_pos
+    '<<<
+    Return vt_internal.scr_cols
+End Function
+
+'>>>
+':topic vt_rows
+':short Return the number of rows on screen
+':group Query
+'Returns the total number of rows in the current
+'screen mode.
+':syntax
+Function vt_rows() As Long
+        ':see
+        'vt_cols
+        'vt_csrlin
+    '<<<
+    Return vt_internal.scr_rows
+End Function
 
 '>>>
 ':topic vt_view_print
@@ -540,7 +596,60 @@ End Sub
 ' Multi-byte sequences with no CP437 equivalent are silently dropped.
 ' Supports 2-byte and 3-byte UTF-8; 4-byte (beyond BMP) always dropped.
 ' =============================================================================
+
+'>>>
+':topic vt_utf8_to_cp437
+':short Decode a UTF-8 encoded string to CP437 bytes.
+':group Utilities
+'SDL2 delivers all keyboard and clipboard text as UTF-8; 
+'the VT cell buffer stores one raw CP437 byte per cell. 
+'This function bridges the two.
+'
+'Pure ASCII input (no byte ≥ 0x80) is returned unchanged 
+'with no allocation. 2-byte and 3-byte UTF-8 sequences 
+'are fully supported; continuation bytes are validated 
+'before decoding. 4-byte sequences (Unicode beyond the 
+'Basic Multilingual Plane) are always dropped as CP437 
+'has no glyphs for them. Codepoints with no CP437 
+'equivalent are silently dropped.
+'
+'Bytes that do not form a valid UTF-8 sequence — including 
+'raw CP437 high bytes such as box-drawing characters from 
+'vt_input are passed through unchanged. This makes the 
+'function safe to call on already-decoded CP437 strings 
+'as well as on raw UTF-8 input.
+'vt_print calls this automatically. Call it explicitly only 
+'when you have genuinely UTF-8 encoded text outside of 
+'vt_print, for example when writing bytes directly 
+'via vt_set_cell, receiving network text, or processing 
+'a custom input loop.
+'
+'Do not call it on vt_input return values. vt_input 
+'already returns CP437 bytes (the SDL TEXTINPUT handler 
+'decodes them). Calling vt_utf8_to_cp437 on the result 
+'is redundant - it is idempotent on CP437 strings, 
+'but the call is unnecessary clutter.
+'
+':syntax
 Function vt_utf8_to_cp437(src As String) As String
+        ':params
+        'src   Input string. May be UTF-8 
+        '      (source literals, clipboard, network) or 
+        '      already-decoded CP437 — both are handled correctly.
+        '
+        'Return value
+        'A new string containing the CP437-decoded bytes. 
+        'Unmappable codepoints are omitted; the result may therefore 
+        'be shorter than the input. Raw CP437 high bytes 
+        '(invalid UTF-8) are preserved unchanged.
+        '
+        ':example
+        '' Explicit call needed only for raw UTF-8 from outside vt_print:
+        'Dim line As String = receive_from_server()   ' arrives as UTF-8
+        'line = vt_utf8_to_cp437(line)
+        'vt_print line
+    '<<<
+
     Dim slen  As Long = Len(src)
     Dim enc_i As Long
 
