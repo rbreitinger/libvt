@@ -1,298 +1,13 @@
 ' =============================================================================
 ' vt_tui.bas - TUI opt-in extension for the VT Virtual Text Screen Library
 ' =============================================================================
-#Include once "vt_strings.bas"
+#Include Once "vt_strings.bas"
 #Include Once "vt_file.bas"
-
-' Guard macros -- place at top of any Sub/Function that draws or reads input.
-' Theme setters and pure variable writers do NOT need these.
-#Define _VT_TUI_GUARD_SUB     If vt_internal.ready = 0 Then Exit Sub
-#Define _VT_TUI_GUARD_FN      If vt_internal.ready = 0 Then Return 0
-#Define _VT_TUI_GUARD_FN_STR  If vt_internal.ready = 0 Then Return ""
-' =============================================================================
-
-#Define VT_TUI_INVERT_FG(fg)  ((fg) Xor 15)
-#Define VT_TUI_INVERT_BG(bg)  ((bg) Xor 15)
-
-
-' Left mouse button edge detection: 1 on the frame the LMB transitions from
-' up to down, 0 otherwise. cur/prev are the current and previous mouse_btns.
-#Define VT_TUI_LMB_DOWN(cur, prev)  IIf(((cur) And 1) <> 0 AndAlso ((prev) And 1) = 0, 1, 0)
-
-' -----------------------------------------------------------------------------
-' Key comparison infrastructure.
-' VT_TUI_KEY_MASK isolates scancode (bits 16-27) and modifier bits (29-31).
-' The char byte (0-7) and repeat flag (28) are deliberately excluded so that
-' auto-repeat events and typed characters do not interfere with action matching.
-'
-' VT_TUI_MKKEY(scan, sh, ct, al) builds a packed ULong for keymap storage.
-'   scan = VT_KEY_* scancode constant
-'   sh/ct/al = 1 if Shift/Ctrl/Alt must be held, 0 otherwise
-'
-' VT_TUI_KEY_IS(k, act) -- true when key k matches keymap slot for action act.
-' Slot value 0 never matches a real key (vt_inkey returns 0 for "no key").
-' -----------------------------------------------------------------------------
-Const VT_TUI_KEY_MASK As ULong = &hEFFF0000  ' bits 16-27 (scan) + bits 29-31 (mods)
-
-#Define VT_TUI_MKKEY(scan, sh, ct, al)    CULng((CULng(scan) Shl 16) Or (CULng(sh) Shl 29) Or (CULng(ct) Shl 30) Or (CULng(al) Shl 31))
-#Define VT_TUI_KEY_IS(k, act)             ((k) <> 0 AndAlso ((k) And VT_TUI_KEY_MASK) = (vt_internal_tui_keymap(act) And VT_TUI_KEY_MASK))
+#Include Once "vt_tui.bi"
 
 ' =============================================================================
-' Return codes
+' Internal helpers
 ' =============================================================================
-Const VT_RET_CANCEL = 0
-Const VT_RET_OK     = 1
-Const VT_RET_YES    = 2
-Const VT_RET_NO     = 3
-
-' =============================================================================
-' Dialog button set flags  (combinable: VT_DLG_YESNOCANCEL Or VT_DLG_NO_ESC)
-' =============================================================================
-Const VT_DLG_OK          = 1
-Const VT_DLG_OKCANCEL    = 2
-Const VT_DLG_YESNO       = 3
-Const VT_DLG_YESNOCANCEL = 4
-Const VT_DLG_NO_ESC      = 8   ' Escape does nothing -- mandatory choice
-
-' =============================================================================
-' Widget flags
-' =============================================================================
-Const VT_TUI_WIN_CLOSEBTN = 1   ' vt_tui_window: render [x] in title bar
-Const VT_TUI_WIN_SHADOW   = 2
-Const VT_TUI_PROG_LABEL   = 1   ' vt_tui_progress: print centred nn% label
-Const VT_TUI_FD_DIRS      = 1   ' vt_tui_file_dialog: include subdirs in list
-Const VT_TUI_FD_DIRSONLY  = 2   ' vt_tui_file_dialog: subdirs only
-Const VT_TUI_ED_READONLY  = 1   ' vt_tui_editor_*: view/scroll only, no editing
-
-' =============================================================================
-' Form item kinds
-' =============================================================================
-Const VT_FORM_INPUT      = 0    ' single-line text input
-Const VT_FORM_BUTTON     = 1    ' push button
-Const VT_FORM_CHECKBOX   = 2    ' toggleable  [ ] / [x]
-Const VT_FORM_RADIO      = 3    ' radio in group  ( ) / (*)
-Const VT_FORM_LABEL      = 4    ' static text - never receives focus, Tab skips it
-
-' Alignment for vt_tui_label_draw and VT_FORM_LABEL items
-Const VT_ALIGN_LEFT   = 0
-Const VT_ALIGN_CENTER = 1
-Const VT_ALIGN_RIGHT  = 2
-
-' Form return codes (vt_tui_form_handle)
-Const VT_FORM_PENDING = -2  ' still editing -- call again next frame
-Const VT_FORM_CANCEL  = -1  ' Escape was pressed
-' any value >= 0 is the .ret of the activated button (incl. VT_RET_CANCEL = 0)
-
-' Form flags (vt_tui_form_handle flags parameter, default 0)
-Const VT_FORM_NO_ESC  = 1   ' Escape does nothing -- form cannot be cancelled
-
-' =============================================================================
-' Menu return value extraction macros
-' return value = group * 1000 + item_index,  0 = cancelled
-' =============================================================================
-#Define VT_TUI_MENU_GROUP(r)  ((r) \ 1000)
-#Define VT_TUI_MENU_ITEM(r)   ((r) Mod 1000)
-
-' =============================================================================
-' Keymap actions
-' Default bindings mirror standard Windows TUI conventions.
-' Remap individual slots with vt_tui_keymap(action, k).
-' Reset all slots with vt_tui_keymap_default().
-' Space (toggle for checkbox/radio) is matched on char value, not scancode,
-' and is therefore not part of the keymap.
-' Scrollback bindings live in vt_core -- adjust via vt_keymap_scrolling().
-' =============================================================================
-Enum VT_TUI_ACT
-    VT_TUI_ACT_NEXT       ' Tab        -- focus forward
-    VT_TUI_ACT_PREV       ' Shift+Tab  -- focus backward
-    VT_TUI_ACT_CANCEL     ' Escape     -- cancel / close
-    VT_TUI_ACT_UP         ' Up arrow   -- list / editor navigation
-    VT_TUI_ACT_DOWN       ' Down arrow
-    VT_TUI_ACT_LEFT       ' Left arrow -- cursor in input, adjacent focus on buttons
-    VT_TUI_ACT_RIGHT      ' Right arrow
-    VT_TUI_ACT_PGUP       ' PgUp
-    VT_TUI_ACT_PGDN       ' PgDn
-    VT_TUI_ACT_HOME       ' Home
-    VT_TUI_ACT_END        ' End
-    VT_TUI_ACT_COUNT      ' sentinel -- size of keymap array, not a valid action
-End Enum
-
-' =============================================================================
-' Theme
-' =============================================================================
-Type vt_internal_tui_theme_state
-    win_fg       As UByte   ' window body text
-    win_bg       As UByte   ' window body background
-    title_fg     As UByte   ' title bar text
-    title_bg     As UByte   ' title bar background
-    bar_fg       As UByte   ' status bar text
-    bar_bg       As UByte   ' status bar background
-    btn_fg       As UByte   ' button normal text
-    btn_bg       As UByte   ' button normal background
-    dlg_fg       As UByte   ' dialog body text
-    dlg_bg       As UByte   ' dialog body background
-    inp_fg       As UByte   ' input field text
-    inp_bg       As UByte   ' input field background
-    border_style As UByte   ' 0 = single line (CP437), 1 = double line (CP437)
-End Type
-
-Dim Shared vt_internal_tui_theme          As vt_internal_tui_theme_state
-Dim Shared vt_internal_tui_inited         As Byte  ' theme initialized
-Dim Shared vt_internal_tui_keymap_inited  As Byte  ' keymap initialised
-Dim Shared vt_internal_tui_menu_prev_btns As Long
-Dim Shared vt_internal_tui_form_prev_btns As Long
-Dim Shared vt_internal_tui_keymap(VT_TUI_ACT_COUNT - 1) As ULong
-
-' =============================================================================
-' vt_tui_form_item
-' Describes one element of a form. Caller owns the array and all .val strings.
-' .cpos and .view_off are managed internally by vt_tui_form_handle -- set them
-' to 0 when initialising your items array and do not modify them afterward.
-' Button width on screen is always Len(.val) + 2 (the enclosing [ and ]).
-' Checkbox/radio width on screen is always Len(.val) + 4 (glyph + space + label).
-' =============================================================================
-Type vt_tui_form_item
-    kind     As UByte   ' VT_FORM_INPUT / BUTTON / CHECKBOX / RADIO
-    x        As Long    ' 1-based column
-    y        As Long    ' 1-based row
-    wid      As Long    ' input: visible field width; ignored for buttons/checkbox/radio
-    val      As String  ' input: current text; button/checkbox/radio: label
-    ret      As Long    ' button: return value on activation; others: unused
-    max_len  As Long    ' input: max chars allowed (0 = use wid); others: unused
-    cpos     As Long    ' internal: byte cursor offset -- managed by form_handle
-    view_off As Long    ' internal: horizontal scroll offset -- managed by form_handle
-    checked  As Byte    ' checkbox/radio: 0=unchecked, 1=checked; others: unused
-    group_id As Long    ' radio: items with same group_id are mutually exclusive.
-                        ' 0 = no group. unused for input/button/checkbox.
-    align    As Long    ' VT_FORM_LABEL: VT_ALIGN_LEFT/CENTER/RIGHT; others: unused (0)
-    lbl_fg   As UByte   ' VT_FORM_LABEL: foreground colour; others: unused (0)
-    lbl_bg   As UByte   ' VT_FORM_LABEL: background colour; others: unused (0)
-End Type
-
-' =============================================================================
-' vt_tui_listbox_state
-' Caller-owned mutable state for a non-blocking listbox widget.
-' Init before first use: sel=0, top_item=0, last_click_item=-1,
-'                        last_click_time=0.0, prev_btns=0
-' Read .sel at any time to know the current highlighted item (0-based).
-' vt_tui_listbox_handle returns >= 0 (confirmed index) on Enter or double-click,
-' VT_FORM_PENDING while the user is still navigating, VT_FORM_CANCEL on Escape.
-' =============================================================================
-Type vt_tui_listbox_state
-    sel             As Long
-    top_item        As Long
-    last_click_item As Long
-    last_click_time As Double
-    prev_btns       As Long   ' internal: previous mouse button state for edge detection
-End Type
-
-' =============================================================================
-' vt_tui_editor_state
-' Caller-owned mutable state for a non-blocking multi-line editor/viewer.
-' Init before first use: set .work to initial text, .cpos=0, .top_ln=0,
-'                        .dirty=0, .flags as needed (VT_TUI_ED_READONLY etc.)
-' .dirty is set to 1 on the first character edit and never cleared by the widget.
-' vt_tui_editor_handle returns VT_FORM_PENDING while editing is ongoing,
-' or VT_FORM_CANCEL when Escape is pressed (caller decides how to respond).
-' =============================================================================
-Type vt_tui_editor_state
-    work    As String   ' live text buffer (Chr(10) newlines)
-    cpos    As Long     ' byte cursor offset into work
-    top_ln  As Long     ' 0-based index of the first visible line
-    dirty   As Byte     ' 0 until first edit, then 1 (never cleared by widget)
-    flags   As Long     ' VT_TUI_ED_READONLY etc. -- set once on init
-End Type
-
-' =============================================================================
-' Theme functions
-' =============================================================================
-
-' -----------------------------------------------------------------------------
-' vt_tui_theme_default - reset theme to DOS/BIOS defaults
-' No ready guard -- pure struct write, screen not required.
-' -----------------------------------------------------------------------------
-Sub vt_tui_theme_default()
-    vt_internal_tui_theme.win_fg       = VT_BLACK
-    vt_internal_tui_theme.win_bg       = VT_LIGHT_GREY
-    vt_internal_tui_theme.title_fg     = VT_WHITE
-    vt_internal_tui_theme.title_bg     = VT_BLUE
-    vt_internal_tui_theme.bar_fg       = VT_BLACK
-    vt_internal_tui_theme.bar_bg       = VT_CYAN
-    vt_internal_tui_theme.btn_fg       = VT_BLACK
-    vt_internal_tui_theme.btn_bg       = VT_LIGHT_GREY
-    vt_internal_tui_theme.dlg_fg       = VT_BLACK
-    vt_internal_tui_theme.dlg_bg       = VT_LIGHT_GREY
-    vt_internal_tui_theme.inp_fg       = VT_WHITE
-    vt_internal_tui_theme.inp_bg       = VT_DARK_GREY
-    vt_internal_tui_theme.border_style = 0
-    vt_internal_tui_inited             = 1
-End Sub
-
-' -----------------------------------------------------------------------------
-' vt_tui_theme - set all theme values in one call
-' No ready guard -- pure struct write, screen not required.
-' -----------------------------------------------------------------------------
-Sub vt_tui_theme(win_fg       As UByte = 16, win_bg       As UByte = 16, _
-                 title_fg     As UByte = 16, title_bg     As UByte = 16, _
-                 bar_fg       As UByte = 16, bar_bg       As UByte = 16, _
-                 btn_fg       As UByte = 16, btn_bg       As UByte = 16, _
-                 dlg_fg       As UByte = 16, dlg_bg       As UByte = 16, _
-                 inp_fg       As UByte = 16, inp_bg       As UByte = 16, _
-                 border_style As UByte = 16 _
-                )
-
-    If win_fg       <> 16 Then vt_internal_tui_theme.win_fg       = win_fg
-    If win_bg       <> 16 Then vt_internal_tui_theme.win_bg       = win_bg
-    If title_fg     <> 16 Then vt_internal_tui_theme.title_fg     = title_fg
-    If title_bg     <> 16 Then vt_internal_tui_theme.title_bg     = title_bg
-    If bar_fg       <> 16 Then vt_internal_tui_theme.bar_fg       = bar_fg
-    If bar_bg       <> 16 Then vt_internal_tui_theme.bar_bg       = bar_bg
-    If btn_fg       <> 16 Then vt_internal_tui_theme.btn_fg       = btn_fg
-    If btn_bg       <> 16 Then vt_internal_tui_theme.btn_bg       = btn_bg
-    If dlg_fg       <> 16 Then vt_internal_tui_theme.dlg_fg       = dlg_fg
-    If dlg_bg       <> 16 Then vt_internal_tui_theme.dlg_bg       = dlg_bg
-    If inp_fg       <> 16 Then vt_internal_tui_theme.inp_fg       = inp_fg
-    If inp_bg       <> 16 Then vt_internal_tui_theme.inp_bg       = inp_bg
-    If border_style <> 16 Then vt_internal_tui_theme.border_style = border_style
-    vt_internal_tui_inited = 1
-End Sub
-
-' =============================================================================
-' Keymap functions
-' =============================================================================
-
-' =============================================================================
-' vt_tui_keymap_default
-' Resets all keymap slots to standard Windows-like TUI bindings.
-' Called automatically on first draw if the user never sets up the keymap.
-' No ready guard -- pure array write, screen not required.
-' =============================================================================
-Sub vt_tui_keymap_default()
-    vt_internal_tui_keymap(VT_TUI_ACT_NEXT)   = VT_TUI_MKKEY(VT_KEY_TAB,   0, 0, 0)
-    vt_internal_tui_keymap(VT_TUI_ACT_PREV)   = VT_TUI_MKKEY(VT_KEY_TAB,   1, 0, 0)
-    vt_internal_tui_keymap(VT_TUI_ACT_CANCEL) = VT_TUI_MKKEY(VT_KEY_ESC,   0, 0, 0)
-    vt_internal_tui_keymap(VT_TUI_ACT_UP)     = VT_TUI_MKKEY(VT_KEY_UP,    0, 0, 0)
-    vt_internal_tui_keymap(VT_TUI_ACT_DOWN)   = VT_TUI_MKKEY(VT_KEY_DOWN,  0, 0, 0)
-    vt_internal_tui_keymap(VT_TUI_ACT_LEFT)   = VT_TUI_MKKEY(VT_KEY_LEFT,  0, 0, 0)
-    vt_internal_tui_keymap(VT_TUI_ACT_RIGHT)  = VT_TUI_MKKEY(VT_KEY_RIGHT, 0, 0, 0)
-    vt_internal_tui_keymap(VT_TUI_ACT_PGUP)   = VT_TUI_MKKEY(VT_KEY_PGUP,  0, 0, 0)
-    vt_internal_tui_keymap(VT_TUI_ACT_PGDN)   = VT_TUI_MKKEY(VT_KEY_PGDN,  0, 0, 0)
-    vt_internal_tui_keymap(VT_TUI_ACT_HOME)   = VT_TUI_MKKEY(VT_KEY_HOME,  0, 0, 0)
-    vt_internal_tui_keymap(VT_TUI_ACT_END)    = VT_TUI_MKKEY(VT_KEY_END,   0, 0, 0)
-    vt_internal_tui_keymap_inited = 1
-End Sub
-
-' =============================================================================
-' vt_tui_keymap
-' Override a single keymap slot. k should be built with VT_TUI_MKKEY or
-' captured directly from vt_inkey(). Pass 0 to unbind an action.
-' No ready guard -- pure array write, screen not required.
-' =============================================================================
-Sub vt_tui_keymap(action As Long, k As ULong)
-    If action >= 0 AndAlso action < VT_TUI_ACT_COUNT Then
-        vt_internal_tui_keymap(action) = k
-    End If
-End Sub
 
 ' -----------------------------------------------------------------------------
 ' vt_internal_tui_autoinit
@@ -309,17 +24,12 @@ Private Sub vt_internal_tui_autoinit()
     End If
 End Sub
 
-' =============================================================================
-' Internal helpers
-' =============================================================================
-
 ' -----------------------------------------------------------------------------
 ' vt_internal_tui_save_rect
 ' Saves a 1-based (ox, oy) rectangle of wid x hei cells into buf().
 ' ReDims buf to wid * hei - 1. No ready guard -- callers already checked.
 ' -----------------------------------------------------------------------------
-Private Sub vt_internal_tui_save_rect(ox As Long, oy As Long, wid As Long, hei As Long, _
-                               buf() As vt_cell)
+Private Sub vt_internal_tui_save_rect(ox As Long, oy As Long, wid As Long, hei As Long, buf() As vt_cell)
     Dim r   As Long
     Dim c   As Long
     Dim src As vt_cell Ptr
@@ -337,8 +47,7 @@ End Sub
 ' Restores a previously saved 1-based (ox, oy) rectangle from buf().
 ' Sets dirty. No ready guard -- callers already checked.
 ' -----------------------------------------------------------------------------
-Private Sub vt_internal_tui_restore_rect(ox As Long, oy As Long, wid As Long, hei As Long, _
-                                  buf() As vt_cell)
+Private Sub vt_internal_tui_restore_rect(ox As Long, oy As Long, wid As Long, hei As Long, buf() As vt_cell)
     Dim r   As Long
     Dim c   As Long
     Dim cel As vt_cell Ptr
@@ -356,8 +65,7 @@ End Sub
 ' Draws [lbl] at 1-based (x, y) in fg/bg. Width = Len(lbl) + 2.
 ' No ready guard, no dirty -- callers handle both.
 ' -----------------------------------------------------------------------------
-Private Sub vt_internal_tui_draw_button(x As Long, y As Long, lbl As String, _
-                                 fg As UByte, bg As UByte)
+Private Sub vt_internal_tui_draw_button(x As Long, y As Long, lbl As String, fg As UByte, bg As UByte)
     Dim cel  As vt_cell Ptr
     Dim c    As Long
     Dim llen As Long
@@ -377,8 +85,7 @@ End Sub
 ' Uses CP437 219 (solid) for thumb, 177 (stipple) for track.
 ' No ready guard, no dirty -- callers handle both.
 ' -----------------------------------------------------------------------------
-Private Sub vt_internal_tui_draw_scrollbar(x As Long, y As Long, hei As Long, _
-                                    thumb As Long, fg As UByte, bg As UByte)
+Private Sub vt_internal_tui_draw_scrollbar(x As Long, y As Long, hei As Long, thumb As Long, fg As UByte, bg As UByte)
     Dim cel As vt_cell Ptr
     Dim r   As Long
     cel = vt_internal.cells + (y - 1) * vt_internal.scr_cols + (x - 1)
@@ -443,17 +150,203 @@ Private Sub vt_internal_tui_draw_bar(row As Long, groups() As String, open_grp A
     vt_internal.dirty = 1
 End Sub
 
-' =============================================================================
-' Public drawing primitives
-' =============================================================================
+' -----------------------------------------------------------------------------
+' vt_tui_theme_default - reset theme to DOS/BIOS defaults
+' No ready guard -- pure struct write, screen not required.
+' -----------------------------------------------------------------------------
+Sub vt_tui_theme_default()
+    vt_internal_tui_theme.win_fg       = VT_BLACK
+    vt_internal_tui_theme.win_bg       = VT_LIGHT_GREY
+    vt_internal_tui_theme.title_fg     = VT_WHITE
+    vt_internal_tui_theme.title_bg     = VT_BLUE
+    vt_internal_tui_theme.bar_fg       = VT_BLACK
+    vt_internal_tui_theme.bar_bg       = VT_CYAN
+    vt_internal_tui_theme.btn_fg       = VT_BLACK
+    vt_internal_tui_theme.btn_bg       = VT_LIGHT_GREY
+    vt_internal_tui_theme.dlg_fg       = VT_BLACK
+    vt_internal_tui_theme.dlg_bg       = VT_LIGHT_GREY
+    vt_internal_tui_theme.inp_fg       = VT_WHITE
+    vt_internal_tui_theme.inp_bg       = VT_DARK_GREY
+    vt_internal_tui_theme.border_style = 0
+    vt_internal_tui_inited             = 1
+End Sub
+
+'>>>
+':topic vt_tui_theme
+':short Set the TUI colour theme (opt-in)
+':group Text UI
+'Set the colour theme used by all TUI widgets.
+'All colours are EGA palette indices (0-15).
+'The theme is a single global struct -- there is
+'no per-widget override. vt_tui_theme_default
+'restores the built-in DOS/BIOS defaults.
+'vt_tui_theme sets all fields in one call.
+'Neither function requires vt_screen first.
+'Auto-init: if neither theme function nor the
+'keymap functions are called before the first
+'draw call, both the default DOS/BIOS theme and
+'the default Windows-style keymap are applied
+'automatically.
+'Opt-in: define VT_USE_TUI before the include.
+'
+'Default values:
+'  window body:   VT_BLACK on VT_LIGHT_GREY
+'  title bar:     VT_WHITE on VT_BLUE
+'  status/menu:   VT_BLACK on VT_CYAN
+'  button:        VT_BLACK on VT_LIGHT_GREY
+'  dialog body:   VT_BLACK on VT_LIGHT_GREY
+'  input/editor:  VT_WHITE on VT_DARK_GREY
+'
+'Focused buttons, selected list items, and open
+'menu group headers are rendered with fg and bg
+'XOR'd with 15 (full colour inversion). This is
+'not configurable.
+':syntax
+Sub vt_tui_theme(win_fg       As UByte = 16, win_bg       As UByte = 16, _
+                 title_fg     As UByte = 16, title_bg     As UByte = 16, _
+                 bar_fg       As UByte = 16, bar_bg       As UByte = 16, _
+                 btn_fg       As UByte = 16, btn_bg       As UByte = 16, _
+                 dlg_fg       As UByte = 16, dlg_bg       As UByte = 16, _
+                 inp_fg       As UByte = 16, inp_bg       As UByte = 16, _
+                 border_style As UByte = 16 _
+                )
+        ':params
+        'win_fg/bg    Window body text and background.
+        'title_fg/bg  Title bar text and background.
+        '             Also progress bar filled colour.
+        'bar_fg/bg    Status/menu bar text and background.
+        'btn_fg/bg    Button text and background.
+        'dlg_fg/bg    Dialog body text and background.
+        '             Also dropdown menu item rows.
+        'inp_fg/bg    Input field and editor colours.
+        '             Also progress bar empty colour.
+        'border_style 0 = single-line CP437 (default).
+        '             1 = double-line CP437.
+        ':example
+        '' Restore DOS blue-scheme defaults:
+        'vt_tui_theme_default()
+        '
+        '' Custom dark theme:
+        'vt_tui_theme(VT_LIGHT_GREY, VT_BLACK, _
+        '             VT_WHITE,      VT_DARK_GREY, _
+        '             VT_BLACK,      VT_CYAN, _
+        '             VT_LIGHT_GREY, VT_DARK_GREY, _
+        '             VT_LIGHT_GREY, VT_BLACK, _
+        '             VT_WHITE,      VT_DARK_GREY, _
+        '             0)
+        ':see
+        'vt_tui_keymap
+        'c_tuiconsts
+    '<<<
+    If win_fg       <> 16 Then vt_internal_tui_theme.win_fg       = win_fg
+    If win_bg       <> 16 Then vt_internal_tui_theme.win_bg       = win_bg
+    If title_fg     <> 16 Then vt_internal_tui_theme.title_fg     = title_fg
+    If title_bg     <> 16 Then vt_internal_tui_theme.title_bg     = title_bg
+    If bar_fg       <> 16 Then vt_internal_tui_theme.bar_fg       = bar_fg
+    If bar_bg       <> 16 Then vt_internal_tui_theme.bar_bg       = bar_bg
+    If btn_fg       <> 16 Then vt_internal_tui_theme.btn_fg       = btn_fg
+    If btn_bg       <> 16 Then vt_internal_tui_theme.btn_bg       = btn_bg
+    If dlg_fg       <> 16 Then vt_internal_tui_theme.dlg_fg       = dlg_fg
+    If dlg_bg       <> 16 Then vt_internal_tui_theme.dlg_bg       = dlg_bg
+    If inp_fg       <> 16 Then vt_internal_tui_theme.inp_fg       = inp_fg
+    If inp_bg       <> 16 Then vt_internal_tui_theme.inp_bg       = inp_bg
+    If border_style <> 16 Then vt_internal_tui_theme.border_style = border_style
+    vt_internal_tui_inited = 1
+End Sub
 
 ' =============================================================================
-' vt_tui_rect_fill
-' Fills a 1-based (x,y) rectangle of size wid x hei with ch, fg, bg.
-' Base primitive -- all other widget drawing calls this internally.
+' vt_tui_keymap_default
+' Resets all keymap slots to standard Windows-like TUI bindings.
+' Called automatically on first draw if the user never sets up the keymap.
+' No ready guard -- pure array write, screen not required.
 ' =============================================================================
-Sub vt_tui_rect_fill(x As Long, y As Long, wid As Long, hei As Long, _
-                     ch As UByte, fg As UByte, bg As UByte)
+Sub vt_tui_keymap_default()
+    vt_internal_tui_keymap(VT_TUI_ACT_NEXT)   = VT_TUI_MKKEY(VT_KEY_TAB,   0, 0, 0)
+    vt_internal_tui_keymap(VT_TUI_ACT_PREV)   = VT_TUI_MKKEY(VT_KEY_TAB,   1, 0, 0)
+    vt_internal_tui_keymap(VT_TUI_ACT_CANCEL) = VT_TUI_MKKEY(VT_KEY_ESC,   0, 0, 0)
+    vt_internal_tui_keymap(VT_TUI_ACT_UP)     = VT_TUI_MKKEY(VT_KEY_UP,    0, 0, 0)
+    vt_internal_tui_keymap(VT_TUI_ACT_DOWN)   = VT_TUI_MKKEY(VT_KEY_DOWN,  0, 0, 0)
+    vt_internal_tui_keymap(VT_TUI_ACT_LEFT)   = VT_TUI_MKKEY(VT_KEY_LEFT,  0, 0, 0)
+    vt_internal_tui_keymap(VT_TUI_ACT_RIGHT)  = VT_TUI_MKKEY(VT_KEY_RIGHT, 0, 0, 0)
+    vt_internal_tui_keymap(VT_TUI_ACT_PGUP)   = VT_TUI_MKKEY(VT_KEY_PGUP,  0, 0, 0)
+    vt_internal_tui_keymap(VT_TUI_ACT_PGDN)   = VT_TUI_MKKEY(VT_KEY_PGDN,  0, 0, 0)
+    vt_internal_tui_keymap(VT_TUI_ACT_HOME)   = VT_TUI_MKKEY(VT_KEY_HOME,  0, 0, 0)
+    vt_internal_tui_keymap(VT_TUI_ACT_END)    = VT_TUI_MKKEY(VT_KEY_END,   0, 0, 0)
+    vt_internal_tui_keymap_inited = 1
+End Sub
+
+'>>>
+':topic vt_tui_keymap
+':short Control TUI widget navigation key bindings
+':group Text UI
+'Control the navigation key bindings used by all
+'TUI widgets. The keymap is a shared array indexed
+'by VT_TUI_ACT_* constants. Default bindings
+'mirror standard Windows TUI conventions and are
+'applied automatically on the first draw call if
+'neither function has been called. vt_tui_keymap
+'overrides a single slot. vt_tui_keymap_default
+'resets all slots to defaults. Neither function
+'requires vt_screen first.
+'Space (toggle for checkboxes/radio) is matched
+'on the character value, not via the keymap, so
+'it cannot be rebound.
+'Opt-in: define VT_USE_TUI before the include.
+':syntax
+Sub vt_tui_keymap(action As Long, k As ULong)
+        ':params
+        'action  VT_TUI_ACT_* constant for the slot.
+        'k       Packed key value from VT_TUI_MKKEY()
+        '        or captured from vt_inkey(). Pass 0
+        '        to unbind the action.
+        ':example
+        '' Remap PgUp/PgDn to Ctrl+Up/Ctrl+Down:
+        'vt_tui_keymap VT_TUI_ACT_PGUP, _
+        '              VT_TUI_MKKEY(VT_KEY_UP,   0, 1, 0)
+        'vt_tui_keymap VT_TUI_ACT_PGDN, _
+        '              VT_TUI_MKKEY(VT_KEY_DOWN, 0, 1, 0)
+        '' Restore default bindings
+        'vt_tui_keymap_default()
+        ':see
+        'vt_tui_theme
+        'c_tuiconsts
+    '<<<
+    If action >= 0 AndAlso action < VT_TUI_ACT_COUNT Then
+        vt_internal_tui_keymap(action) = k
+    End If
+End Sub
+
+'>>>
+':topic vt_tui_rect_fill
+':short Fill a rectangle with a character and colour
+':group Text UI
+'Fill a 1-based rectangle with a single character
+'and colour. This is the base drawing primitive --
+'all other widgets use it internally to clear
+'their area. Use character code 32 (space) for
+'a solid colour block.
+'Opt-in: define VT_USE_TUI before the include.
+':syntax
+Sub vt_tui_rect_fill(x   As Long,  y   As Long, _
+                     wid As Long,  hei As Long, _
+                     ch  As UByte, _
+                     fg  As UByte, bg  As UByte)
+        ':params
+        'x, y     1-based column and row, top-left corner.
+        'wid, hei Width and height in cells.
+        'ch       CP437 character code. Use 32 for solid.
+        'fg, bg   Foreground and background colour indices.
+        ':example
+        '' Clear a region to dark grey:
+        'vt_tui_rect_fill(1, 1, 40, 10, _
+        '                 32, VT_LIGHT_GREY, VT_DARK_GREY)
+        '
+        '' Solid red banner row:
+        'vt_tui_rect_fill(1, 1, 80, 1, 32, VT_BLACK, VT_RED)
+        ':see
+        'vt_tui_window
+        'vt_tui_*line
+    '<<<
     Dim r   As Long
     Dim c   As Long
     Dim cel As vt_cell Ptr
@@ -471,12 +364,36 @@ Sub vt_tui_rect_fill(x As Long, y As Long, wid As Long, hei As Long, _
     vt_internal.dirty = 1
 End Sub 
 
-' =============================================================================
-' vt_tui_hline
-' Draws a horizontal separator line at (x, y) of length wid.
-' Character chosen from theme border_style: single=196, double=205.
-' =============================================================================
-Sub vt_tui_hline(x As Long, y As Long, wid As Long, fg As UByte, bg As UByte)
+'>>>
+':topic vt_tui_*line
+':short Draw a horizontal or vertical separator line
+':group Text UI
+'Draw a horizontal or vertical separator line
+'using CP437 box-drawing characters. The character
+'is chosen automatically from the active theme's
+'border_style: single-line or double-line.
+'Opt-in: define VT_USE_TUI before the include.
+':syntax
+Sub vt_tui_hline(x   As Long, y   As Long, _
+                 wid As Long, _
+                 fg  As UByte, bg As UByte)
+
+        ':params
+        'x, y     1-based start column and row.
+        'wid/hei  Length of the line in cells.
+        'fg, bg   Foreground and background colour indices.
+        ':notes
+        'vt_tui_vline is the same, just traversing vertical.
+        ':example
+        '' Horizontal divider across 80-column screen:
+        'vt_tui_hline(1, 13, 80, VT_DARK_GREY, VT_BLACK)
+        '
+        '' Vertical divider at column 40:
+        'vt_tui_vline(40, 1, 25, VT_DARK_GREY, VT_BLACK)
+        ':see
+        'vt_tui_rect_fill
+        'vt_tui_window
+    '<<<
     Dim c   As Long
     Dim cel As vt_cell Ptr
     Dim hch As UByte
@@ -495,11 +412,6 @@ Sub vt_tui_hline(x As Long, y As Long, wid As Long, fg As UByte, bg As UByte)
     vt_internal.dirty = 1
 End Sub
 
-' =============================================================================
-' vt_tui_vline
-' Draws a vertical separator line at (x, y) of length hei.
-' Character chosen from theme border_style: single=179, double=186.
-' =============================================================================
 Sub vt_tui_vline(x As Long, y As Long, hei As Long, fg As UByte, bg As UByte)
     Dim r   As Long
     Dim cel As vt_cell Ptr
@@ -519,15 +431,55 @@ Sub vt_tui_vline(x As Long, y As Long, hei As Long, fg As UByte, bg As UByte)
     vt_internal.dirty = 1
 End Sub
 
-' =============================================================================
-' vt_tui_label_draw
-' Draw a single-row text label at 1-based (x, y), clipped/padded to wid cells.
-' align: VT_ALIGN_LEFT (default), VT_ALIGN_CENTER, VT_ALIGN_RIGHT.
-' Text longer than wid is silently truncated. Remaining cells filled with bg.
-' No state struct - purely passive. Call each frame like any other draw primitive.
-' =============================================================================
-Sub vt_tui_label_draw(x As Long, y As Long, wid As Long, txt As String, _
-                      align As Long, fg As UByte, bg As UByte)
+' wrapper
+Sub vt_tui_draw_button(x As Long, y As Long, lbl As String, fg As UByte, bg As UByte)
+    vt_internal_tui_draw_button(x, y, lbl, fg, bg)
+End Sub
+
+'>>>
+':topic vt_tui_label_draw
+':short Draw a single-row text label at a position
+':group Text UI
+'Draw a single-row text label at an arbitrary
+'1-based position. The label is clipped or padded
+'to exactly wid cells: text shorter than wid is
+'padded with the background colour; text longer
+'is silently truncated. No state struct required --
+'the function is purely passive and should be
+'called each frame like any other draw primitive.
+'The same functionality is available inside a
+'vt_tui_form by setting an item's
+'.kind = VT_FORM_LABEL. Label items in a form are
+'never focused and are skipped by Tab/Shift+Tab.
+'Opt-in: define VT_USE_TUI before the include.
+':syntax
+Sub vt_tui_label_draw(x     As Long, _
+                      y     As Long, _
+                      wid   As Long, _
+                      txt   As String, _
+                      align As Long, _
+                      fg    As UByte, _
+                      bg    As UByte)
+        ':params
+        'x, y   1-based column and row.
+        'wid    Field width in cells. Clipped or padded.
+        'txt    Label text. Truncated if longer than wid.
+        'align  VT_ALIGN_LEFT (0), VT_ALIGN_CENTER (1),
+        '       or VT_ALIGN_RIGHT (2).
+        'fg, bg Foreground and background colour indices
+        '       for the entire field including padding.
+        ':example
+        '' Left-aligned label:
+        'vt_tui_label_draw(4, 3, 10, "Name:", _
+        '    VT_ALIGN_LEFT, VT_BLACK, VT_LIGHT_GREY)
+        '
+        '' Centred heading:
+        'vt_tui_label_draw(3, 2, 44, "User Config", _
+        '    VT_ALIGN_CENTER, VT_BLUE, VT_LIGHT_GREY)
+        ':see
+        'vt_tui_form_draw
+        'c_tuiconsts
+    '<<<
     Dim cel    As vt_cell Ptr
     Dim tlen   As Long
     Dim offset As Long
@@ -565,16 +517,45 @@ Sub vt_tui_label_draw(x As Long, y As Long, wid As Long, txt As String, _
     vt_internal.dirty = 1
 End Sub
 
-' =============================================================================
-' vt_tui_window
-' Draws window chrome: border + title bar + optional [x] and/or shadow.
-' Does not save/restore background. Does not block.
-' Flags: VT_TUI_WIN_CLOSEBTN -- renders [x] at right end of title bar.
-'        VT_TUI_WIN_SHADOW   -- draws a one-cell drop shadow (right + bottom).
-' Shadow uses CP437 177 in dark grey on black -- visible on any background.
-' =============================================================================
-Sub vt_tui_window(x As Long, y As Long, wid As Long, hei As Long, _
-                  title As String, flags As Long = 0)
+'>>>
+':topic vt_tui_window
+':short Draw window chrome: border and title bar
+':group Text UI
+'Draw window chrome: a border, a title bar, and
+'optionally a close button and drop shadow. Does
+'NOT save or restore the background and does NOT
+'block. The window interior is filled with the
+'theme's win_fg/win_bg colours.
+'VT_TUI_WIN_CLOSEBTN renders [x] visually only.
+'To detect clicks on it use:
+'vt_tui_mouse_in_rect(x + wid - 4, y, 3, 1).
+'Opt-in: define VT_USE_TUI before the include.
+':syntax
+Sub vt_tui_window(x     As Long, _
+                  y     As Long, _
+                  wid   As Long, _
+                  hei   As Long, _
+                  title As String, _
+                  flags As Long = 0)
+        ':params
+        'x, y      1-based column and row, top-left.
+        'wid, hei  Outer width and height including border.
+        'title     Text centred in the title bar.
+        '          Truncated if too long.
+        'flags     VT_TUI_WIN_CLOSEBTN and/or
+        '          VT_TUI_WIN_SHADOW.
+        ':example
+        '' Centred 40x12 window with shadow:
+        'Dim wx As Long = (80 - 40) \ 2 + 1
+        'Dim wy As Long = (25 - 12) \ 2 + 1
+        'vt_tui_window(wx, wy, 40, 12, "Settings", _
+        '              VT_TUI_WIN_SHADOW)
+        ':see
+        'vt_tui_rect_fill
+        'vt_tui_*line
+        'vt_tui_mouse_in_rect
+        'c_tuiconsts
+    '<<<
     Dim cel     As vt_cell Ptr
     Dim r       As Long
     Dim c       As Long
@@ -687,11 +668,29 @@ Sub vt_tui_window(x As Long, y As Long, wid As Long, hei As Long, _
     vt_internal.dirty = 1
 End Sub
 
-' =============================================================================
-' vt_tui_statusbar
-' Fills the entire row with bar_bg and prints caption left-aligned in bar_fg.
-' =============================================================================
-Sub vt_tui_statusbar(row As Long, caption As String)
+'>>>
+':topic vt_tui_statusbar
+':short Draw a status/hint bar on a screen row
+':group Text UI
+'Fill an entire screen row with the theme's
+'bar_bg colour and print caption left-aligned in
+'bar_fg. Typical use: the last row for a keyboard
+'hint bar, or row 2 below a menu bar.
+'Opt-in: define VT_USE_TUI before the include.
+':syntax
+Sub vt_tui_statusbar(row     As Long, _
+                     caption As String)
+        ':params
+        'row      1-based screen row to fill (full width).
+        'caption  Text printed left-aligned. Clipped to
+        '         screen width.
+        ':example
+        'vt_tui_statusbar 25, _
+        '    " F1=Help  F10=Menu  Esc=Quit"
+        ':see
+        'vt_tui_window
+        'vt_tui_menubar_draw
+    '<<<
     Dim cel  As vt_cell Ptr
     Dim c    As Long
     Dim clen As Long
@@ -718,15 +717,42 @@ Sub vt_tui_statusbar(row As Long, caption As String)
     vt_internal.dirty = 1
 End Sub
 
-' =============================================================================
-' vt_tui_progress
-' Horizontal progress bar at (x, y) of width wid.
-' Filled block: solid title_bg colour.  Empty block: solid inp_bg colour.
-' Flag VT_TUI_PROG_LABEL: prints " nn% " centred on the bar.
-' Label uses inverted bg colour for contrast against both halves.
-' =============================================================================
-Sub vt_tui_progress(x As Long, y As Long, wid As Long, _
-                    value As Long, max_val As Long, flags As Long = 0)
+'>>>
+':topic vt_tui_progress
+':short Draw a horizontal progress bar
+':group Text UI
+'Draw a horizontal progress bar at an arbitrary
+'screen position. The filled portion uses the
+'theme's title_bg colour; the empty portion uses
+'inp_bg. Both halves use space (32) as the
+'character so colour alone carries the bar. Pass
+'VT_TUI_PROG_LABEL to render a centred nn% label;
+'label fg inverts per-cell so it reads correctly
+'across both halves.
+'Opt-in: define VT_USE_TUI before the include.
+':syntax
+Sub vt_tui_progress(x       As Long, _
+                    y       As Long, _
+                    wid     As Long, _
+                    value   As Long, _
+                    max_val As Long, _
+                    flags   As Long = 0)
+        ':params
+        'x, y     1-based column and row.
+        'wid      Width of the bar in cells.
+        'value    Current progress. Clamped to [0..max_val].
+        'max_val  Maximum value. Must be > 0.
+        'flags    VT_TUI_PROG_LABEL = show nn% label.
+        ':example
+        'For i As Long = 0 To 100
+        '    vt_tui_progress(5, 10, 40, i, 100, _
+        '                    VT_TUI_PROG_LABEL)
+        '    vt_sleep(20)
+        'Next i
+        ':see
+        'vt_tui_window
+        'c_tuiconsts
+    '<<<
     Dim cel      As vt_cell Ptr
     Dim c        As Long
     Dim filled   As Long
@@ -782,14 +808,39 @@ Sub vt_tui_progress(x As Long, y As Long, wid As Long, _
     vt_internal.dirty = 1
 End Sub
 
-' =============================================================================
-' vt_tui_mouse_in_rect
-' Hit-test helper. Returns 1 if the current mouse position is inside the
-' 1-based rectangle (x, y, wid, hei), 0 otherwise.
-' Returns 0 early if library is not ready or mouse is disabled.
-' =============================================================================
-Function vt_tui_mouse_in_rect(x As Long, y As Long, _
-                               wid As Long, hei As Long) As Byte
+'>>>
+':topic vt_tui_mouse_in_rect
+':short Mouse hit-test helper for TUI widgets
+':group Text UI
+'Returns 1 if the current mouse position is
+'inside the given 1-based rectangle, 0 otherwise.
+'Returns 0 immediately if the library is not
+'ready or the mouse is disabled. Reads the
+'internal mouse state updated by vt_inkey --
+'call this after polling input, not before.
+'Opt-in: define VT_USE_TUI before the include.
+':syntax
+Function vt_tui_mouse_in_rect(x   As Long, _
+                              y   As Long, _
+                              wid As Long, _
+                              hei As Long) _
+                              As Byte
+        ':params
+        'x, y       1-based top-left corner of hit area.
+        'wid, hei   Width and height in cells.
+        ':notes
+        'Return values:
+        '  1  Mouse cursor is inside the rectangle.
+        '  0  Outside, mouse disabled, or not ready.
+        ':example
+        '' Hover over a 10-cell button at row 5:
+        'If vt_tui_mouse_in_rect(10, 5, 10, 1) Then
+        '    ' highlight the button
+        'End If
+        ':see
+        'vt_tui_window
+        'vt_getmouse
+    '<<<
     _VT_TUI_GUARD_FN
     If vt_internal.mouse_on = 0 Then Return 0
 
@@ -801,6 +852,7 @@ Function vt_tui_mouse_in_rect(x As Long, y As Long, _
     End If
     Return 0
 End Function
+
 
 ' =============================================================================
 ' Form internal helpers
@@ -856,15 +908,89 @@ Private Sub vt_internal_tui_form_enter_input(ByRef itm As vt_tui_form_item)
     If itm.view_off < 0 Then itm.view_off = 0
 End Sub
 
-' =============================================================================
-' vt_tui_listbox_draw
-' Passive, non-blocking. Draws a scrollable item list at 1-based (x, y).
-' wid / hei define the visible cell area. items() supplies the display strings.
-' Selection and scroll state are read from st. Scrollbar is drawn automatically
-' when item count exceeds hei. Call once per frame before vt_present / vt_sleep.
-' =============================================================================
-Sub vt_tui_listbox_draw(x As Long, y As Long, wid As Long, hei As Long, _
-                        items() As String, ByRef st As vt_tui_listbox_state)
+'>>>
+':topic vt_tui_listbox_*
+':short Non-blocking scrollable list widget
+':group Text UI
+'Non-blocking scrollable list. Two-function
+'design: vt_tui_listbox_draw renders the list
+'passively each frame; vt_tui_listbox_handle
+'processes one key or mouse event and returns
+'immediately. The caller owns the
+'vt_tui_listbox_state struct and loops until
+'vt_tui_listbox_handle returns a value other
+'than VT_FORM_PENDING. A scrollbar is drawn
+'automatically on the right edge when the item
+'count exceeds the visible height.
+'Opt-in: define VT_USE_TUI before the include.
+':syntax
+Sub vt_tui_listbox_draw(x       As Long, _
+                        y       As Long, _
+                        wid     As Long, _
+                        hei     As Long, _
+                        items() As String, _
+                        ByRef st As _
+                        vt_tui_listbox_state)
+
+        ':params
+        'x, y     1-based column and row, top-left corner.
+        'wid, hei Width and visible height in cells.
+        '         Scrollbar occupies rightmost cell.
+        'items()  Items to display. Any lower bound.
+        'st       Caller-owned state. Pass same struct to
+        '         both functions every frame.
+        'k        Key value from vt_inkey() this frame.
+        ':notes
+        'Return (vt_tui_listbox_handle):
+        '  >= 0           Confirmed 0-based item index.
+        '  VT_FORM_PENDING(-2)  Still navigating.
+        '  VT_FORM_CANCEL(-1)   Escape pressed.
+        '
+        'vt_tui_listbox_state fields:
+        '  sel             As Long   ' highlighted index
+        '  top_item        As Long   ' first visible; init 0
+        '  last_click_item As Long   ' init to -1
+        '  last_click_time As Double ' init to 0.0
+        '  prev_btns       As Long   ' init to 0
+        '
+        'Key/mouse bindings:
+        '  Up/Down          Move selection one item.
+        '  PgUp/PgDn        Move by hei items.
+        '  Home/End         Jump to first/last item.
+        '  Enter            Confirm selection.
+        '  Escape           Return VT_FORM_CANCEL.
+        '  Click            Highlight clicked item.
+        '  Double-click     Confirm clicked item.
+        '  Scroll wheel     Scroll the view.
+        ':example
+        'Dim opts(2) As String
+        'opts(0) = "Easy" : opts(1) = "Normal"
+        'opts(2) = "Hard"
+        '
+        'Dim st As vt_tui_listbox_state
+        'st.sel = 0 : st.top_item = 0
+        'st.last_click_item = -1
+        'st.last_click_time = 0.0
+        'st.prev_btns = 0
+        '
+        'vt_tui_window(18, 6, 24, 7, " Difficulty ")
+        'Dim picked As Long = VT_FORM_PENDING
+        'Dim k As ULong
+        'Do While picked = VT_FORM_PENDING
+        '    k = vt_inkey()
+        '    picked = vt_tui_listbox_handle( _
+        '        19, 7, 22, 5, opts(), st, k)
+        '    vt_tui_listbox_draw(19, 7, 22, 5, opts(), st)
+        '    vt_sleep(16)
+        'Loop
+        'If picked >= 0 Then
+        '    vt_print "Chose: " & opts(picked) & VT_LF
+        'End If
+        ':see
+        'vt_tui_window
+        'vt_tui_dialog
+        'c_tuiconsts
+    '<<<
     Dim item_count  As Long
     Dim item_base   As Long
     Dim need_scroll As Byte
@@ -1048,15 +1174,87 @@ Function vt_tui_listbox_handle(x As Long, y As Long, wid As Long, hei As Long, _
     Return VT_FORM_PENDING
 End Function
 
-' =============================================================================
-' vt_tui_editor_draw
-' Passive, non-blocking. Draws visible lines from st.work at 1-based (x, y).
-' wid / hei define the visible cell area. Lines exceeding wid are truncated.
-' Positions the text cursor on the current line unless VT_TUI_ED_READONLY is set.
-' Uses inp_fg / inp_bg for cell colours. Call once per frame.
-' =============================================================================
-Sub vt_tui_editor_draw(x As Long, y As Long, wid As Long, hei As Long, _
-                       ByRef st As vt_tui_editor_state)
+'>>>
+':topic vt_tui_editor_*
+':short Non-blocking multi-line editor/viewer
+':group Text UI
+'Non-blocking multi-line editor and viewer.
+'Two-function design: vt_tui_editor_draw renders
+'the visible text each frame; vt_tui_editor_handle
+'processes one key or mouse event and returns
+'immediately. The caller owns the
+'vt_tui_editor_state struct. Text is stored as a
+'single String with Chr(10) line separators.
+'Lines exceeding wid are truncated in display; no
+'horizontal scrolling. Uses theme's inp_fg/inp_bg.
+'NOTE: call vt_tui_editor_draw LAST in your loop,
+'after any status bars or labels that use
+'vt_locate. The draw function sets the text cursor
+'position; any vt_locate after it moves the cursor
+'to the wrong place before vt_sleep flips the frame.
+'Opt-in: define VT_USE_TUI before the include.
+':syntax
+Sub vt_tui_editor_draw(x   As Long, y   As Long,
+                       wid As Long, hei As Long,
+                       ByRef st As _
+                       vt_tui_editor_state)
+                       
+        ':params
+        'x, y     1-based top-left of the editing area.
+        'wid, hei Width and height in cells.
+        'st       Caller-owned state. Pass same struct to
+        '         both functions every frame.
+        'k        Key value from vt_inkey() this frame.
+        ':notes
+        'Return (vt_tui_editor_handle):
+        '  VT_FORM_PENDING(-2)  Always while editing.
+        '  VT_FORM_CANCEL(-1)   Escape pressed.
+        '  Check st.dirty to know if edits were made.
+        '
+        'vt_tui_editor_state fields:
+        '  work    As String  ' text buffer (Chr(10) newlines)
+        '  cpos    As Long    ' byte cursor offset -- init 0
+        '  top_ln  As Long    ' first visible line -- init 0
+        '  dirty   As Byte    ' 0 until first edit
+        '  flags   As Long    ' VT_TUI_ED_READONLY etc.
+        '
+        'Key/mouse bindings:
+        '  Up/Down          Move cursor one line.
+        '  PgUp/PgDn        Move by hei lines.
+        '  Left/Right       Move cursor one character.
+        '  Home/End         Start/end of current line.
+        '  Enter            Insert newline (edit mode only).
+        '  Backspace/Del    Delete (edit mode only).
+        '  Printable char   Insert at cursor (edit only).
+        '  Escape           Return VT_FORM_CANCEL.
+        '  Scroll wheel     Scroll the view (both modes).
+        '  
+        ':example
+        'Dim st As vt_tui_editor_state
+        'st.work   = "First line" & Chr(10) & "Second line"
+        'st.cpos   = 0
+        'st.top_ln = 0
+        'st.dirty  = 0
+        'st.flags  = 0
+        '
+        'vt_tui_window(5, 3, 70, 20, " Notes ")
+        'Dim result As Long = VT_FORM_PENDING
+        'Dim k As ULong
+        'Do While result = VT_FORM_PENDING
+        '    k = vt_inkey()
+        '    result = vt_tui_editor_handle(6, 4, 68, 18, st, k)
+        '    vt_color(VT_BLACK, VT_CYAN)
+        '    vt_locate(24, 1)
+        '    vt_print(" Esc=Close" & _
+        '             IIf(st.dirty, "  *modified*", ""))
+        '    vt_tui_editor_draw(6, 4, 68, 18, st)
+        '    vt_sleep(16)
+        'Loop
+        ':see
+        'vt_tui_window
+        'vt_tui_form_*
+        'c_tuiconsts
+    '<<<
     Dim cur_line    As Long
     Dim cur_col     As Long
     Dim ln_start    As Long
@@ -1379,16 +1577,59 @@ Function vt_tui_editor_handle(x As Long, y As Long, wid As Long, hei As Long, _
     Return VT_FORM_PENDING
 End Function
 
-' =============================================================================
-' vt_tui_dialog
-' Self-contained blocking modal dialog. Saves and restores the background.
-' Auto-sizes: word-wraps text, centers on screen, minimum size for buttons.
-' Returns VT_RET_OK / VT_RET_CANCEL / VT_RET_YES / VT_RET_NO.
-' Tab / Left / Right move between buttons. Enter confirms. Escape = VT_RET_CANCEL
-' unless VT_DLG_NO_ESC is set. Mouse click activates a button immediately.
-' =============================================================================
-Function vt_tui_dialog(caption As String, txt As String, _
-                       flags As Long = VT_DLG_OK) As Long
+'>>>
+':topic vt_tui_dialog
+':short Blocking modal dialog (opt-in)
+':group Text UI
+'Self-contained blocking modal dialog. Saves the
+'background before drawing and restores it on
+'close. The text is word-wrapped automatically to
+'fit; the window grows to accommodate the wrapped
+'content and the button row. The dialog is centred
+'on screen (default 60 columns, clamped to screen
+'width minus 4).
+'Opt-in: define VT_USE_TUI before the include.
+':syntax
+Function vt_tui_dialog(caption As String, _
+                       txt     As String, _
+                       flags   As Long = _
+                       VT_DLG_OK) As Long
+        ':params
+        'caption  Title bar text.
+        'txt      Body text. Word-wrapped to fit width.
+        'flags    Button set constant, optionally
+        '         combined with VT_DLG_NO_ESC.
+        ':notes
+        'Return: one of VT_RET_OK, VT_RET_CANCEL,
+        'VT_RET_YES, VT_RET_NO.
+        '
+        'Key/mouse bindings:
+        '  Tab          Advance focus to next button.
+        '  Left/Right   Move focus between buttons.
+        '  Enter        Activate the focused button.
+        '  Escape       Return VT_RET_CANCEL (unless
+        '               VT_DLG_NO_ESC is set).
+        '  Click        Activate clicked button immediately.
+        ':example
+        '' Quit confirmation:
+        'If vt_tui_dialog("Quit", _
+        '    "Are you sure you want to quit?", _
+        '    VT_DLG_YESNO) = VT_RET_YES Then
+        '    vt_shutdown()
+        'End If
+        '
+        '' Mandatory choice (Escape disabled):
+        'Dim r As Long = vt_tui_dialog("Disk Full", _
+        '    "Retry or abort the operation?", _
+        '    VT_DLG_OKCANCEL Or VT_DLG_NO_ESC)
+        '
+        '' Simple info box:
+        'vt_tui_dialog("Done", "File saved successfully.")
+        ':see
+        'vt_tui_window
+        'vt_tui_file_dialog
+        'c_tuiconsts
+    '<<<
     Dim btn_set       As Long
     Dim no_esc        As Byte
     Dim btn_count     As Long
@@ -1582,23 +1823,67 @@ Function vt_tui_dialog(caption As String, txt As String, _
     Return result
 End Function
 
-' =============================================================================
-' vt_tui_file_dialog
-' Self-contained blocking file picker. Saves and restores the background.
-' Always shows ".." when a parent exists, directories with trailing "/" for nav.
-' Flag VT_TUI_FD_DIRSONLY: no file entries shown; Enter/F2/OK confirms a dir.
-' Double-click a directory to navigate into it (or confirm in DIRSONLY mode).
-' Double-click a file or Enter on a file entry to confirm.
-' F2 = keyboard confirm equivalent to the OK button.
-' title parameter sets the confirm button label ("Open", "Save", etc.)
-' Returns the full selected path, or "" on cancel.
-' Navigation keys (Up/Down/PgUp/PgDn/Home/End) update the name field with
-' the selected entry whenever applicable.
-' Tab toggles input focus between the file list and the name field.
-' Mouse click on the name field activates name field editing.
-' =============================================================================
-Function vt_tui_file_dialog(title As String, start_path As String, _
-                             pattern As String, flags As Long = 0) As String
+'>>>
+':topic vt_tui_file_dialog
+':short Blocking file/directory picker (opt-in)
+':group Text UI
+'Self-contained blocking file/directory picker.
+'Saves the background before drawing and restores
+'it on close. Centred on screen, automatically
+'sized (max 70 columns). The listing always
+'includes subdirectories (shown with trailing /)
+'and a .. entry when a parent exists. Files are
+'matched against pattern. All returned paths use
+'forward slashes on both Windows and Linux.
+'Opt-in: define VT_USE_TUI before the include.
+':syntax
+Function vt_tui_file_dialog(title      As String, _
+                            start_path As String, _
+                            pattern    As String, _
+                            flags      As Long = 0) _
+                            As String
+        ':params
+        'title       Title bar text and confirm button label.
+        'start_path  Initial directory. Backslashes are
+        '            normalized to forward slashes. Pass ""
+        '            or "./" for the current directory.
+        'pattern     Filename wildcard, e.g. "*.txt" or "*".
+        '            Ignored when VT_TUI_FD_DIRSONLY is set.
+        'flags       VT_TUI_FD_DIRSONLY = show only dirs;
+        '            Enter or OK on a dir confirms it.
+        ':notes
+        'Return: full selected path as a String. Directory
+        'paths end with /. "" on cancel.
+        '
+        'Key/mouse bindings:
+        '  Up/Down/PgUp/PgDn/Home/End  Navigate list.
+        '  Enter on a file    Confirm that file.
+        '  Enter on a dir     Navigate into it (or
+        '                     confirm in DIRSONLY mode).
+        '  Double-click       Navigate dir or confirm file.
+        '  Backspace          Delete last char from name
+        '                     field, or navigate up a dir
+        '                     if name field is empty.
+        '  Tab                Activate name field for entry.
+        '  Printable char     Append to name field.
+        '  F2                 Keyboard OK button equivalent.
+        '  Escape             Cancel, return "".
+        '  
+        ':example
+        'Dim path As String = _
+        '    vt_tui_file_dialog("Open", "./", "*.bas")
+        'If Len(path) > 0 Then
+        '    vt_print("Selected: " & path & VT_LF)
+        'End If
+        '
+        '' Directory picker only:
+        'path = vt_tui_file_dialog("Choose Folder", _
+        '    "./", "*", VT_TUI_FD_DIRSONLY)
+        ':see
+        'vt_tui_dialog
+        'vt_file_list
+        'c_tuiconsts
+    '<<<
     Dim dlg_w           As Long
     Dim dlg_h           As Long
     Dim dlg_x           As Long
@@ -2155,12 +2440,82 @@ Function vt_tui_file_dialog(title As String, start_path As String, _
     Return result
 End Function
 
-' =============================================================================
-' vt_tui_menubar_draw
-' Renders the menu bar row passively. Call once per frame in your main loop.
-' Does not block. Does not save/restore background.
-' =============================================================================
-Sub vt_tui_menubar_draw(row As Long, groups() As String)
+'>>>
+':topic vt_tui_menubar_*
+':short Horizontal TUI menu bar (opt-in)
+':group Text UI
+'Horizontal menu bar. Two-function design:
+'vt_tui_menubar_draw renders the bar passively
+'(non-blocking, call once per frame);
+'vt_tui_menubar_handle is non-blocking while no
+'menu is open and blocks with its own inner event
+'loop while a dropdown is open. No nested submenus
+'in v1. No item-level hotkeys in v1.
+'Opt-in: define VT_USE_TUI before the include.
+':syntax
+Sub vt_tui_menubar_draw(row      As Long, _
+                        groups() As String)
+
+        ':params
+        'row       1-based screen row for the menu bar.
+        'groups()  Group header labels, e.g. "File","Edit".
+        'items()   Flat array of all items across all groups
+        '          in group order.
+        'counts()  Item count per group, parallel to groups.
+        'k         Key value from vt_inkey() this frame.
+        ':notes
+        'Return (vt_tui_menubar_handle):
+        '  group*1000 + item_index (both 1-based) when an
+        '  item is activated. Use VT_TUI_MENU_GROUP(r) and
+        '  VT_TUI_MENU_ITEM(r) to unpack.
+        '  0  While idle or after Escape closes dropdown.
+        '
+        'Opening/navigating dropdowns:
+        '  Alt + first letter    Open that group's dropdown.
+        '  Click on group header Open that group's dropdown.
+        '  Up/Down (open)        Move selection (wraps).
+        '  Left/Right (open)     Switch to adjacent group.
+        '  Enter (open)          Activate selected item.
+        '  Click on item         Activate that item.
+        '  Click elsewhere       Close dropdown, return 0.
+        '  Escape                Close dropdown, return 0.
+        '  
+        ':example
+        'Dim groups(2) As String
+        'groups(0)="File" : groups(1)="Edit"
+        'groups(2)="Help"
+        '
+        'Dim items(6) As String
+        'items(0)="New" : items(1)="Open"
+        'items(2)="Save" : items(3)="Quit"
+        'items(4)="Cut" : items(5)="Copy"
+        'items(6)="About"
+        '
+        'Dim counts(2) As Long
+        'counts(0)=4 : counts(1)=2 : counts(2)=1
+        '
+        'Dim k As ULong
+        'Do
+        '    k = vt_inkey()
+        '    vt_tui_menubar_draw(1, groups())
+        '    Dim r As Long = vt_tui_menubar_handle( _
+        '        1, groups(), items(), counts(), k)
+        '    If r <> 0 Then
+        '        Select Case VT_TUI_MENU_GROUP(r)
+        '            Case 1
+        '                If VT_TUI_MENU_ITEM(r) = 4 Then
+        '                    vt_shutdown()
+        '                End If
+        '        End Select
+        '    End If
+        '    vt_sleep(16)
+        'Loop
+        ':see
+        'vt_tui_statusbar
+        'vt_tui_window
+        'hk_alt
+        'c_tuiconsts
+    '<<<
     _VT_TUI_GUARD_SUB
     vt_internal_tui_autoinit()
     vt_internal_tui_draw_bar(row, groups(), -1)
@@ -2480,23 +2835,44 @@ End Function
 ' =============================================================================
 ' FORMS
 ' =============================================================================
-
-' =============================================================================
-' vt_tui_form_offset
-' Shift all item positions in the array by (ox, oy). Call once during setup,
-' after filling the items array with window-body-relative coordinates and
-' before entering the main loop.
-'
-' Convention: set item .x/.y relative to the inner window body where (1,1) is
-' the top-left cell inside the border. Pass the window outer corner as ox, oy.
-' The border width of 1 is absorbed automatically -- no manual +1 needed:
-'   local (1,1) + win_x=21  ->  screen col 22  (= win_x + 1)
-'   local (1,1) + win_y=5   ->  screen row  6  (= win_y + 1)
-'
-' All item kinds are shifted, including VT_FORM_LABEL.
-' No ready guard -- pure array write, screen not required.
-' =============================================================================
-Sub vt_tui_form_offset(items() As vt_tui_form_item, ox As Long, oy As Long)
+'>>>
+':topic vt_tui_form_offset
+':short Shift all form item positions by an offset
+':group Text UI
+'Shift all item positions in a form array by
+'(ox, oy). Call once during setup - after filling
+'the items array and before entering the main loop
+'- to convert window-body-relative coordinates
+'to absolute screen coordinates.
+'Convention: lay out items with .x/.y relative to
+'the inner window body, where (1,1) is the top-
+'left cell inside the border. Pass the window's
+'outer corner as ox, oy. Because items start at
+'local 1 and the border consumes exactly one cell,
+'the arithmetic works out without any manual +1.
+':notes
+'vt_tui_form_offset mutates .x and .y
+'permanently. Call it only once per items array.
+'Calling it twice will shift everything twice.
+'Opt-in: define VT_USE_TUI before the include.
+':syntax
+Sub vt_tui_form_offset(items() As vt_tui_form_item, _
+                       ox As Long, oy As Long)
+        ':params
+        'items()  The form array to shift in place.
+        'ox, oy   Screen column and row of the window's
+        '         outer top-left corner (same values
+        '         passed to vt_tui_window).
+        ':example
+        'Const WIN_X = 21, WIN_Y = 5
+        '' fill items() with .x/.y relative to inner body
+        '' (1,1) = top-left inside the border
+        'vt_tui_form_offset(items(), WIN_X, WIN_Y)
+        'vt_tui_window(WIN_X, WIN_Y, 40, 16, " Settings ")
+        ':see
+        'vt_tui_form_*
+        'vt_tui_window
+    '<<<
     Dim i          As Long
     Dim item_count As Long
     Dim item_base  As Long
@@ -2508,15 +2884,118 @@ Sub vt_tui_form_offset(items() As vt_tui_form_item, ox As Long, oy As Long)
     Next i
 End Sub
 
-' =============================================================================
-' vt_tui_form_draw
-' Passive, non-blocking. Draws all form items and positions the text cursor.
-' Call once per frame after drawing your window chrome and static labels.
-' focused is the 0-based index of the currently active item.
-' Cursor visibility is set automatically: visible for focused inputs, hidden
-' for all other item kinds.
-' =============================================================================
-Sub vt_tui_form_draw(items() As vt_tui_form_item, ByRef focused As Long)
+'>>>
+':topic vt_tui_form_*
+':short Non-blocking form widget (opt-in)
+':group Text UI
+'Non-blocking form widget. Two-function design:
+'vt_tui_form_draw renders all items passively
+'each frame; vt_tui_form_handle processes one
+'key or mouse event and returns immediately. The
+'caller owns the vt_tui_form_item array and loops
+'until vt_tui_form_handle returns a value other
+'than VT_FORM_PENDING. VT_USE_TUI automatically
+'pulls in VT_USE_STRINGS and VT_USE_FILE.
+'NOTE: call vt_tui_form_draw LAST in your loop,
+'after any status bars or labels that use
+'vt_locate, so the text cursor is placed correctly
+'in the focused input field.
+'Opt-in: define VT_USE_TUI before the include.
+':syntax
+Sub vt_tui_form_draw(items()       As _
+                     vt_tui_form_item, _
+                     ByRef focused As Long)
+
+        ':params
+        'items()  Form items array. Any lower bound.
+        'focused  0-based index of the focused item.
+        '         Updated by form_handle on focus changes.
+        'k        Key value from vt_inkey() this frame.
+        'flags    VT_FORM_NO_ESC = Escape does nothing.
+        ':notes
+        'Return (vt_tui_form_handle):
+        '  VT_FORM_PENDING(-2)  Still editing.
+        '  VT_FORM_CANCEL(-1)   Escape pressed.
+        '  >= 0                 Activated button .ret value.
+        'Test for done with: result <> VT_FORM_PENDING
+        '
+        'vt_tui_form_item fields:
+        '  kind     As UByte  ' VT_FORM_INPUT/BUTTON etc.
+        '  x        As Long   ' 1-based column
+        '  y        As Long   ' 1-based row
+        '  wid      As Long   ' input/label: field width
+        '  val      As String ' input: text; button: label
+        '  ret      As Long   ' button: return value
+        '  max_len  As Long   ' input: max chars (0=wid)
+        '  checked  As Byte   ' checkbox/radio: 0 or 1
+        '  group_id As Long   ' radio: mutual-exclusion id
+        '  cpos     As Long   ' init to Len(val) for prefill
+        '  view_off As Long   ' init to 0 (internal)
+        '  align    As Long   ' label: VT_ALIGN_*
+        '  lbl_fg   As UByte  ' label: foreground colour
+        '  lbl_bg   As UByte  ' label: background colour
+        '
+        'Key/mouse bindings:
+        '  Tab/Shift+Tab  Advance/retreat focus (wraps).
+        '                 VT_FORM_LABEL items skipped.
+        '  Enter on input No-op; use Tab to leave field.
+        '  Enter on button Activate, return .ret.
+        '  Enter/Space on checkbox  Toggle .checked.
+        '  Enter/Space on radio     Select, clear group.
+        '  Left/Right on input      Move text cursor.
+        '  Left/Right on button     Move to adjacent item.
+        '  Home/End on input        Start/end of text.
+        '  Backspace/Del on input   Delete left/right.
+        '  Printable on input       Insert at cursor.
+        '  Click on input           Focus + cursor snap.
+        '  Click on button          Activate immediately.
+        '  Click on checkbox        Focus and toggle.
+        '  Click on radio           Focus and select.
+        '  Escape                   Return VT_FORM_CANCEL.
+        '
+        ':example
+        'Dim fitems(3) As vt_tui_form_item
+        '
+        'fitems(0).kind    = VT_FORM_INPUT
+        'fitems(0).x = 23 : fitems(0).y = 7
+        'fitems(0).wid     = 20
+        'fitems(0).val     = "Player one"
+        'fitems(0).max_len = 20
+        'fitems(0).cpos    = Len(fitems(0).val)
+        '
+        'fitems(1).kind    = VT_FORM_CHECKBOX
+        'fitems(1).x = 23 : fitems(1).y = 9
+        'fitems(1).val     = "Enable sound"
+        'fitems(1).checked = 1
+        '
+        'fitems(2).kind = VT_FORM_BUTTON
+        'fitems(2).x = 23 : fitems(2).y = 12
+        'fitems(2).val  = "  OK  "
+        'fitems(2).ret  = VT_RET_OK
+        '
+        'fitems(3).kind = VT_FORM_BUTTON
+        'fitems(3).x = 33 : fitems(3).y = 12
+        'fitems(3).val  = "Cancel"
+        'fitems(3).ret  = VT_RET_CANCEL
+        '
+        'Dim focused As Long = 0
+        'Dim result  As Long = VT_FORM_PENDING
+        'Dim k As ULong
+        '
+        'vt_tui_window 21, 5, 40, 12, " Settings "
+        'Do
+        '    k = vt_inkey()
+        '    result = vt_tui_form_handle(fitems(), focused, k)
+        '    vt_tui_statusbar(25, " Tab=Next  Esc=Cancel ")
+        '    vt_tui_form_draw(fitems(), focused)
+        '    vt_sleep(16)
+        'Loop While result = VT_FORM_PENDING
+        ':see
+        'vt_tui_form_offset
+        'vt_tui_window
+        'vt_tui_label_draw
+        'c_tuiconsts
+    '<<<
     Dim item_count As Long
     Dim item_base  As Long
     Dim i          As Long
