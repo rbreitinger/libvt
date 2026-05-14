@@ -15,7 +15,7 @@
 '   'plain text          body paragraph text
 '   real code line       verbatim, no leading ' required
 ' =============================================================================
-#cmdline "-g -exx -gen gcc -O 2"
+#cmdline "-gen gcc -O 2"
 #include once "dir.bi"
 
 Const MAX_TOPICS  = 2048
