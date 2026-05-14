@@ -93,7 +93,7 @@ End Sub
 '       vt_pump exits instantly when vt_internal.ready = 0, Sleep carries the
 '       wait, and SDL plays audio on its own thread regardless.
 ' -----------------------------------------------------------------------------
-Function vt_sound(freq     As Long,                   _
+Function vt_sound(freq     As Long,                    _
                   dur_ms   As Long = 200,              _
                   wave     As Long = VT_WAVE_SQUARE,   _
                   blocking As Long = VT_SOUND_BLOCKING) As Long

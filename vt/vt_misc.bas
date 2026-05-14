@@ -2,11 +2,29 @@
 ' vt_misc.bas - VT Miscellaneous Utilities
 ' =============================================================================
 
-' -----------------------------------------------------------------------------
-' vt_rnd - return a random Long in the range [lo .. hi] (inclusive)
-' Supports negative bounds. If lo > hi they are swapped silently.
-' -----------------------------------------------------------------------------
+'>>>
+':topic vt_rnd
+':short Random Long in an inclusive range
+':group Utilities
+'Return a random Long in the inclusive range
+'[lo .. hi]. Negative bounds are fully supported.
+'If lo > hi the two values are swapped silently.
+'Seeding the RNG with Randomize is the caller's
+'responsibility - vt_rnd does not call it.
+':syntax
 Function vt_rnd(lo As Long, hi As Long) As Long
+        ':params
+        'lo  Lower bound (inclusive).
+        'hi  Upper bound (inclusive).
+        ':example
+        'Randomize
+        '
+        'Dim n As Long = vt_rnd(-15, 15)
+        'Dim d As Long = vt_rnd(1, 6)
+        'Dim x As Long = vt_rnd(1, vt_cols())
+        ':see
+        'vt_wrap
+    '<<<
     If lo > hi Then Swap lo, hi
     Return Int(Rnd * (hi - lo + 1)) + lo
 End Function
@@ -15,21 +33,21 @@ End Function
 '  vt_sort : opt-in generic array sort via overloading (shellsort)
 ' ================================================================
 #Ifdef VT_USE_SORT
-'>>>
-':topic c_sortconsts
-':short Sort constants (opt-in: VT_USE_SORT)
-':group Constants
-'Available when #define VT_USE_SORT is placed
-'before #include once "vt/vt.bi".
-'
-':params
-Const VT_ASCENDING  = 0
-'    Sort direction: smallest value first.
-Const VT_DESCENDING = 1
-'    Sort direction: largest value first.
-':see
-'vt_sort
-'<<<
+    '>>>
+    ':topic c_sortconsts
+    ':short Sort constants (opt-in: VT_USE_SORT)
+    ':group Constants
+    'Available when #define VT_USE_SORT is placed
+    'before #include once "vt/vt.bi".
+    '
+    ':params
+    Const VT_ASCENDING  = 0
+    '    Sort direction: smallest value first.
+    Const VT_DESCENDING = 1
+    '    Sort direction: largest value first.
+    ':see
+    'vt_sort
+    '<<<
 
     ' ----------------------------------------------------------------
     '  SHELLSORT_VAL - direct value comparison (ASC or DESC)
@@ -323,3 +341,139 @@ Const VT_DESCENDING = 1
     
     #Undef FISHER_YATES
 #Endif 'VT_USE_SORT
+
+'>>>
+    ':topic vt_sort
+    ':short Generic in-place array sort (opt-in)
+    ':group Sort
+    'Sort a 1D array in-place using Shellsort.
+    'Overloaded for all numeric types and String.
+    'The compiler selects the correct overload --
+    'a single call form works for every supported
+    'type. Arrays with any LBound are handled.
+    '
+    'NOTE: ZString * N is not supported. Store data
+    'as String for sorting. See vt_sort_apply for
+    'the index-sort pattern with ZString arrays.
+    '
+    'Two call forms:
+    '  Form 1: direction constant (VT_ASCENDING or
+    '  VT_DESCENDING). Form 2: comparator callback.
+    '
+    'The comparator returns negative if a comes
+    'first, zero if equal, positive if b comes first.
+    'To sort descending via a comparator, flip the
+    'return sign.
+    ':syntax
+    'Sub vt_sort(arr() As <T>, order As Long)
+    '
+    'Sub vt_sort(arr() As <T>, _
+    '            cmp As Function(As <T>, As <T>) _
+    '                           As Long)
+    ':params
+    'arr()  1D array to sort in-place.
+    'order  VT_ASCENDING (0) or VT_DESCENDING (1).
+    'cmp    Comparator callback. Pass with @.
+    ':example
+    '#Define VT_USE_SORT
+    'Dim nums(4) As Long = {5, 1, 4, 2, 3}
+    'vt_sort(nums(), VT_ASCENDING)
+    '
+    'Dim words(2) As String = {"c", "a", "b"}
+    'vt_sort(words(), VT_ASCENDING)
+    '
+    '' Custom comparator:
+    'Function cmp_len(a As String, b As String) _
+    '                 As Long
+    '    Return Len(a) - Len(b)
+    'End Function
+    'Dim tags(2) As String = {"hi", "hello", "hey"}
+    'vt_sort(tags(), @cmp_len)
+    ':see
+    'vt_sort_apply
+    'vt_sort_shuffle
+    'c_sortconsts
+'<<<
+
+'>>>
+    ':topic vt_sort_apply
+    ':short Apply a permutation index to an array
+    ':group Sort
+    'Apply a permutation index to a 1D array,
+    'physically rearranging its elements in-place.
+    'This is the companion to the index-sort pattern
+    'for sorting tables stored as parallel arrays.
+    '
+    'pidx() values are 0-based offsets from
+    'LBound(arr), matching the index arrays built
+    'and sorted by vt_sort. The permutation index is
+    'consumed by the apply step -- build a fresh
+    'index array to apply the same order elsewhere.
+    'Overloaded for the same types as vt_sort.
+    '
+    'Index-sort pattern (three steps):
+    '  1. Build a Long index array {0, 1, 2, ...}
+    '  2. Sort the index array with a comparator
+    '     that reads real data via index values.
+    '  3. Either read in index order (non-destructive)
+    '     or call vt_sort_apply on each parallel array.
+    ':syntax
+    'Sub vt_sort_apply(arr()  As <T>, _
+    '                  pidx() As Long)
+    ':params
+    'arr()   Array to rearrange in-place.
+    'pidx()  Permutation index. Values are 0-based
+    '        offsets into arr.
+    ':example
+    '#Define VT_USE_SORT
+    'Dim Shared g_item(3) As String
+    'Dim Shared g_qty (3) As Long
+    'g_item(0) = "eggs"   : g_qty(0) = 5
+    'g_item(1) = "butter" : g_qty(1) = 2
+    'g_item(2) = "milk"   : g_qty(2) = 10
+    'g_item(3) = "bread"  : g_qty(3) = 3
+    '
+    'Function cmp_qty(a As Long, b As Long) As Long
+    '    Return g_qty(a) - g_qty(b)
+    'End Function
+    '
+    'Dim idx(3) As Long
+    'Dim i As Long
+    'For i = 0 To 3 : idx(i) = i : Next i
+    'vt_sort(idx(), @cmp_qty)
+    '
+    'vt_sort_apply(g_item(), idx())
+    'vt_sort_apply(g_qty(),  idx())
+    ':see
+    'vt_sort
+    'vt_sort_shuffle
+'<<<
+
+'>>>
+    ':topic vt_sort_shuffle
+    ':short Fisher-Yates in-place array shuffle
+    ':group Sort
+    'Shuffle a 1D array in-place using the
+    'Fisher-Yates algorithm, producing an unbiased
+    'uniform random permutation. Seeding the RNG
+    'with Randomize is the caller's responsibility.
+    'Overloaded for the same types as vt_sort.
+    ':syntax
+    'Sub vt_sort_shuffle(arr() As <T>)
+    ':params
+    'arr()  1D array to shuffle in-place.
+    ':example
+    '#Define VT_USE_SORT
+    'Randomize
+    'Dim deck(51) As Long
+    'Dim i As Long
+    'For i = 0 To 51 : deck(i) = i : Next i
+    'vt_sort_shuffle(deck())
+    '
+    'Dim names(3) As String = _
+    '    {"Alice", "Bob", "Carol", "Dave"}
+    'vt_sort_shuffle(names())
+    ':see
+    'vt_sort
+    'vt_rnd
+'<<<
