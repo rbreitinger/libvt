@@ -95,12 +95,43 @@ Private Sub vt_internal_cp_build_text()
     vt_internal.cp_view_bot   = -1
 End Sub
 
-' -----------------------------------------------------------------------------
-' vt_copypaste - enable or disable mouse copy/paste
-' flags: VT_ENABLED (1) = on, VT_DISABLED (0) = off. Values > 1 clamped to 1.
-' Clears any active selection, resets viewport snapshot and auto-scroll throttle.
-' -----------------------------------------------------------------------------
+'>>>
+':topic vt_copypaste
+':short Enable or disable mouse selection and clipboard
+':group Copy/Paste
+'Enable or disable the mouse copy/paste and text
+'selection system. Call after vt_screen. Clears
+'any active selection and resets all internal
+'selection state. By default copypaste is disabled.
+':syntax
 Sub vt_copypaste(flags As Long)
+        ':params
+        'flags  VT_ENABLED (1) to enable,
+        '       VT_DISABLED (0) to disable. (default)
+        ':notes
+        'Selection: click-and-drag with LMB. A bare
+        'click without movement clears the selection.
+        'Copy: right-click copies the selection to the
+        'system clipboard and clears the selection.
+        'Copy also works during scrollback.
+        'Paste: MMB or Shift+Ins pastes from clipboard
+        'into the active vt_input field. Shift+Ins is
+        'always available regardless of this setting.
+        'Auto-scroll: holding the mouse at the top or
+        'bottom edge during a drag scrolls the content.
+        'When a column viewport is active via
+        'vt_view_print, selection is clipped to that
+        'column range. Selected text uses plain text
+        'format with trailing spaces trimmed and rows
+        'joined with CRLF.
+        ':example
+        'vt_screen(VT_SCREEN_0)
+        'vt_copypaste(VT_ENABLED)
+        ':see
+        'vt_screen
+        'vt_input
+        'hk_copypaste
+    '<<<
     If vt_internal.ready = 0 Then Exit Sub
     If flags > 1 Then flags = 1
     vt_internal.cp_flags       = flags

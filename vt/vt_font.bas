@@ -69,9 +69,27 @@ End Function
 
 ' -----------------------------------------------------------------------------
 ' vt_font_reset - restore the built-in embedded font.
-' Rebuilds the SDL texture from the bitpacked data that vt_screen() selected.
+' Rebuilds the (SDL) texture from the bitpacked data that vt_screen() selected.
 ' -----------------------------------------------------------------------------
+'>>>
+':topic vt_font_reset
+':short Restore the built-in embedded font
+':group Font
+'Restore the built-in embedded CP437 font
+'selected by the current screen mode. Destroys
+'any custom font loaded with vt_loadfont. Must
+'be called after vt_screen.
+':syntax
 Function vt_font_reset() As Long
+        ':notes
+        'Return values:
+        '   0  success
+        '  -1  library not ready
+        '  -2  surface or texture creation failed
+        ':see
+        'vt_loadfont
+        'vt_screen
+    '<<<
     Dim new_tex As _VT_DRV_Texture Ptr
 
     If vt_internal.ready = 0 Then Return -1
@@ -86,15 +104,61 @@ Function vt_font_reset() As Long
     Return 0
 End Function
 
-' -----------------------------------------------------------------------------
-' vt_loadfont - load a BMP font sheet and replace the active font texture.
-' -----------------------------------------------------------------------------
-Function vt_loadfont(fname As String, _
-                     sheet_w As Long = -1, _
-                     sheet_h As Long = -1, _
-                     mask_r As UByte = 0, _
-                     mask_g As UByte = 0, _
-                     mask_b As UByte = 0) As Long
+'>>>
+':topic vt_loadfont
+':short Load a custom BMP font sheet
+':group Font
+'Load a BMP font sheet and replace the active
+'font texture at runtime. The loaded font stays
+'active until vt_loadfont is called again,
+'vt_font_reset is called, or vt_screen
+'reinitializes the window.
+':syntax
+Function vt_loadfont(fname   As String, _
+                     sheet_w As Long  = -1, _
+                     sheet_h As Long  = -1, _
+                     mask_r  As UByte = 0,  _
+                     mask_g  As UByte = 0,  _
+                     mask_b  As UByte = 0) As Long
+        ':params
+        'fname    Path to a BMP file. Any bit depth.
+        'sheet_w  Expected BMP pixel width (-1 = any).
+        'sheet_h  Expected BMP pixel height (-1 = any).
+        'mask_r   Red component of the transparent colour.
+        'mask_g   Green component of the transparent colour.
+        'mask_b   Blue component of the transparent colour.
+        ':notes
+        'Return values:
+        '   0  success
+        '  -1  library not ready
+        '  -2  BMP load or surface creation failed
+        '  -3  image dimensions mismatch
+        '  -4  SDL texture upload failed
+        '
+        'Layout is detected automatically from the BMP
+        'pixel dimensions relative to the current glyph
+        'size (gw x gh):
+        '  16x16 grid:  16*gw x 16*gh  (e.g. 128x128)
+        '  256x1 strip: 256*gw x gh    (e.g. 2048x8)
+        '
+        'Common mask colours:
+        '  Black (default): mask_r=0   mask_g=0   mask_b=0
+        '  Magenta:         mask_r=255 mask_g=0   mask_b=255
+        '  White:           mask_r=255 mask_g=255 mask_b=255
+        '
+        'Non-mask pixels are normalized to white
+        'internally so colour-mod tinting applies
+        'the correct foreground colour.
+        ':example
+        'Dim r As Long = _
+        '    vt_loadfont("myfont.bmp", -1, -1, 255, 0, 255)
+        'If r <> 0 Then
+        '    vt_print("Font load failed: " & r & VT_LF)
+        'End If
+        ':see
+        'vt_font_reset
+        'vt_screen
+    '<<<
 
     Dim bmp_surf   As _VT_DRV_Surface Ptr
     Dim conv_surf  As _VT_DRV_Surface Ptr
