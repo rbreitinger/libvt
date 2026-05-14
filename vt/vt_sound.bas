@@ -23,11 +23,26 @@ Const VT_SOUND_BACKGROUND = 0       ' queue and return immediately
 '    Queue and return immediately. 
 '    Use vt_sound_wait to sync.
 '
-#Define VT_BEEP vt_sound(800, 200)  ' convenience macro
-'
 ':see
 'vt_sound
 'vt_sound_wait
+'<<<
+
+'>>>
+    ':topic vt_beep
+    ':short Convenience macro: short 800 Hz beep
+    ':group Sound
+    'Convenience macro. Plays a short 800 Hz square-
+    'wave beep, blocking. Equivalent to calling
+    'vt_sound(800, 200).
+    'Opt-in: #define VT_USE_SOUND before the include.
+    ':syntax
+    ' #Define VT_BEEP vt_sound(800, 200)
+    ':example
+    '' Simple error beep:
+    'VT_BEEP
+    ':see
+    'vt_sound
 '<<<
 
 Const _VT_SND_RATE         = 11025   ' sample rate: Hz, unsigned 8-bit mono
@@ -80,23 +95,69 @@ Private Sub vt_internal_sound_shutdown()
     If vt_snd.ready = 0 Then Exit Sub
     _VT_DRV_CloseAudioDevice(vt_snd.dev)
     _VT_DRV_QuitSubSystem(_VT_DRV_INIT_AUDIO)
-    vt_snd.dev   = 0
-    vt_snd.ready = 0
+    vt_snd.dev   = 0 : vt_snd.ready = 0
 End Sub
 
-' -----------------------------------------------------------------------------
-' vt_sound - generate and queue a tone
-'
-' returns  : 0=ok, -1=init or alloc fail, -2=queue cap exceeded (call skipped)
-'
-' note: if vt_screen has not been opened, blocking wait still works correctly --
-'       vt_pump exits instantly when vt_internal.ready = 0, Sleep carries the
-'       wait, and SDL plays audio on its own thread regardless.
-' -----------------------------------------------------------------------------
-Function vt_sound(freq     As Long,                    _
-                  dur_ms   As Long = 200,              _
-                  wave     As Long = VT_WAVE_SQUARE,   _
-                  blocking As Long = VT_SOUND_BLOCKING) As Long
+'>>>
+':topic vt_sound
+':short Generate and queue a tone (opt-in)
+':group Sound
+'Generate samples for a tone of the given
+'frequency and duration and add them to the
+'audio queue. The waveform and blocking behaviour
+'are selectable. The audio subsystem initializes
+'automatically on the first vt_sound call and
+'does not require vt_screen to be open. Pass
+'freq = 0 to stop playback and clear the queue
+'immediately.
+'Opt-in: #define VT_USE_SOUND before the include.
+':syntax
+Function vt_sound(freq     As Long, _
+                  dur_ms   As Long = 200, _
+                  wave     As Long = VT_WAVE_SQUARE, _
+                  blocking As Long = _
+                  VT_SOUND_BLOCKING) As Long
+        ':params
+        'freq      Frequency in Hz. 0 = stop and clear
+        '          the queue immediately.
+        'dur_ms    Duration in milliseconds. Default 200.
+        'wave      Waveform. One of VT_WAVE_* constants.
+        'blocking  VT_SOUND_BLOCKING = wait for note to
+        '          finish (window stays alive during wait).
+        '          VT_SOUND_BACKGROUND = queue and return.
+        ':notes
+        'Return values:
+        '   0  success
+        '  -1  audio init or memory alloc failed
+        '  -2  queue cap exceeded, call was skipped
+        ':example
+        '' Single blocking note:
+        'vt_sound(440, 500)
+        '
+        '' Melody blocking note-by-note:
+        'vt_sound(262, 200)
+        'vt_sound(330, 200)
+        'vt_sound(392, 400)
+        '
+        '' Same melody in background:
+        'vt_sound(262, 200, VT_WAVE_SQUARE, _
+        '         VT_SOUND_BACKGROUND)
+        'vt_sound(330, 200, VT_WAVE_SQUARE, _
+        '         VT_SOUND_BACKGROUND)
+        'vt_sound(392, 400, VT_WAVE_SQUARE, _
+        '         VT_SOUND_BACKGROUND)
+        'vt_print("Playing...")
+        'vt_present()
+        'vt_sound_wait()
+        'vt_shutdown()
+        '
+        '' Stop playback immediately:
+        'vt_sound(0)
+        ':see
+        'vt_sound_wait
+        'vt_beep
+        'c_soundconsts
+    '<<<
 
     Dim n_samples  As Long
     Dim n_smp_64   As Longint       ' overflow-safe intermediate for duration calc
@@ -215,11 +276,22 @@ Function vt_sound(freq     As Long,                    _
     Return 0
 End Function
 
-' -----------------------------------------------------------------------------
-' vt_sound_wait - block until the audio queue fully drains
-' the sync barrier for VT_SOUND_BACKGROUND sequences
-' -----------------------------------------------------------------------------
+'>>>
+':topic vt_sound_wait
+':short Block until the audio queue fully drains
+':group Sound
+'Block until the audio queue fully drains. The
+'sync barrier for sequences queued with
+'VT_SOUND_BACKGROUND -- lets you run code while
+'a melody plays, then wait for it to finish. The
+'window stays alive during the wait. No-op if
+'the sound subsystem was never initialized.
+'Opt-in: define VT_USE_SOUND before the include.
+':syntax
 Sub vt_sound_wait()
+        ':see
+        'vt_sound
+    '<<<
     If vt_snd.ready = 0 Then Exit Sub
     Do
         If _VT_DRV_GetQueuedAudioSize(vt_snd.dev) = 0 Then Exit Do

@@ -2,11 +2,35 @@
 ' vt_strings.bas : opt-in String Utility Extension for libvt
 ' =============================================================================
 
-' -----------------------------------------------------------------------------
-' vt_str_replace - replace all non-overlapping occurrences of find in s with repl
-' returns s unchanged if find is empty
-' -----------------------------------------------------------------------------
-Function vt_str_replace(s As String, find As String, repl As String) As String
+'>>>
+':topic vt_str_replace
+':short Replace all occurrences of a substring
+':group Strings
+'Replace every non-overlapping occurrence of
+'find in s with repl. Scanning advances past the
+'replacement so overlapping matches are not
+'produced. Returns s unchanged if find is empty.
+'Opt-in: define VT_USE_STRINGS before the include.
+':syntax
+Function vt_str_replace(s    As String, _
+                        find As String, _
+                        repl As String) As String
+        ':params
+        's     Source string.
+        'find  Substring to search for. Empty = no-op.
+        'repl  Replacement. May be empty to delete all.
+        ':example
+        'Dim fname As String = _
+        '    vt_str_replace("hello world", " ", "_")
+        '' fname = "hello_world"
+        '
+        'Dim stripped As String = _
+        '    vt_str_replace("a--b--c", "--", "")
+        '' stripped = "abc"
+        ':see
+        'vt_str_split
+        'vt_str_count
+    '<<<
     Dim result  As String
     Dim cur_pos As Long
     Dim found   As Long
@@ -31,13 +55,42 @@ Function vt_str_replace(s As String, find As String, repl As String) As String
     Return result
 End Function
 
-' -----------------------------------------------------------------------------
-' vt_str_split - split s by delim into arr(), returns element count
-' arr() is ReDim'd by this function; caller declares  Dim arr() As String
-' if delim is empty, each character of s becomes its own element
-' a trailing delimiter produces a final empty element (e.g. "a,b," -> 3 items)
-' -----------------------------------------------------------------------------
-Function vt_str_split(s As String, delim As String, arr() As String) As Long
+'>>>
+':topic vt_str_split
+':short Split a string into an array by delimiter
+':group Strings
+'Split s by delim and fill arr() with the
+'resulting segments. The array is ReDim'd by this
+'function; the caller only needs to declare
+'Dim arr() As String. Returns the number of
+'elements produced. If delim is empty, each
+'character becomes its own element. A trailing
+'delimiter produces a final empty element.
+'An empty s always returns one element of "".
+'Opt-in: define VT_USE_STRINGS before the include.
+':syntax
+Function vt_str_split(s     As String, _
+                      delim As String, _
+                      arr() As String) As Long
+        ':params
+        's      Source string to split.
+        'delim  Delimiter. Empty = split into characters.
+        'arr()  Receives the segments. ReDim'd to
+        '       0 To count-1.
+        ':notes
+        'Return: number of elements placed in arr().
+        ':example
+        'Dim parts() As String
+        'Dim cnt As Long = _
+        '    vt_str_split("one,two,three", ",", parts())
+        '' cnt=3  parts(0)="one" parts(1)="two" ...
+        'For i As Long = 0 To cnt - 1
+        '    vt_print(parts(i) + VT_LF)
+        'Next i
+        ':see
+        'vt_str_replace
+        'vt_str_count
+    '<<<
     Dim slen    As Long
     Dim dlen    As Long
     Dim cur_pos As Long
@@ -91,12 +144,35 @@ Function vt_str_split(s As String, delim As String, arr() As String) As Long
     Return UBound(arr) + 1
 End Function
 
-' -----------------------------------------------------------------------------
-' vt_str_pad_left - right-align s in a field of exactly length characters
-' pads with ch on the left; if s is longer than length, keeps the right end
-' ch is treated as a single character; if multi-char, only the first is used
-' -----------------------------------------------------------------------------
-Function vt_str_pad_left(s As String, length As Long, ch As String) As String
+'>>>
+':topic vt_str_pad_left
+':short Right-align a string in a fixed-width field
+':group Strings
+'Right-align s in a field of exactly length
+'characters by padding with ch on the left. If s
+'is longer than length, the rightmost length
+'characters are returned (truncation keeps the
+'least-significant end, useful for numbers). Only
+'the first character of ch is used; if ch is
+'empty a space is substituted. Returns "" if
+'length <= 0.
+'Opt-in: define VT_USE_STRINGS before the include.
+':syntax
+Function vt_str_pad_left(s      As String, _
+                         length As Long, _
+                         ch     As String) _
+                         As String
+        ':params
+        's       Source string.
+        'length  Desired output width in characters.
+        'ch      Fill character. Only first char is used.
+        ':example
+        '' Zero-pad a score to 6 digits:
+        'vt_print( vt_str_pad_left(Str(score), 6, "0") )
+        '' "001450"
+        ':see
+        'vt_str_pad_right
+    '<<<
     Dim slen    As Long
     Dim fill_ch As String
 
@@ -108,11 +184,33 @@ Function vt_str_pad_left(s As String, length As Long, ch As String) As String
     Return String(length - slen, fill_ch[0]) + s
 End Function
 
-' -----------------------------------------------------------------------------
-' vt_str_pad_right - left-align s in a field of exactly length characters
-' pads with ch on the right; if s is longer than length, keeps the left end
-' -----------------------------------------------------------------------------
-Function vt_str_pad_right(s As String, length As Long, ch As String) As String
+'>>>
+':topic vt_str_pad_right
+':short Left-align a string in a fixed-width field
+':group Strings
+'Left-align s in a field of exactly length
+'characters by padding with ch on the right. If
+'s is longer than length, the leftmost length
+'characters are returned. Only the first character
+'of ch is used; if ch is empty a space is
+'substituted. Returns "" if length <= 0.
+'Opt-in: define VT_USE_STRINGS before the include.
+':syntax
+Function vt_str_pad_right(s      As String, _
+                          length As Long,   _
+                          ch     As String) _
+                          As String
+        ':params
+        's       Source string.
+        'length  Desired output width in characters.
+        'ch      Fill character. Only first char is used.
+        ':example
+        '' Fixed label next to a value:
+        'vt_print( vt_str_pad_right("SCORE", 10, " ") & _
+        '          vt_str_pad_left(Str(score), 6, "0") )
+        ':see
+        'vt_str_pad_left
+    '<<<
     Dim slen    As Long
     Dim fill_ch As String
 
@@ -124,11 +222,33 @@ Function vt_str_pad_right(s As String, length As Long, ch As String) As String
     Return s + String(length - slen, fill_ch[0])
 End Function
 
-' -----------------------------------------------------------------------------
-' vt_str_repeat - repeat s exactly n times; returns "" for n <= 0 or empty s
-' single-character strings use String() internally for efficiency
-' -----------------------------------------------------------------------------
-Function vt_str_repeat(s As String, n As Long) As String
+'>>>
+':topic vt_str_repeat
+':short Repeat a string n times
+':group Strings
+'Return s concatenated n times. Returns "" for
+'n <= 0 or an empty s. Single-character strings
+'use FreeBASIC's String() internally for
+'efficiency.
+'Opt-in: define VT_USE_STRINGS before the include.
+':syntax
+Function vt_str_repeat(s As String, _
+                       n As Long) As String
+        ':params
+        's  String to repeat.
+        'n  Number of repetitions. 0 or negative = "".
+        ':example
+        '' Draw a separator line:
+        'vt_print(vt_str_repeat("-=", 20) & VT_LF)
+        '
+        '' Progress bar string:
+        'Dim bar As String = "[" & _
+        '    vt_str_repeat("#", filled) & _
+        '    vt_str_repeat(".", empty_count) & "]"
+        ':see
+        'vt_str_pad_left
+        'vt_str_pad_right
+    '<<<
     Dim result As String
     Dim slen   As Long
     Dim i      As Long
@@ -143,11 +263,31 @@ Function vt_str_repeat(s As String, n As Long) As String
     Return result
 End Function
 
-' -----------------------------------------------------------------------------
-' vt_str_count - count non-overlapping occurrences of find in s
-' returns 0 if find is empty or s is empty
-' -----------------------------------------------------------------------------
-Function vt_str_count(s As String, find As String) As Long
+'>>>
+':topic vt_str_count
+':short Count non-overlapping occurrences of a substring
+':group Strings
+'Count non-overlapping occurrences of find in s.
+'Returns 0 if either string is empty.
+'Opt-in: define VT_USE_STRINGS before the include.
+':syntax
+Function vt_str_count(s    As String, _
+                      find As String) As Long
+        ':params
+        's     String to search in.
+        'find  Substring to count. Empty = always 0.
+        ':notes
+        'Return: number of non-overlapping occurrences.
+        '0 if none or if either argument is empty.
+        ':example
+        'Dim n As Long = vt_str_count("banana", "a")
+        '' n = 3
+        '
+        'n = vt_str_count("banana", "an")
+        '' n = 2  ("b[an][an]a")
+        ':see
+        'vt_str_replace
+    '<<<
     Dim cnt     As Long
     Dim cur_pos As Long
     Dim found   As Long
@@ -167,11 +307,27 @@ Function vt_str_count(s As String, find As String) As Long
     Return cnt
 End Function
 
-' -----------------------------------------------------------------------------
-' vt_str_starts_with - returns 1 if s begins with pfx, 0 otherwise
-' empty pfx always returns 1
-' -----------------------------------------------------------------------------
-Function vt_str_starts_with(s As String, pfx As String) As Byte
+'>>>
+':topic vt_str_starts_with
+':short Test whether a string begins with a prefix
+':group Strings
+'Returns 1 if s begins with pfx, 0 otherwise.
+'An empty pfx always returns 1.
+'Opt-in: define VT_USE_STRINGS before the include.
+':syntax
+Function vt_str_starts_with(s   As String, _
+                            pfx As String) _
+                            As Byte
+        ':params
+        's    String to test.
+        'pfx  Expected prefix.
+        ':example
+        'If vt_str_starts_with(input_line, "/quit") Then
+        '    end_game = 1
+        'End If
+        ':see
+        'vt_str_ends_with
+    '<<<
     Dim plen As Long
     plen = Len(pfx)
     If plen = 0 Then Return 1
@@ -180,11 +336,27 @@ Function vt_str_starts_with(s As String, pfx As String) As Byte
     Return 0
 End Function
 
-' -----------------------------------------------------------------------------
-' vt_str_ends_with - returns 1 if s ends with sfx, 0 otherwise
-' empty sfx always returns 1
-' -----------------------------------------------------------------------------
-Function vt_str_ends_with(s As String, sfx As String) As Byte
+'>>>
+':topic vt_str_ends_with
+':short Test whether a string ends with a suffix
+':group Strings
+'Returns 1 if s ends with sfx, 0 otherwise.
+'An empty sfx always returns 1.
+'Opt-in: define VT_USE_STRINGS before the include.
+':syntax
+Function vt_str_ends_with(s   As String, _
+                          sfx As String) _
+                          As Byte
+        ':params
+        's    String to test.
+        'sfx  Expected suffix.
+        ':example
+        'If vt_str_ends_with(filename, ".vts") Then
+        '    vt_bload(filename)
+        'End If
+        ':see
+        'vt_str_starts_with
+    '<<<
     Dim sfx_len As Long
     Dim slen    As Long
     sfx_len = Len(sfx)
@@ -195,13 +367,35 @@ Function vt_str_ends_with(s As String, sfx As String) As Byte
     Return 0
 End Function
 
-' -----------------------------------------------------------------------------
-' vt_str_trim_chars - trim any character found in the chars set from both ends of s
-' e.g. vt_str_trim_chars("***hello***", "*")  -> "hello"
-'      vt_str_trim_chars("  ..hi.. ",  " .") -> "hi"
-' returns "" if s consists entirely of characters in the chars set
-' -----------------------------------------------------------------------------
-Function vt_str_trim_chars(s As String, chars As String) As String
+'>>>
+':topic vt_str_trim_chars
+':short Trim a custom character set from both ends
+':group Strings
+'Remove any character found in the set chars
+'from both ends of s and return the result.
+'FreeBASIC's built-in Trim only removes spaces;
+'this function accepts any set of characters.
+'Returns "" if s consists entirely of chars.
+'Returns s unchanged if chars is empty.
+'Opt-in: define VT_USE_STRINGS before the include.
+':syntax
+Function vt_str_trim_chars(s     As String, _
+                           chars As String) _
+                           As String
+        ':params
+        's      Source string.
+        'chars  Set of characters to strip. Each
+        '       character is an individual candidate.
+        ':example
+        'Dim clean As String = _
+        '    vt_str_trim_chars("***hello***", "*")
+        '' clean = "hello"
+        '
+        'clean = vt_str_trim_chars("  ..hi.. ", " .")
+        '' clean = "hi"
+        ':see
+        'vt_str_replace
+    '<<<
     Dim slen As Long
     Dim lft  As Long
     Dim rgt  As Long
@@ -225,14 +419,47 @@ Function vt_str_trim_chars(s As String, chars As String) As String
     Return Mid(s, lft, rgt - lft + 1)
 End Function
 
-' -----------------------------------------------------------------------------
-' vt_str_wordwrap - insert Chr(10) breaks so no line exceeds col_width characters
-' col_width = -1: use vt_internal.scr_cols if screen is open, else fall back to 80
-' first_offset: characters already consumed on the first line (e.g. after a label)
-' existing Chr(10)/Chr(13) in s are preserved and reset the line counter
-' words longer than col_width are placed on their own line unbroken
-' -----------------------------------------------------------------------------
-Function vt_str_wordwrap(s As String, col_width As Long = -1, first_offset As Long = 0) As String
+'>>>
+':topic vt_str_wordwrap
+':short Insert line breaks for word-wrapping
+':group Strings
+'Insert Chr(10) line breaks into s so that no
+'line exceeds col_width characters. Words are
+'never split -- a word longer than col_width
+'occupies its own line unbroken. Existing Chr(10)
+'and Chr(13) characters are preserved and reset
+'the line-length counter; CRLF pairs are collapsed
+'to a single Chr(10). The return value is a plain
+'string with embedded newlines -- pass it directly
+'to vt_print. No screen required: col_width = -1
+'falls back to 80 when no VT screen is open.
+'Opt-in: define VT_USE_STRINGS before the include.
+':syntax
+Function vt_str_wordwrap(s            As String,    _
+                         col_width    As Long = -1, _
+                         first_offset As Long = 0)  _
+                         As String
+        ':params
+        's             Source text to wrap.
+        'col_width     Max line width. -1 uses screen
+        '              width or 80 if no screen is open.
+        'first_offset  Characters already consumed on
+        '              the first line before this text.
+        '              Subsequent lines always start at
+        '              column 0.
+        ':example
+        'Dim msg As String = _
+        '    "This item restores your health fully " & _
+        '    "and also cures poison."
+        'vt_print(vt_str_wordwrap(msg, 30))
+        '
+        '' Label already on same line:
+        'vt_print("Description: ")
+        'vt_print(vt_str_wordwrap(msg, 40, 13))
+        ':see
+        'vt_print
+        'vt_cols
+    '<<<
     Dim eff_width     As Long
     Dim result        As String
     Dim cur_len       As Long
