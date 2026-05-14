@@ -4,22 +4,31 @@
 ' =============================================================================
 
 '>>>
-':topic c_soundconsts
+':topic soundconsts
 ':short Sound constants (opt-in: VT_USE_SOUND)
-':group Constants
+':group Sound
 'Available when #define VT_USE_SOUND is placed
 'before #include once "vt/vt.bi".
 '
 ':params
-' Waveforms (wave parameter of vt_sound):
-Const VT_WAVE_SQUARE      = 0       ' PC speaker / chiptune square wave (default)
-Const VT_WAVE_TRIANGLE    = 1       ' NES triangle channel -- softer, bass feel
-Const VT_WAVE_SINE        = 2       ' pure sine tone
-Const VT_WAVE_NOISE       = 3       ' 15-bit LFSR noise -- NES percussion / static
-' Blocking mode (blocking parameter):
-Const VT_SOUND_BLOCKING   = 1       ' wait for note to finish, keep window alive (default)
+'Waveforms (wave parameter of vt_sound):
+Const VT_WAVE_SQUARE      = 0
+'     PC speaker / chiptune square wave (default)
+'
+Const VT_WAVE_TRIANGLE    = 1
+'     NES triangle channel -- softer, bass feel
+'
+Const VT_WAVE_SINE        = 2
+'     pure sine tone
+'
+Const VT_WAVE_NOISE       = 3
+'     15-bit LFSR noise -- NES percussion / static
+'
+'Blocking mode (blocking parameter):
+Const VT_SOUND_BLOCKING   = 1
 '    Wait for the note to finish (default).
-Const VT_SOUND_BACKGROUND = 0       ' queue and return immediately
+'
+Const VT_SOUND_BACKGROUND = 0
 '    Queue and return immediately. 
 '    Use vt_sound_wait to sync.
 '
