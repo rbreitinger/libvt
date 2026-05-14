@@ -109,15 +109,23 @@ also custom screenmodes are supported up to 255x255, font sizes 8x8, 8x14 or 8x1
 
 ## Examples
 
-![VTetris running in fullscreen](docs/screenshot1.png)
-
 The `examples/` directory contains runnable examples for most features.
 VTetris is a complete Tetris game demonstrating sound, math and string extensions
 working together — run `vtetris-bake.bas` once first to generate the screen assets.
 
 ---
 
+## Programs made with libvt
+| Program and Link | What it is |
+|---|---|
+| [VTIRC](https://github.com/rbreitinger/vtirc) | Fully functional minimalistic IRC client |
+| [VTHELP](https://github.com/rbreitinger/vthelp) | A DOS-style .vth help file viewer|
+
+**More Complete Programs in this repository**
+
 ![VTSolitaire example game](docs/screenshot2.png)
+
+![VTetris running in fullscreen](docs/screenshot1.png)
 
 ---
 
