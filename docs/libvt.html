@@ -1,0 +1,4553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LibVT API Reference</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: monospace; font-size: 14px; background: #fff; color: #111; }
+#wrap { display: flex; height: 100vh; overflow: hidden; }
+
+/* --- left nav --- */
+#nav { width: 220px; min-width: 220px; overflow-y: auto;
+       border-right: 2px solid #aaa; padding: 6px 4px;
+       background: #f5f5f5; }
+.grp-hdr { font-weight: bold; color: #222; font-size: 12px;
+           margin-top: 12px; margin-bottom: 2px;
+           padding-bottom: 2px; border-bottom: 1px solid #bbb; }
+.grp-hdr:first-child { margin-top: 4px; }
+a.tlnk { display: block; color: #0044cc; text-decoration: none;
+         padding: 1px 0 1px 10px; font-size: 13px; }
+a.tlnk:hover { text-decoration: underline; color: #002288; }
+
+/* --- right pane --- */
+#pane { flex: 1; overflow-y: auto; padding: 18px 24px; }
+.tdiv { display: none; }
+h2 { font-size: 16px; border-bottom: 1px solid #aaa;
+     padding-bottom: 4px; margin-bottom: 6px; }
+.t-short { color: #555; font-style: italic; margin-bottom: 10px; }
+.sec-hdr { font-weight: bold; color: #333; font-size: 13px;
+           margin-top: 14px; margin-bottom: 4px; }
+pre.body-pre  { white-space: pre-wrap; margin-bottom: 10px; }
+pre.code-pre  { background: #f0f0f0; border: 1px solid #ccc;
+                padding: 8px 10px; overflow-x: auto;
+                margin-bottom: 8px; }
+pre.param-pre { background: #fafafa; border: 1px solid #ddd;
+                padding: 8px 10px; overflow-x: auto;
+                margin-bottom: 8px; }
+.see-list a { display: block; color: #0044cc;
+              text-decoration: none; padding: 1px 0; }
+.see-list a:hover { text-decoration: underline; }
+#welcome { color: #777; margin-top: 30px; }
+</style>
+<script>
+function show(id) {
+    document.getElementById('welcome').style.display = 'none';
+    var ds = document.getElementsByClassName('tdiv');
+    for (var i = 0; i < ds.length; i++) ds[i].style.display = 'none';
+    document.getElementById(id).style.display = 'block';
+    document.getElementById('pane').scrollTop = 0;
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+<div id="nav">
+<div class="grp-hdr">Cells</div>
+<a class="tlnk" href="#" onclick="show('vt_get_cell');return false;">vt_get_cell</a>
+<a class="tlnk" href="#" onclick="show('vt_set_cell');return false;">vt_set_cell</a>
+<div class="grp-hdr">Constants</div>
+<a class="tlnk" href="#" onclick="show('c_colors');return false;">c_colors</a>
+<a class="tlnk" href="#" onclick="show('c_keymacros');return false;">c_keymacros</a>
+<a class="tlnk" href="#" onclick="show('c_keyscans');return false;">c_keyscans</a>
+<a class="tlnk" href="#" onclick="show('c_mathconsts');return false;">c_mathconsts</a>
+<a class="tlnk" href="#" onclick="show('c_misc');return false;">c_misc</a>
+<a class="tlnk" href="#" onclick="show('c_mousebtns');return false;">c_mousebtns</a>
+<a class="tlnk" href="#" onclick="show('c_screenmodes');return false;">c_screenmodes</a>
+<a class="tlnk" href="#" onclick="show('c_sortconsts');return false;">c_sortconsts</a>
+<a class="tlnk" href="#" onclick="show('c_winflags');return false;">c_winflags</a>
+<div class="grp-hdr">Copy/Paste</div>
+<a class="tlnk" href="#" onclick="show('vt_copypaste');return false;">vt_copypaste</a>
+<div class="grp-hdr">Display</div>
+<a class="tlnk" href="#" onclick="show('vt_border_color');return false;">vt_border_color</a>
+<a class="tlnk" href="#" onclick="show('vt_present');return false;">vt_present</a>
+<div class="grp-hdr">File Helpers</div>
+<a class="tlnk" href="#" onclick="show('fileflags');return false;">fileflags</a>
+<a class="tlnk" href="#" onclick="show('vt_file_copy');return false;">vt_file_copy</a>
+<a class="tlnk" href="#" onclick="show('vt_file_exists');return false;">vt_file_exists</a>
+<a class="tlnk" href="#" onclick="show('vt_file_isdir');return false;">vt_file_isdir</a>
+<a class="tlnk" href="#" onclick="show('vt_file_list');return false;">vt_file_list</a>
+<a class="tlnk" href="#" onclick="show('vt_file_rmdir');return false;">vt_file_rmdir</a>
+<div class="grp-hdr">File I/O</div>
+<a class="tlnk" href="#" onclick="show('vt_bload');return false;">vt_bload</a>
+<a class="tlnk" href="#" onclick="show('vt_bsave');return false;">vt_bsave</a>
+<div class="grp-hdr">Font</div>
+<a class="tlnk" href="#" onclick="show('vt_font_reset');return false;">vt_font_reset</a>
+<a class="tlnk" href="#" onclick="show('vt_loadfont');return false;">vt_loadfont</a>
+<div class="grp-hdr">General</div>
+<a class="tlnk" href="#" onclick="show('vt_pump');return false;">vt_pump</a>
+<div class="grp-hdr">Hotkeys</div>
+<a class="tlnk" href="#" onclick="show('hk_alt');return false;">hk_alt</a>
+<a class="tlnk" href="#" onclick="show('hk_copypaste');return false;">hk_copypaste</a>
+<a class="tlnk" href="#" onclick="show('hk_scrollback');return false;">hk_scrollback</a>
+<div class="grp-hdr">Initialization</div>
+<a class="tlnk" href="#" onclick="show('vt_on_close');return false;">vt_on_close</a>
+<a class="tlnk" href="#" onclick="show('vt_screen');return false;">vt_screen</a>
+<a class="tlnk" href="#" onclick="show('vt_screen_maximum');return false;">vt_screen_maximum</a>
+<a class="tlnk" href="#" onclick="show('vt_screen_minimum');return false;">vt_screen_minimum</a>
+<a class="tlnk" href="#" onclick="show('vt_scrollback');return false;">vt_scrollback</a>
+<a class="tlnk" href="#" onclick="show('vt_shutdown');return false;">vt_shutdown</a>
+<a class="tlnk" href="#" onclick="show('vt_title');return false;">vt_title</a>
+<a class="tlnk" href="#" onclick="show('vt_width');return false;">vt_width</a>
+<div class="grp-hdr">Keyboard</div>
+<a class="tlnk" href="#" onclick="show('vt_getchar');return false;">vt_getchar</a>
+<a class="tlnk" href="#" onclick="show('vt_getkey');return false;">vt_getkey</a>
+<a class="tlnk" href="#" onclick="show('vt_inkey');return false;">vt_inkey</a>
+<a class="tlnk" href="#" onclick="show('vt_input');return false;">vt_input</a>
+<a class="tlnk" href="#" onclick="show('vt_key_flush');return false;">vt_key_flush</a>
+<a class="tlnk" href="#" onclick="show('vt_key_held');return false;">vt_key_held</a>
+<a class="tlnk" href="#" onclick="show('vt_key_repeat');return false;">vt_key_repeat</a>
+<a class="tlnk" href="#" onclick="show('vt_sleep');return false;">vt_sleep</a>
+<div class="grp-hdr">Math</div>
+<a class="tlnk" href="#" onclick="show('vt_approach');return false;">vt_approach</a>
+<a class="tlnk" href="#" onclick="show('vt_bresenham_walk');return false;">vt_bresenham_walk</a>
+<a class="tlnk" href="#" onclick="show('vt_chebyshev');return false;">vt_chebyshev</a>
+<a class="tlnk" href="#" onclick="show('vt_digits');return false;">vt_digits</a>
+<a class="tlnk" href="#" onclick="show('vt_in_rect');return false;">vt_in_rect</a>
+<a class="tlnk" href="#" onclick="show('vt_lerp');return false;">vt_lerp</a>
+<a class="tlnk" href="#" onclick="show('vt_los');return false;">vt_los</a>
+<a class="tlnk" href="#" onclick="show('vt_manhattan');return false;">vt_manhattan</a>
+<a class="tlnk" href="#" onclick="show('vt_mat_rotate_ccw');return false;">vt_mat_rotate_ccw</a>
+<a class="tlnk" href="#" onclick="show('vt_mat_rotate_cw');return false;">vt_mat_rotate_cw</a>
+<a class="tlnk" href="#" onclick="show('vt_wrap');return false;">vt_wrap</a>
+<div class="grp-hdr">Mouse</div>
+<a class="tlnk" href="#" onclick="show('vt_getmouse');return false;">vt_getmouse</a>
+<a class="tlnk" href="#" onclick="show('vt_mouse');return false;">vt_mouse</a>
+<a class="tlnk" href="#" onclick="show('vt_mouselock');return false;">vt_mouselock</a>
+<a class="tlnk" href="#" onclick="show('vt_setmouse');return false;">vt_setmouse</a>
+<div class="grp-hdr">Networking</div>
+<a class="tlnk" href="#" onclick="show('vt_net_bind');return false;">vt_net_bind</a>
+<a class="tlnk" href="#" onclick="show('vt_net_connect');return false;">vt_net_connect</a>
+<a class="tlnk" href="#" onclick="show('vt_net_init');return false;">vt_net_init</a>
+<a class="tlnk" href="#" onclick="show('vt_net_local_addr');return false;">vt_net_local_addr</a>
+<a class="tlnk" href="#" onclick="show('vt_net_nonblocking');return false;">vt_net_nonblocking</a>
+<a class="tlnk" href="#" onclick="show('vt_net_open');return false;">vt_net_open</a>
+<a class="tlnk" href="#" onclick="show('vt_net_ready');return false;">vt_net_ready</a>
+<a class="tlnk" href="#" onclick="show('vt_net_resolve');return false;">vt_net_resolve</a>
+<a class="tlnk" href="#" onclick="show('vt_net_send');return false;">vt_net_send</a>
+<a class="tlnk" href="#" onclick="show('vt_net_send_udp');return false;">vt_net_send_udp</a>
+<a class="tlnk" href="#" onclick="show('vt_net_shutdown');return false;">vt_net_shutdown</a>
+<div class="grp-hdr">Networking-TLS</div>
+<a class="tlnk" href="#" onclick="show('vt_tls_connect');return false;">vt_tls_connect</a>
+<a class="tlnk" href="#" onclick="show('vt_tls_disconnect');return false;">vt_tls_disconnect</a>
+<a class="tlnk" href="#" onclick="show('vt_tls_fingerprint');return false;">vt_tls_fingerprint</a>
+<a class="tlnk" href="#" onclick="show('vt_tls_recv');return false;">vt_tls_recv</a>
+<a class="tlnk" href="#" onclick="show('vt_tls_send');return false;">vt_tls_send</a>
+<div class="grp-hdr">Pages</div>
+<a class="tlnk" href="#" onclick="show('vt_page');return false;">vt_page</a>
+<a class="tlnk" href="#" onclick="show('vt_pcopy');return false;">vt_pcopy</a>
+<div class="grp-hdr">Palette</div>
+<a class="tlnk" href="#" onclick="show('vt_palette');return false;">vt_palette</a>
+<a class="tlnk" href="#" onclick="show('vt_palette_get');return false;">vt_palette_get</a>
+<a class="tlnk" href="#" onclick="show('vt_palette_set');return false;">vt_palette_set</a>
+<div class="grp-hdr">Printing</div>
+<a class="tlnk" href="#" onclick="show('vt_cls');return false;">vt_cls</a>
+<a class="tlnk" href="#" onclick="show('vt_color');return false;">vt_color</a>
+<a class="tlnk" href="#" onclick="show('vt_locate');return false;">vt_locate</a>
+<a class="tlnk" href="#" onclick="show('vt_print');return false;">vt_print</a>
+<a class="tlnk" href="#" onclick="show('vt_print_center');return false;">vt_print_center</a>
+<a class="tlnk" href="#" onclick="show('vt_scroll_enable');return false;">vt_scroll_enable</a>
+<div class="grp-hdr">Query</div>
+<a class="tlnk" href="#" onclick="show('vt_cols');return false;">vt_cols</a>
+<a class="tlnk" href="#" onclick="show('vt_csrlin');return false;">vt_csrlin</a>
+<a class="tlnk" href="#" onclick="show('vt_pos');return false;">vt_pos</a>
+<a class="tlnk" href="#" onclick="show('vt_rows');return false;">vt_rows</a>
+<a class="tlnk" href="#" onclick="show('vt_screeninfo');return false;">vt_screeninfo</a>
+<div class="grp-hdr">Scroll</div>
+<a class="tlnk" href="#" onclick="show('vt_screen_to_live_row');return false;">vt_screen_to_live_row</a>
+<a class="tlnk" href="#" onclick="show('vt_scroll');return false;">vt_scroll</a>
+<a class="tlnk" href="#" onclick="show('vt_view_print');return false;">vt_view_print</a>
+<div class="grp-hdr">Sort</div>
+<a class="tlnk" href="#" onclick="show('vt_sort');return false;">vt_sort</a>
+<a class="tlnk" href="#" onclick="show('vt_sort_apply');return false;">vt_sort_apply</a>
+<a class="tlnk" href="#" onclick="show('vt_sort_shuffle');return false;">vt_sort_shuffle</a>
+<div class="grp-hdr">Sound</div>
+<a class="tlnk" href="#" onclick="show('soundconsts');return false;">soundconsts</a>
+<a class="tlnk" href="#" onclick="show('vt_beep');return false;">vt_beep</a>
+<a class="tlnk" href="#" onclick="show('vt_sound');return false;">vt_sound</a>
+<a class="tlnk" href="#" onclick="show('vt_sound_wait');return false;">vt_sound_wait</a>
+<div class="grp-hdr">Strings</div>
+<a class="tlnk" href="#" onclick="show('vt_str_count');return false;">vt_str_count</a>
+<a class="tlnk" href="#" onclick="show('vt_str_ends_with');return false;">vt_str_ends_with</a>
+<a class="tlnk" href="#" onclick="show('vt_str_pad_left');return false;">vt_str_pad_left</a>
+<a class="tlnk" href="#" onclick="show('vt_str_pad_right');return false;">vt_str_pad_right</a>
+<a class="tlnk" href="#" onclick="show('vt_str_repeat');return false;">vt_str_repeat</a>
+<a class="tlnk" href="#" onclick="show('vt_str_replace');return false;">vt_str_replace</a>
+<a class="tlnk" href="#" onclick="show('vt_str_split');return false;">vt_str_split</a>
+<a class="tlnk" href="#" onclick="show('vt_str_starts_with');return false;">vt_str_starts_with</a>
+<a class="tlnk" href="#" onclick="show('vt_str_trim_chars');return false;">vt_str_trim_chars</a>
+<a class="tlnk" href="#" onclick="show('vt_str_wordwrap');return false;">vt_str_wordwrap</a>
+<div class="grp-hdr">Text UI</div>
+<a class="tlnk" href="#" onclick="show('c_tuiconsts');return false;">c_tuiconsts</a>
+<a class="tlnk" href="#" onclick="show('vt_tui_*line');return false;">vt_tui_*line</a>
+<a class="tlnk" href="#" onclick="show('vt_tui_dialog');return false;">vt_tui_dialog</a>
+<a class="tlnk" href="#" onclick="show('vt_tui_editor_*');return false;">vt_tui_editor_*</a>
+<a class="tlnk" href="#" onclick="show('vt_tui_file_dialog');return false;">vt_tui_file_dialog</a>
+<a class="tlnk" href="#" onclick="show('vt_tui_form_*');return false;">vt_tui_form_*</a>
+<a class="tlnk" href="#" onclick="show('vt_tui_form_offset');return false;">vt_tui_form_offset</a>
+<a class="tlnk" href="#" onclick="show('vt_tui_keymap');return false;">vt_tui_keymap</a>
+<a class="tlnk" href="#" onclick="show('vt_tui_label_draw');return false;">vt_tui_label_draw</a>
+<a class="tlnk" href="#" onclick="show('vt_tui_listbox_*');return false;">vt_tui_listbox_*</a>
+<a class="tlnk" href="#" onclick="show('vt_tui_menubar_*');return false;">vt_tui_menubar_*</a>
+<a class="tlnk" href="#" onclick="show('vt_tui_mouse_in_rect');return false;">vt_tui_mouse_in_rect</a>
+<a class="tlnk" href="#" onclick="show('vt_tui_progress');return false;">vt_tui_progress</a>
+<a class="tlnk" href="#" onclick="show('vt_tui_rect_fill');return false;">vt_tui_rect_fill</a>
+<a class="tlnk" href="#" onclick="show('vt_tui_statusbar');return false;">vt_tui_statusbar</a>
+<a class="tlnk" href="#" onclick="show('vt_tui_theme');return false;">vt_tui_theme</a>
+<a class="tlnk" href="#" onclick="show('vt_tui_window');return false;">vt_tui_window</a>
+<div class="grp-hdr">Utilities</div>
+<a class="tlnk" href="#" onclick="show('vt_rnd');return false;">vt_rnd</a>
+<a class="tlnk" href="#" onclick="show('vt_utf8_to_cp437');return false;">vt_utf8_to_cp437</a>
+</div>
+<div id="pane">
+<div id="welcome">Select a topic from the left panel.</div>
+<div class="tdiv" id="vt_get_cell">
+<h2>vt_get_cell</h2>
+<div class="t-short">Read one character cell from the work page</div>
+<pre class="body-pre">Read the character, foreground colour, and
+background colour of a single cell on the
+active work page. Coordinates are 1-based.
+Out-of-range coordinates are ignored.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_get_cell(col As Long, row As Long, _
+                ByRef ch As UByte, _
+                ByRef fg As UByte, ByRef bg As UByte)</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">col  Column, 1-based.
+row  Row, 1-based.
+ch   Receives the CP437 character code.
+fg   Receives the foreground colour index
+     (may include blink bit 16).
+bg   Receives the background colour index.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">Dim ch As UByte, fg As UByte, bg As UByte
+vt_get_cell(5, 3, ch, fg, bg)
+vt_print(&quot;Char at (5,3): &quot; &amp; Chr(ch))</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_set_cell');return false;">vt_set_cell</a>
+</div>
+</div>
+<div class="tdiv" id="vt_set_cell">
+<h2>vt_set_cell</h2>
+<div class="t-short">Write one character cell directly</div>
+<pre class="body-pre">Write a character cell directly on the active
+work page without moving the cursor. Does not
+call vt_present. Out-of-range coordinates are
+silently ignored.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_set_cell(col As Long, row As Long, _
+                ch As UByte, _
+                fg As UByte, bg As UByte)</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">col  Column, 1-based.
+row  Row, 1-based.
+ch   CP437 character code (0-255).
+fg   Foreground colour (0-15), optionally
+     OR'd with 16 for blink.
+bg   Background colour (0-15).</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">' Draw a solid blue block at (10, 5):
+vt_set_cell(10, 5, 219, VT_WHITE, VT_BLUE)
+vt_present()</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_get_cell');return false;">vt_get_cell</a>
+<a href="#" onclick="show('vt_color');return false;">vt_color</a>
+</div>
+</div>
+<div class="tdiv" id="c_colors">
+<h2>c_colors</h2>
+<div class="t-short">Color index constants (0-15 + VT_BLINK)</div>
+<pre class="body-pre">Used with vt_color, vt_cls, vt_set_cell etc.
+These are VT_COLOR_IDX enum values 0-15.
+OR any foreground color with VT_BLINK (16)
+to enable character blinking.</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">Enum
+    VT_BLACK          ' 0
+    VT_BLUE           ' 1
+    VT_GREEN          ' 2
+    VT_CYAN           ' 3
+    VT_RED            ' 4
+    VT_MAGENTA        ' 5
+    VT_BROWN          ' 6
+    VT_LIGHT_GREY     ' 7
+    VT_DARK_GREY      ' 8
+    VT_BRIGHT_BLUE    ' 9
+    VT_BRIGHT_GREEN   ' 10
+    VT_BRIGHT_CYAN    ' 11
+    VT_BRIGHT_RED     ' 12  
+    VT_BRIGHT_MAGENTA ' 13
+    VT_YELLOW         ' 14
+    VT_WHITE          ' 15
+    VT_BLINK          ' 16 
+End Enum</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">'Blinking red warning text :
+ vt_screen()
+ vt_color(VT_RED Or VT_BLINK)
+ vt_print(&quot;Warning, are you sure?&quot;)
+ vt_sleep()
+ vt_shutdown()</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_color');return false;">vt_color</a>
+<a href="#" onclick="show('vt_cls');return false;">vt_cls</a>
+<a href="#" onclick="show('vt_set_cell');return false;">vt_set_cell</a>
+</div>
+</div>
+<div class="tdiv" id="c_keymacros">
+<h2>c_keymacros</h2>
+<div class="t-short">Key-event extraction macros</div>
+<pre class="body-pre">vt_inkey and vt_getkey return a packed ULong.
+Use these macros to extract fields from it.</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">#Define VT_CHAR(k)    ((k) And &amp;hFF)
+  ASCII code of the resulting character
+  (Ctrl+letter gives 1-26). 0 for special
+  keys -- use VT_SCAN for those.
+
+#Define VT_SCAN(k)    (((k) Shr 16) And &amp;hFFF)
+  VT scancode (bits 16-27). Only meaningful
+  for VT_KEY_* constants. Returns 0 for
+  regular letter/digit/symbol keys.
+  Always compare via this macro.
+
+#Define VT_REPEAT(k)  (((k) Shr 28) And 1)
+  1 if this is an auto-repeat event.
+
+#Define VT_SHIFT(k)   (((k) Shr 29) And 1)
+  1 if Shift was held.
+
+#Define VT_CTRL(k)    (((k) Shr 30) And 1)
+  1 if Ctrl was held.
+
+#Define VT_ALT(k)     (((k) Shr 31) And 1)
+  1 if Alt was held.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">Dim k As ULong = vt_getkey()
+Select Case VT_SCAN(k)
+    Case VT_KEY_UP    : ' move up
+    Case VT_KEY_DOWN  : ' move down
+    Case VT_KEY_ENTER : ' confirm
+    Case Else
+        If VT_CHAR(k) = Asc(&quot;q&quot;) Then End
+End Select</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_inkey');return false;">vt_inkey</a>
+<a href="#" onclick="show('vt_getkey');return false;">vt_getkey</a>
+<a href="#" onclick="show('c_keyscans');return false;">c_keyscans</a>
+</div>
+</div>
+<div class="tdiv" id="c_keyscans">
+<h2>c_keyscans</h2>
+<div class="t-short">VT_KEY_* scancode constants</div>
+<pre class="body-pre">Compare these against VT_SCAN(k). Never
+compare them directly against the raw ULong
+value returned by vt_inkey.</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">F-keys:
+Const VT_KEY_F1     = 59
+Const VT_KEY_F2     = 60
+Const VT_KEY_F3     = 61
+Const VT_KEY_F4     = 62
+Const VT_KEY_F5     = 63
+Const VT_KEY_F6     = 64
+Const VT_KEY_F7     = 65
+Const VT_KEY_F8     = 66
+Const VT_KEY_F9     = 67
+Const VT_KEY_F10    = 68
+Const VT_KEY_F11    = 133
+Const VT_KEY_F12    = 134
+
+Navigation:
+Const VT_KEY_UP     = 72
+Const VT_KEY_DOWN   = 80
+Const VT_KEY_LEFT   = 75
+Const VT_KEY_RIGHT  = 77
+Const VT_KEY_HOME   = 71
+Const VT_KEY_END    = 79
+Const VT_KEY_PGUP   = 73
+Const VT_KEY_PGDN   = 81
+Const VT_KEY_INS    = 82
+Const VT_KEY_DEL    = 83
+
+Special:
+Const VT_KEY_ESC    = 1
+Const VT_KEY_ENTER  = 28
+Const VT_KEY_BKSP   = 14
+Const VT_KEY_TAB    = 15
+Const VT_KEY_SPACE  = 57
+Const VT_KEY_LSHIFT = 42
+Const VT_KEY_RSHIFT = 54
+Const VT_KEY_LCTRL  = 29
+Const VT_KEY_RCTRL  = 157
+Const VT_KEY_LALT   = 56
+Const VT_KEY_RALT   = 184
+Const VT_KEY_LWIN   = 219
+Const VT_KEY_RWIN   = 220</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('c_keymacros');return false;">c_keymacros</a>
+<a href="#" onclick="show('vt_inkey');return false;">vt_inkey</a>
+<a href="#" onclick="show('vt_getkey');return false;">vt_getkey</a>
+<a href="#" onclick="show('vt_key_held');return false;">vt_key_held</a>
+</div>
+</div>
+<div class="tdiv" id="c_mathconsts">
+<h2>c_mathconsts</h2>
+<div class="t-short">Math macros (opt-in: VT_USE_MATH)</div>
+<pre class="body-pre">Available when #define VT_USE_MATH is placed
+before #include once &quot;vt/vt.bi&quot;.</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">#define VT_MIN(a, b)          iif((a) &lt; (b), (a), (b))
+  Returns the smaller of two values.
+#define VT_MAX(a, b)          iif((a) &gt; (b), (a), (b))
+  Returns the larger of two values.
+#define VT_CLAMP(v, lo, hi)   iif((v) &lt; (lo), (lo), iif((v) &gt; (hi), (hi), (v)))
+  Clamps v to the range [lo .. hi]
+#define VT_SIGN(x)            iif((x) &gt; 0, 1, iif((x) &lt; 0, -1, 0))
+  Returns -1, 0, or 1 depending on the sign of x.</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Macros use IIf() which evaluates both
+sides -- avoid expressions with side effects
+(function calls, increments) as arguments.</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_wrap');return false;">vt_wrap</a>
+<a href="#" onclick="show('vt_lerp');return false;">vt_lerp</a>
+<a href="#" onclick="show('vt_approach');return false;">vt_approach</a>
+</div>
+</div>
+<div class="tdiv" id="c_misc">
+<h2>c_misc</h2>
+<div class="t-short">Miscellaneous constants</div>
+<pre class="body-pre">Miscellaneous library constants</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">Const   VT_VERSION   = &quot;1.10.0&quot;   ' major.minor.patch
+#Define VT_VER_MAJOR = 1          ' preprocessor Versioning
+#Define VT_VER_MINOR = 10
+#Define VT_VER_PATCH = 0
+Const   VT_VIDEO     = 0          ' the visible display page
+Const   VT_DISABLED  = 0          ' generic on/off flags
+Const   VT_ENABLED   = 1
+#Define VT_NEWLINE     Chr(10)    ' newline for vt_print
+#Define VT_LF          VT_NEWLINE ' short alias</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_print');return false;">vt_print</a>
+<a href="#" onclick="show('vt_copypaste');return false;">vt_copypaste</a>
+<a href="#" onclick="show('vt_page');return false;">vt_page</a>
+<a href="#" onclick="show('vt_pcopy');return false;">vt_pcopy</a>
+</div>
+</div>
+<div class="tdiv" id="c_mousebtns">
+<h2>c_mousebtns</h2>
+<div class="t-short">Mouse button bitmask constants</div>
+<pre class="body-pre">Bitmask values returned in the btns parameter
+of vt_getmouse.</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">Const VT_MOUSE_BTN_LEFT   = 1   ' bit 0
+Const VT_MOUSE_BTN_RIGHT  = 2   ' bit 1
+Const VT_MOUSE_BTN_MIDDLE = 4   ' bit 2</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">Dim mb As Long
+vt_getmouse( , , @mb)
+If mb And VT_MOUSE_BTN_LEFT Then
+    ' left button is held
+End If</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_getmouse');return false;">vt_getmouse</a>
+<a href="#" onclick="show('vt_mouse');return false;">vt_mouse</a>
+</div>
+</div>
+<div class="tdiv" id="c_screenmodes">
+<h2>c_screenmodes</h2>
+<div class="t-short">Screen mode constants for vt_screen</div>
+<pre class="body-pre">Passed as the mode argument to vt_screen.
+VT_SCREEN_TILES uses 8x8 font data scaled to
+16x16 glyphs -- useful for square-cell tiles.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">VT_SCREENPARAM(col, row, fontwid, fonthei)</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">Const VT_SCREEN_0       = 0   ' 80x25  8x16  640x400 - VGA text (default)
+Const VT_SCREEN_2       = 2   ' 80x25  8x8   640x200 - CGA hi-res text grid
+Const VT_SCREEN_9       = 9   ' 80x25  8x14  640x350 - EGA text grid
+Const VT_SCREEN_12      = 12  ' 80x30  8x16  640x480 - VGA hi-res text grid
+Const VT_SCREEN_13      = 13  ' 40x25  8x8   320x200 - VGA Mode 13h text grid
+Const VT_SCREEN_EGA43   = 43  ' 80x43  8x8   640x344 - EGA 43-line
+Const VT_SCREEN_VGA50   = 50  ' 80x50  8x8   640x400 - VGA 50-line
+Const VT_SCREEN_TILES   = 100 ' 40x25  16x16 640x400 - square tiles, game-friendly
+Const VT_SCREEN_100_40  = 200 ' 100x40 8x16  800x640 - hi-res wide
+Const VT_SCREEN_100_50  = 201 ' 100x50 8x8   800x400 - hi-res wide packed
+Const VT_SCREEN_120_45  = 300 ' 120x45 8x16  960x720 - hi-res ultrawide
+Const VT_SCREEN_120_50  = 301 ' 120x50 8x8   960x400 - hi-res ultrawide packed
+
+#define VT_SCREENPARAM(_p...) type&lt;vt_screenparam_t&gt;(_p).n ' custom mode</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">  supports up to 255×255 cells.
+  fontwid and fonthei select the destination glyph cell size in pixels.
+
+  Scaled font support:
+  fontwid must be a multiple of 8.
+  The library derives scale = fontwid \ 8 and base_gh = fonthei \ scale.
+  base_gh must equal 8, 14, or 16 (a built-in source font).
+  Invalid combinations silently fall back to the 8×16 source at scale 1.</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_screen');return false;">vt_screen</a>
+<a href="#" onclick="show('c_winflags');return false;">c_winflags</a>
+</div>
+</div>
+<div class="tdiv" id="c_sortconsts">
+<h2>c_sortconsts</h2>
+<div class="t-short">Sort constants (opt-in: VT_USE_SORT)</div>
+<pre class="body-pre">Available when #define VT_USE_SORT is placed
+before #include once &quot;vt/vt.bi&quot;.</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">    Const VT_ASCENDING  = 0
+    Sort direction: smallest value first.
+    Const VT_DESCENDING = 1
+    Sort direction: largest value first.</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_sort');return false;">vt_sort</a>
+</div>
+</div>
+<div class="tdiv" id="c_winflags">
+<h2>c_winflags</h2>
+<div class="t-short">Window flag constants for vt_screen</div>
+<pre class="body-pre">Passed as the flags argument to vt_screen. Combine multiple flags with Or.</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">Const VT_WINDOWED           = 1   ' Start in a resizable window (default).
+Const VT_FULLSCREEN_ASPECT  = 2   ' Fullscreen, integer-scaled, letterboxed.
+Const VT_FULLSCREEN_STRETCH = 4   ' Fullscreen, stretches to fill display.
+Const VT_NO_RESIZE          = 8   ' Prevent user from resizing the window.
+Const VT_VSYNC              = 16  ' Enable vsync, off by default.
+Const VT_WINDOWED_MAX       = 32  ' Start regular window maximized.
+Const VT_RENDERER_HW        = 64  ' Use HW rendering (default: software).</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_screen');return false;">vt_screen</a>
+<a href="#" onclick="show('c_screenmodes');return false;">c_screenmodes</a>
+</div>
+</div>
+<div class="tdiv" id="vt_copypaste">
+<h2>vt_copypaste</h2>
+<div class="t-short">Enable or disable mouse selection and clipboard</div>
+<pre class="body-pre">Enable or disable the mouse copy/paste and text
+selection system. Call after vt_screen. Clears
+any active selection and resets all internal
+selection state. By default copypaste is disabled.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_copypaste(flags As Long)</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">flags  VT_ENABLED (1) to enable,
+       VT_DISABLED (0) to disable. (default)</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Selection: click-and-drag with LMB. A bare
+click without movement clears the selection.
+Copy: right-click copies the selection to the
+system clipboard and clears the selection.
+Copy also works during scrollback.
+Paste: MMB or Shift+Ins pastes from clipboard
+into the active vt_input field. Shift+Ins is
+always available regardless of this setting.
+Auto-scroll: holding the mouse at the top or
+bottom edge during a drag scrolls the content.
+When a column viewport is active via
+vt_view_print, selection is clipped to that
+column range. Selected text uses plain text
+format with trailing spaces trimmed and rows
+joined with CRLF.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">vt_screen(VT_SCREEN_0)
+vt_copypaste(VT_ENABLED)</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_screen');return false;">vt_screen</a>
+<a href="#" onclick="show('vt_input');return false;">vt_input</a>
+<a href="#" onclick="show('hk_copypaste');return false;">hk_copypaste</a>
+</div>
+</div>
+<div class="tdiv" id="vt_border_color">
+<h2>vt_border_color</h2>
+<div class="t-short">Set the letterbox border colour</div>
+<pre class="body-pre">Set the colour of the letterbox bars that
+appear outside the logical viewport in windowed
+or fullscreen-aspect modes. Default is black
+(0, 0, 0). Each channel is in the range 0-255.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_border_color(r As Long, g As Long, b As Long)</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">r  Red channel   (0-255)
+g  Green channel (0-255)
+b  Blue channel  (0-255)</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">' Dark navy letterbox:
+vt_border_color(0, 0, 64)</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_screen');return false;">vt_screen</a>
+</div>
+</div>
+<div class="tdiv" id="vt_present">
+<h2>vt_present</h2>
+<div class="t-short">Composite the visible page and flip to screen</div>
+<pre class="body-pre">Composite the visible page and flip it to the
+screen. Always renders the vis_page, which may
+differ from the active work page in multi-page
+mode. Drawing functions such as vt_print and
+vt_cls do not call vt_present automatically --
+you must call it to make changes visible.
+vt_inkey and vt_sleep call vt_present
+automatically (throttled) to keep the display
+alive during wait loops.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_present()</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">vt_locate(5, 1)
+vt_color(VT_CYAN, VT_BLACK)
+vt_print(&quot;Hello!&quot;)
+vt_present()</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_inkey');return false;">vt_inkey</a>
+<a href="#" onclick="show('vt_sleep');return false;">vt_sleep</a>
+<a href="#" onclick="show('vt_page');return false;">vt_page</a>
+</div>
+</div>
+<div class="tdiv" id="fileflags">
+<h2>fileflags</h2>
+<div class="t-short">File helper flags (opt-in: VT_USE_FILE)</div>
+<pre class="body-pre">Bit-flags for vt_file_copy, vt_file_rmdir,
+and vt_file_list. Combine with Or.</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">#Define VT_FILE_SHOW_HIDDEN   1
+      vt_file_list: include hidden items.
+
+#Define VT_FILE_SHOW_DIRS     2
+      vt_file_list: include subdirectory names.
+
+#Define VT_FILE_DIRS_ONLY     4
+      vt_file_list: only subdirectory names.
+
+#Define VT_FILE_OVERWRITE     8
+      vt_file_copy: allow overwrite of dst.
+
+#Define VT_FILE_RECURSIVE    16
+      vt_file_rmdir: delete all contents first.
+      Destructive -- no undo.</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_file_copy');return false;">vt_file_copy</a>
+<a href="#" onclick="show('vt_file_rmdir');return false;">vt_file_rmdir</a>
+<a href="#" onclick="show('vt_file_list');return false;">vt_file_list</a>
+</div>
+</div>
+<div class="tdiv" id="vt_file_copy">
+<h2>vt_file_copy</h2>
+<div class="t-short">Copy a file or a full directory tree</div>
+<pre class="body-pre">Copy a file or directory tree. Auto-detects
+whether src is a file or directory.
+File mode: source is read and written to
+destination in a single binary I/O operation.
+Fails if destination already exists unless
+VT_FILE_OVERWRITE is passed.
+Directory mode: the full tree is recreated
+under dst. If dst does not exist it is created;
+if it exists the trees are merged. Individual
+files already in dst are silently skipped
+unless VT_FILE_OVERWRITE is set. All entries
+are collected in a single Dir() pass before
+anything is written.
+NOTE: Copying a directory into itself or one
+of its subdirectories is detected and refused
+with -4. E.g. vt_file_copy(&quot;data&quot;,&quot;data/bak&quot;)
+returns -4 before any file is touched.
+Opt-in: define VT_USE_FILE before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_file_copy(ByRef src As Const String, _
+                      ByRef dst As Const String, _
+                      flags As Long = 0) As Long</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">src    Source file or directory path.
+dst    Destination file or directory path.
+flags  VT_FILE_OVERWRITE to allow overwriting
+       existing destination files.</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Return values:
+   0  success
+  -1  source not found (file nor directory)
+  -2  dst file exists without OVERWRITE, or
+      type mismatch (dst is file, src is dir)
+  -3  I/O error (open, read/write, or MkDir)
+  -4  recursion trap: dst is inside src</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">' Backup before overwriting:
+vt_file_copy(&quot;config.ini&quot;, &quot;config.bak&quot;)
+
+' Overwrite existing destination:
+vt_file_copy(&quot;save_new.vts&quot;, &quot;slot1.vts&quot;, _
+             VT_FILE_OVERWRITE)
+
+' Copy full directory tree:
+vt_file_copy(&quot;data&quot;, &quot;data_backup&quot;)</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_file_rmdir');return false;">vt_file_rmdir</a>
+<a href="#" onclick="show('vt_file_exists');return false;">vt_file_exists</a>
+<a href="#" onclick="show('fileflags');return false;">fileflags</a>
+</div>
+</div>
+<div class="tdiv" id="vt_file_exists">
+<h2>vt_file_exists</h2>
+<div class="t-short">Test whether a file exists</div>
+<pre class="body-pre">Returns 1 if path names an existing file, 0 if
+the path does not exist or is a directory.
+Uses Dir() directly - no vbcompat.bi required.
+Opt-in: define VT_USE_FILE before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_file_exists(ByRef path As Const String) As Byte</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">path  Path to test. May be relative or absolute.</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Return values:
+  1  File exists.
+  0  Not found, or path is a directory.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">If vt_file_exists(&quot;savegame.vts&quot;) Then
+    vt_bload(&quot;savegame.vts&quot;)
+End If</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_file_isdir');return false;">vt_file_isdir</a>
+<a href="#" onclick="show('vt_bload');return false;">vt_bload</a>
+</div>
+</div>
+<div class="tdiv" id="vt_file_isdir">
+<h2>vt_file_isdir</h2>
+<div class="t-short">Test whether a path is a directory</div>
+<pre class="body-pre">Returns 1 if path is an existing directory, 0
+otherwise. Hides the fbDirectory constant and
+dir.bi dependency from caller code entirely.
+Opt-in: define VT_USE_FILE before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_file_isdir(ByRef path As Const String) As Byte</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">path  Path to test. May be relative or absolute.</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Return values:
+  1  Path is an existing directory.
+  0  Not found, or path is a file.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">If vt_file_isdir(&quot;output&quot;) = 0 Then
+    MkDir(&quot;output&quot;)
+End If</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_file_exists');return false;">vt_file_exists</a>
+<a href="#" onclick="show('vt_file_list');return false;">vt_file_list</a>
+</div>
+</div>
+<div class="tdiv" id="vt_file_list">
+<h2>vt_file_list</h2>
+<div class="t-short">List directory contents into a String array</div>
+<pre class="body-pre">Scan a directory for items matching pattern and
+fill arr() with their bare names (no path
+prefix). The . and .. entries are always silently
+skipped. The array is ReDim'd by this function;
+the caller only needs to declare Dim arr() As
+String. By default only files are returned. Pass
+VT_FILE_SHOW_DIRS to include subdirectory names,
+or VT_FILE_DIRS_ONLY to return only directories.
+Opt-in: define VT_USE_FILE before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_file_list(ByRef path As Const String, _
+                      ByRef pattern As Const String, _
+                      arr() As String, _
+                      flags As Long = 0) As Long</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">path     Directory to scan. &quot;&quot; = current dir.
+pattern  Filename pattern, e.g. &quot;*.txt&quot; or &quot;*&quot;.
+         Supports * and ? wildcards.
+arr()    Receives item names. ReDim'd to
+         0 To count-1.
+flags    Optional: VT_FILE_SHOW_HIDDEN,
+         VT_FILE_SHOW_DIRS, VT_FILE_DIRS_ONLY.</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Return: number of items placed in arr(). 0 if
+nothing matched.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">Dim files() As String
+Dim cnt As Long = _
+    vt_file_list(&quot;notes&quot;, &quot;*.txt&quot;, files())
+For i As Long = 0 To cnt - 1
+    vt_print(files(i) &amp; VT_LF)
+Next i
+
+' List dirs only:
+cnt = vt_file_list(&quot;data&quot;, &quot;*&quot;, files(), _
+                   VT_FILE_DIRS_ONLY)</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_file_exists');return false;">vt_file_exists</a>
+<a href="#" onclick="show('vt_file_isdir');return false;">vt_file_isdir</a>
+<a href="#" onclick="show('fileflags');return false;">fileflags</a>
+</div>
+</div>
+<div class="tdiv" id="vt_file_rmdir">
+<h2>vt_file_rmdir</h2>
+<div class="t-short">Remove a directory, optionally recursive</div>
+<pre class="body-pre">Remove a directory. Without VT_FILE_RECURSIVE
+the directory must be empty. Use vt_file_rmdir
+when recursive deletion of a populated tree is
+needed. When VT_FILE_RECURSIVE is set, all files
+and subdirectories are collected in a single
+Dir() pass before anything is deleted.
+WARNING: VT_FILE_RECURSIVE is permanently
+destructive. There is no undo. The flag must
+be passed explicitly -- the default is always
+safe (empty-dir only).
+Opt-in: define VT_USE_FILE before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_file_rmdir(ByRef path As Const String, _
+                       flags As Long = 0) As Long</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">path   Path to the directory to remove.
+flags  Optional. VT_FILE_RECURSIVE deletes all
+       contents first.</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Return values:
+   0  success
+  -1  path is not an existing directory
+  -2  directory is not empty and
+      VT_FILE_RECURSIVE was not set
+  -3  failed (permissions or partial failure)</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">' Remove a populated tree (explicit opt-in):
+vt_file_rmdir(&quot;build_output&quot;, VT_FILE_RECURSIVE)</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_file_copy');return false;">vt_file_copy</a>
+<a href="#" onclick="show('fileflags');return false;">fileflags</a>
+</div>
+</div>
+<div class="tdiv" id="vt_bload">
+<h2>vt_bload</h2>
+<div class="t-short">Load a .vts screen file into the work page</div>
+<pre class="body-pre">Load a .vts file into the active work page.
+Validates the magic and screen dimensions before
+touching the cell buffer. Sets the display dirty
+on success so the next vt_present reflects the
+loaded content. Unaffected by any viewport -
+always loads the full screen.
+
+The .vts format: 4-byte magic &quot;VTBS&quot;, 4-byte
+cols, 4-byte rows (all little-endian Long),
+followed by cols x rows x 3 bytes (ch, fg, bg
+per cell, left-to-right, top-to-bottom).</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_bload(fname As String) As Long</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">fname  Path to the .vts file to load.</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Return values:
+   0  success
+  -1  library not ready (call vt_screen first)
+  -2  file could not be opened
+  -3  bad magic -- not a valid .vts file
+  -4  dimension mismatch (different screen mode)</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">If vt_file_exists(&quot;savegame.vts&quot;) Then
+    If vt_bload(&quot;savegame.vts&quot;) = 0 Then
+        vt_present()
+    End If
+End If</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_bsave');return false;">vt_bsave</a>
+<a href="#" onclick="show('vt_file_exists');return false;">vt_file_exists</a>
+</div>
+</div>
+<div class="tdiv" id="vt_bsave">
+<h2>vt_bsave</h2>
+<div class="t-short">Save the work page to a .vts file</div>
+<pre class="body-pre">Save the active work page to a .vts file.
+Unaffected by any viewport -- always saves the
+full screen. Created or overwritten.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_bsave(fname As String) As Long</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">fname  Destination file path. Created or
+       overwritten if it exists.</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Return values:
+   0  success
+  -1  library not ready (call vt_screen first)
+  -2  file could not be opened for writing</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">If vt_bsave(&quot;savegame.vts&quot;) &lt;&gt; 0 Then
+    vt_print(&quot;Save failed!&quot; &amp; VT_LF)
+End If</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_bload');return false;">vt_bload</a>
+</div>
+</div>
+<div class="tdiv" id="vt_font_reset">
+<h2>vt_font_reset</h2>
+<div class="t-short">Restore the built-in embedded font</div>
+<pre class="body-pre">Restore the built-in embedded CP437 font
+selected by the current screen mode. Destroys
+any custom font loaded with vt_loadfont. Must
+be called after vt_screen.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_font_reset() As Long</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Return values:
+   0  success
+  -1  library not ready
+  -2  surface or texture creation failed</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_loadfont');return false;">vt_loadfont</a>
+<a href="#" onclick="show('vt_screen');return false;">vt_screen</a>
+</div>
+</div>
+<div class="tdiv" id="vt_loadfont">
+<h2>vt_loadfont</h2>
+<div class="t-short">Load a custom BMP font sheet</div>
+<pre class="body-pre">Load a BMP font sheet and replace the active
+font texture at runtime. The loaded font stays
+active until vt_loadfont is called again,
+vt_font_reset is called, or vt_screen
+reinitializes the window.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_loadfont(fname   As String, _
+                     sheet_w As Long  = -1, _
+                     sheet_h As Long  = -1, _
+                     mask_r  As UByte = 0,  _
+                     mask_g  As UByte = 0,  _
+                     mask_b  As UByte = 0) As Long</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">fname    Path to a BMP file. Any bit depth.
+sheet_w  Expected BMP pixel width (-1 = any).
+sheet_h  Expected BMP pixel height (-1 = any).
+mask_r   Red component of the transparent colour.
+mask_g   Green component of the transparent colour.
+mask_b   Blue component of the transparent colour.</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Return values:
+   0  success
+  -1  library not ready
+  -2  BMP load or surface creation failed
+  -3  image dimensions mismatch
+  -4  SDL texture upload failed
+
+Layout is detected automatically from the BMP
+pixel dimensions relative to the current glyph
+size (gw x gh):
+  16x16 grid:  16*gw x 16*gh  (e.g. 128x128)
+  256x1 strip: 256*gw x gh    (e.g. 2048x8)
+
+Common mask colours:
+  Black (default): mask_r=0   mask_g=0   mask_b=0
+  Magenta:         mask_r=255 mask_g=0   mask_b=255
+  White:           mask_r=255 mask_g=255 mask_b=255
+
+Non-mask pixels are normalized to white
+internally so colour-mod tinting applies
+the correct foreground colour.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">Dim r As Long = _
+    vt_loadfont(&quot;myfont.bmp&quot;, -1, -1, 255, 0, 255)
+If r &lt;&gt; 0 Then
+    vt_print(&quot;Font load failed: &quot; &amp; r &amp; VT_LF)
+End If</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_font_reset');return false;">vt_font_reset</a>
+<a href="#" onclick="show('vt_screen');return false;">vt_screen</a>
+</div>
+</div>
+<div class="tdiv" id="vt_pump">
+<h2>vt_pump</h2>
+<div class="t-short">Manually drain the event queue</div>
+<pre class="body-pre">Manually drain the event queue. Normally
+called automatically by vt_inkey, vt_present,
+and vt_sleep. Rarely needed directly -- useful
+in tight loops that never call any of those.
+Re-entrant safe (a second call inside returns
+immediately).</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_pump()</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_inkey');return false;">vt_inkey</a>
+<a href="#" onclick="show('vt_present');return false;">vt_present</a>
+<a href="#" onclick="show('vt_sleep');return false;">vt_sleep</a>
+</div>
+</div>
+<div class="tdiv" id="hk_alt">
+<h2>hk_alt</h2>
+<div class="t-short">Alt+letter intercept for the TUI menubar</div>
+<pre class="body-pre">VT intercepts Alt+letter combinations before
+they reach your program and delivers them to
+the TUI menubar. The key event arrives with
+VT_ALT(k) = 1 and VT_CHAR(k) set to the
+letter that was pressed. Used by
+vt_tui_menubar_draw to open a menu group by
+its first letter.</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_tui_menubar_draw');return false;">vt_tui_menubar_draw</a>
+<a href="#" onclick="show('c_keymacros');return false;">c_keymacros</a>
+<a href="#" onclick="show('hk_copypaste');return false;">hk_copypaste</a>
+</div>
+</div>
+<div class="tdiv" id="hk_copypaste">
+<h2>hk_copypaste</h2>
+<div class="t-short">Internal copy/paste key and mouse bindings</div>
+<pre class="body-pre">Available only when vt_copypaste has been called
+to enable it.
+
+  LMB drag        Select a region. Activates
+                  only once the mouse moves.
+  RMB click       Copy selection to clipboard
+                  and deselect.
+  MMB click       Paste clipboard (vt_input only)
+  Shift+Ins       Paste clipboard (vt_input only,
+                  always available regardless of
+                  copy/paste mode setting).</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_copypaste');return false;">vt_copypaste</a>
+<a href="#" onclick="show('vt_input');return false;">vt_input</a>
+<a href="#" onclick="show('vt_tui_menubar_draw');return false;">vt_tui_menubar_draw</a>
+<a href="#" onclick="show('hk_alt');return false;">hk_alt</a>
+</div>
+</div>
+<div class="tdiv" id="hk_scrollback">
+<h2>hk_scrollback</h2>
+<div class="t-short">Internal scrollback navigation key bindings</div>
+<pre class="body-pre">VT intercepts these combinations before they
+reach your program. Scrollback must be enabled
+with vt_scrollback for these to have any effect.
+Any key not listed below exits scrollback and
+returns to the live view.
+
+  Shift+PgUp       Scroll back 1 line
+  Shift+PgDn       Scroll forward 1 line
+  Ctrl+Shift+PgUp  Scroll back half a page
+  Ctrl+Shift+PgDn  Scroll forward half a page</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_scrollback');return false;">vt_scrollback</a>
+<a href="#" onclick="show('vt_scroll');return false;">vt_scroll</a>
+</div>
+</div>
+<div class="tdiv" id="vt_on_close">
+<h2>vt_on_close</h2>
+<div class="t-short">Register a callback for the [X] button</div>
+<pre class="body-pre">Register a function invoked when the user
+clicks the window [X] button. Without a
+callback, the default is to call vt_shutdown
+and End immediately. With a callback, your
+function is called first and acts on the
+return value. VT functions are safe to call
+inside the callback (drawing, vt_inkey, etc.).
+Pass 0 to remove the callback and restore the
+default auto-close behaviour.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_on_close(cb As Function() As Byte)</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">cb  Pointer to a Function() As Byte.
+    Pass 0 to restore default auto-close.</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Callback return values:
+  0  Allow close: library calls vt_shutdown
+     then End.
+  1  Veto close: window stays open, program
+     continues normally.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">Function on_close() As Byte
+    vt_color(VT_BLACK, VT_LIGHT_GREY)
+    vt_locate(25, 1)
+    vt_print(&quot;Quit? (Y/N)&quot; &amp; String(48, &quot; &quot;))
+    Dim ans As String = vt_getchar(&quot;YyNn&quot;)
+    If LCase(ans) = &quot;y&quot; Then Return 0
+    draw_statusbar()
+    vt_present()
+    Return 1
+End Function
+
+vt_screen(VT_SCREEN_0)
+vt_on_close(@on_close)
+' Remove callback:
+vt_on_close(0)</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_screen');return false;">vt_screen</a>
+<a href="#" onclick="show('vt_shutdown');return false;">vt_shutdown</a>
+</div>
+</div>
+<div class="tdiv" id="vt_screen">
+<h2>vt_screen</h2>
+<div class="t-short">Open or reopen the virtual text screen</div>
+<pre class="body-pre">Open or reopen the VT window. Calling again
+closes and reinitialises with the new settings.
+Call vt_title before to set the title before
+the window appears. Call vt_scrollback after
+to enable the scrollback buffer. Call
+vt_copypaste after to enable clipboard support.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_screen(mode As Long = VT_SCREEN_0, flags As Long = VT_WINDOWED, pages As Long = 1) As Long</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">mode   Screen mode. One of the VT_SCREEN_*
+       constants. Default VT_SCREEN_0.
+
+flags  Window flags. VT_WINDOWED,
+       VT_FULLSCREEN_* etc., combined with Or.
+
+pages  Cell buffer count (1-8). Page 0 is
+       always VT_VIDEO. Extra pages are used
+       with vt_page / vt_pcopy.</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Return values:
+   0  success
+  -1  SDL_Init failed
+  -2  SDL window creation failed
+  -3  SDL renderer creation failed
+  -4  font texture creation failed
+  -5  page buffer alloc failed
+
+  custom modes up to 255x255 cells and
+  either font 8x8, 8x14 or 8x16
+  use the macro VT_SCREENPARAM(col, row, fw, fh)
+  as mode parameter</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">If vt_screen(VT_SCREEN_12, _
+             VT_WINDOWED Or VT_NO_RESIZE) _
+             &lt;&gt; 0 Then
+    Print &quot;Failed to open screen&quot;
+    End 1
+End If
+
+'custom mode:
+vt_screen VT_SCREENPARAM(80, 10, 8, 8), VT_WINDOWED</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_shutdown');return false;">vt_shutdown</a>
+<a href="#" onclick="show('vt_title');return false;">vt_title</a>
+<a href="#" onclick="show('vt_scrollback');return false;">vt_scrollback</a>
+<a href="#" onclick="show('vt_copypaste');return false;">vt_copypaste</a>
+<a href="#" onclick="show('c_screenmodes');return false;">c_screenmodes</a>
+<a href="#" onclick="show('c_winflags');return false;">c_winflags</a>
+</div>
+</div>
+<div class="tdiv" id="vt_screen_maximum">
+<h2>vt_screen_maximum</h2>
+<div class="t-short">set the maximum allowed size of a window</div>
+<pre class="body-pre">Prevents the user to upsize a resizable
+window above the threshold. Call AFTER vt_screen.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_screen_maximum(cols As Long, rows As Long)</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_width');return false;">vt_width</a>
+</div>
+</div>
+<div class="tdiv" id="vt_screen_minimum">
+<h2>vt_screen_minimum</h2>
+<div class="t-short">set the minimum allowed size of a window</div>
+<pre class="body-pre">Prevents the user to downsize a resizable
+window below the threshold Call AFTER vt_screen.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_screen_minimum(cols As Long, rows As Long)</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_width');return false;">vt_width</a>
+</div>
+</div>
+<div class="tdiv" id="vt_scrollback">
+<h2>vt_scrollback</h2>
+<div class="t-short">Allocate or resize the scrollback buffer</div>
+<pre class="body-pre">Allocate, resize, or disable the scrollback
+history buffer. Must be called after vt_screen.
+Calling it again clears any existing history.
+Scrollback captures lines scrolled off the top
+of the scroll region. See the Hotkeys section
+for the key bindings that activate scrollback.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_scrollback(lines As Long)</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">lines  History lines to keep. Pass 0 to
+       disable scrollback and free the buffer.</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_screen');return false;">vt_screen</a>
+<a href="#" onclick="show('vt_scroll');return false;">vt_scroll</a>
+<a href="#" onclick="show('hk_scrollback');return false;">hk_scrollback</a>
+</div>
+</div>
+<div class="tdiv" id="vt_shutdown">
+<h2>vt_shutdown</h2>
+<div class="t-short">Tear down the library and free resources</div>
+<pre class="body-pre">Explicitly close the window and free all
+resources. No VT drawing calls should be made
+after vt_shutdown returns.
+It is safe to call even if vt_screen was never
+called.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_shutdown()</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_screen');return false;">vt_screen</a>
+</div>
+</div>
+<div class="tdiv" id="vt_title">
+<h2>vt_title</h2>
+<div class="t-short">Set the window title bar text</div>
+<pre class="body-pre">Set the window title. Safe to call before or
+after vt_screen. Before: the title is stored
+and applied when the window is created. After:
+applied immediately to the live window.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_title(txt As String)</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">txt   the title bar text.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">vt_title(&quot;My Application&quot;)
+vt_screen(VT_SCREEN_0)</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_screen');return false;">vt_screen</a>
+</div>
+</div>
+<div class="tdiv" id="vt_width">
+<h2>vt_width</h2>
+<div class="t-short">Resize the virtual character grid at runtime without closing the window.</div>
+<pre class="body-pre">Reallocates all page buffers at the new dimensions, destroys and recreates
+the render buffer, resets the cursor to (1, 1), restores the scroll
+region to the full screen, and invalidates the scrollback buffer
+(call vt_scrollback again afterwards if needed).
+Finishes with vt_cls and vt_present so the cleared screen
+is visible immediately.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_width(new_cols As Long, new_rows As Long) As Long</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">cols  Long  New column count. Clamped to a minimum of 10.
+rows  Long  New row count.    Clamped to a minimum of 3.
+
+Return value
+  0 - success.
+ -1 - library not initialized (vt_screen not called).</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">' Dynamic resize in the main loop:
+Dim nc As Long, nr As Long
+Do
+    k = vt_inkey()
+    If VT_SCAN(k) = VT_KEY_ESC Then Exit Do
+
+    If vt_screeninfo(nc, nr) Then
+        vt_width nc, nr
+        relayout nc, nr   ' re-draw app at new grid size
+    End If
+
+    vt_sleep(16)
+Loop</pre>
+</div>
+<div class="tdiv" id="vt_getchar">
+<h2>vt_getchar</h2>
+<div class="t-short">Block until a printable character is pressed</div>
+<pre class="body-pre">Block until a printable character (ASCII 32-255)
+is pressed. If allowed is non-empty, only
+characters within that string are accepted; all
+others are discarded silently. Returns the
+accepted character as a one-character String.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_getchar(allowed As String = &quot;&quot;) _
+                    As String</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">allowed  Whitelist of accepted characters.
+         Empty string = accept any printable.</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Return: single-character String containing the
+accepted character.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">vt_print(&quot;Continue? (Y/N) &quot;)
+Dim ans As String = UCase(vt_getchar(&quot;YyNn&quot;))</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_getkey');return false;">vt_getkey</a>
+<a href="#" onclick="show('vt_inkey');return false;">vt_inkey</a>
+<a href="#" onclick="show('vt_input');return false;">vt_input</a>
+</div>
+</div>
+<div class="tdiv" id="vt_getkey">
+<h2>vt_getkey</h2>
+<div class="t-short">Block until any key is pressed</div>
+<pre class="body-pre">Block until any key (including non-printable and
+special keys) is pressed. Returns the same
+packed ULong format as vt_inkey. Use the
+VT_SCAN / VT_CHAR / VT_SHIFT / VT_CTRL /
+VT_ALT macros to extract fields.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_getkey() As ULong</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Return: packed key event value. Decode with
+VT_CHAR, VT_SCAN, VT_SHIFT, VT_CTRL, VT_ALT,
+VT_REPEAT macros.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">Dim k As ULong = vt_getkey()
+If VT_SCAN(k) = VT_KEY_ESC Then End
+If VT_CHAR(k) = Asc(&quot;q&quot;) Then End</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_inkey');return false;">vt_inkey</a>
+<a href="#" onclick="show('vt_getchar');return false;">vt_getchar</a>
+<a href="#" onclick="show('c_keymacros');return false;">c_keymacros</a>
+<a href="#" onclick="show('c_keyscans');return false;">c_keyscans</a>
+</div>
+</div>
+<div class="tdiv" id="vt_inkey">
+<h2>vt_inkey</h2>
+<div class="t-short">Non-blocking key read</div>
+<pre class="body-pre">Non-blocking key read. Returns the next key
+from the buffer, or 0 if no key is pending.
+Also pumps events, updates blink, and calls
+vt_present if the display is dirty (throttled
+to 2 ms). Use VT_SCAN / VT_CHAR macros to
+decode the returned value.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_inkey() As ULong</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Return: packed key event (non-zero) if a key
+was waiting. 0 if the buffer is empty or the
+library is not ready.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">' Game loop pattern:
+Do
+    Dim k As ULong = vt_inkey()
+    If VT_SCAN(k) = VT_KEY_ESC Then Exit Do
+    ' ... update and draw ...
+    vt_sleep 16
+Loop</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_getkey');return false;">vt_getkey</a>
+<a href="#" onclick="show('vt_getchar');return false;">vt_getchar</a>
+<a href="#" onclick="show('vt_pump');return false;">vt_pump</a>
+<a href="#" onclick="show('c_keymacros');return false;">c_keymacros</a>
+<a href="#" onclick="show('c_keyscans');return false;">c_keyscans</a>
+</div>
+</div>
+<div class="tdiv" id="vt_input">
+<h2>vt_input</h2>
+<div class="t-short">Full-featured blocking single-line editor</div>
+<pre class="body-pre">Blocking single-line text editor at the current
+cursor position. Supports Home, End, Left, Right,
+Insert, Delete, Backspace, and clipboard paste
+when copy/paste is enabled. Returns the entered
+string on Enter, or &quot;&quot; on Escape. Colour must
+be set with vt_color before calling. The editor
+does not call vt_present directly; internal
+vt_inkey calls handle presentation.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_input(max_len   As Long = -1, _
+                  initial   As String = &quot;&quot;, _
+                  allowed   As String = &quot;&quot;, _
+                  cancelled As Byte Ptr = 0) _
+                  As String</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">max_len   Max input length. -1 fills remaining
+          columns on the current row.
+initial   Pre-filled text. Escape restores this
+          text, clears the screen, and returns &quot;&quot;.
+allowed   Whitelist of accepted characters.
+          Empty = accept any printable ASCII.
+cancelled Optional Byte Ptr. Set to 1 on Escape,
+          0 on Enter. Pass 0 to ignore.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">Dim esc As Byte
+vt_locate(10, 1)
+vt_print(&quot;Enter amount: &quot;)
+Dim amount As String = _
+    vt_input(8, &quot;0&quot;, &quot;0123456789.&quot;, @esc)
+If esc Then
+    vt_print(&quot;Cancelled&quot; &amp; VT_LF)
+Else
+    vt_print(&quot;Got: &quot; &amp; amount &amp; VT_LF)
+End If
+vt_present()</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_getchar');return false;">vt_getchar</a>
+<a href="#" onclick="show('vt_getkey');return false;">vt_getkey</a>
+<a href="#" onclick="show('vt_color');return false;">vt_color</a>
+<a href="#" onclick="show('vt_locate');return false;">vt_locate</a>
+<a href="#" onclick="show('vt_copypaste');return false;">vt_copypaste</a>
+</div>
+</div>
+<div class="tdiv" id="vt_key_flush">
+<h2>vt_key_flush</h2>
+<div class="t-short">Discard all pending keys in the key buffer</div>
+<pre class="body-pre">Discard all keys currently waiting in the
+internal key buffer.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_key_flush()</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_inkey');return false;">vt_inkey</a>
+</div>
+</div>
+<div class="tdiv" id="vt_key_held">
+<h2>vt_key_held</h2>
+<div class="t-short">Poll the real-time state of a key</div>
+<pre class="body-pre">Poll whether a key is physically held down at
+the time of the call. Returns 1 if held, 0 if
+not. Useful for smooth movement in game loops
+where event-based repeat is not fast enough.
+Accepts the same VT_KEY_* scancode constants
+used with VT_SCAN.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_key_held(vtscan As Long) As Byte</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">vtscan  A VT_KEY_* scancode constant.</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Return values:
+  1  Key is currently pressed.
+  0  Not pressed, scancode not recognized,
+     or library not ready.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">If vt_key_held(VT_KEY_LEFT)  Then x -= 1
+If vt_key_held(VT_KEY_RIGHT) Then x += 1</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_inkey');return false;">vt_inkey</a>
+<a href="#" onclick="show('c_keyscans');return false;">c_keyscans</a>
+</div>
+</div>
+<div class="tdiv" id="vt_key_repeat">
+<h2>vt_key_repeat</h2>
+<div class="t-short">Configure auto-repeat timing</div>
+<pre class="body-pre">Configure the timing of auto-repeat events
+generated when a key is held down. Default:
+400 ms initial delay, 30 ms repeat rate. Set
+either value to 0 to disable the corresponding
+phase of repeat.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_key_repeat(initial_ms As Long = 400, _
+                  rate_ms    As Long = 30)</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">initial_ms  Delay in ms before the first repeat
+            event fires. Default 400.
+rate_ms     Interval in ms between subsequent
+            repeat events. Default 30.</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_inkey');return false;">vt_inkey</a>
+</div>
+</div>
+<div class="tdiv" id="vt_sleep">
+<h2>vt_sleep</h2>
+<div class="t-short">Delay for a fixed time or wait for any key</div>
+<pre class="body-pre">Delay for a fixed number of milliseconds, or
+wait indefinitely for any keypress. Keeps the
+display alive (blink, present) during the wait.
+When ms = 0, the keypress is consumed from the
+buffer. When ms &gt; 0, no key is consumed; the
+delay simply elapses.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_sleep(ms As Long = 0)</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">ms  Delay in milliseconds. 0 = wait for any
+    keypress (key is consumed from buffer).</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">' Delay 2 seconds:
+vt_sleep(2000)
+
+' Wait for any keypress:
+vt_sleep()</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_inkey');return false;">vt_inkey</a>
+<a href="#" onclick="show('vt_pump');return false;">vt_pump</a>
+</div>
+</div>
+<div class="tdiv" id="vt_approach">
+<h2>vt_approach</h2>
+<div class="t-short">Step a value toward a target without overshoot</div>
+<pre class="body-pre">Move cur toward tgt by amt without overshooting.
+If cur = tgt it returns unchanged. amt should
+be positive.
+Opt-in: define VT_USE_MATH before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_approach(cur As Long, _
+                     tgt As Long, _
+                     amt As Long) As Long</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">cur  Current value.
+tgt  Target value to approach.
+amt  Step size per call. Should be positive.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">enemy_x = vt_approach(enemy_x, player_x, 1)
+enemy_y = vt_approach(enemy_y, player_y, 1)
+
+' Score counter catching up 10 per frame:
+display_score = vt_approach(display_score, _
+                             real_score, 10)</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_lerp');return false;">vt_lerp</a>
+<a href="#" onclick="show('vt_wrap');return false;">vt_wrap</a>
+</div>
+</div>
+<div class="tdiv" id="vt_bresenham_walk">
+<h2>vt_bresenham_walk</h2>
+<div class="t-short">Walk all cells on a straight line</div>
+<pre class="body-pre">Walk every cell on the straight line from
+(x1, y1) to (x2, y2) using Bresenham's line
+algorithm and calls cb(x, y) for each cell in
+order. Both endpoints are included. The callback
+is a Sub(x As Long, y As Long) - pass its
+address with @. Because FreeBASIC has no
+closures, use module-level Shared variables to
+give the callback access to map data.
+Opt-in: define VT_USE_MATH before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_bresenham_walk(x1 As Long, y1 As Long, _
+                      x2 As Long, y2 As Long, _
+                      cb As Sub(As Long, _
+                                As Long))</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">x1, y1  Start cell (included in walk).
+x2, y2  End cell (included in walk).
+cb      Called once per cell. Pass with @.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">Sub draw_dash(x As Long, y As Long)
+    vt_set_cell(x, y, Asc(&quot;-&quot;), VT_WHITE, VT_BLACK)
+End Sub
+
+vt_bresenham_walk(1, 1, 40, 15, @draw_dash)
+vt_present()</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_los');return false;">vt_los</a>
+</div>
+</div>
+<div class="tdiv" id="vt_chebyshev">
+<h2>vt_chebyshev</h2>
+<div class="t-short">Chebyshev (king-moves) distance</div>
+<pre class="body-pre">Chebyshev distance between two grid points.
+Diagonal steps cost 1, the same as orthogonal
+- matches 8-direction movement. Equivalent to
+VT_MAX(Abs(x2-x1), Abs(y2-y1)).
+Opt-in: define VT_USE_MATH before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_chebyshev(x1 As Long, y1 As Long, _
+                      x2 As Long, y2 As Long) _
+                      As Long</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">If vt_chebyshev(ax, ay, bx, by) = 1 Then
+    melee_attack()
+End If</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_manhattan');return false;">vt_manhattan</a>
+</div>
+</div>
+<div class="tdiv" id="vt_digits">
+<h2>vt_digits</h2>
+<div class="t-short">Count printed characters of a Long</div>
+<pre class="body-pre">Returns the number of characters that Str(n) or
+Print n would produce, including the minus sign
+for negative numbers. Zero returns 1. Uses
+LongInt internally to handle the full Long range
+without overflow.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_digits(n As Long) As Long</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Opt-in: define VT_USE_MATH before the include.
+  n = 0           -&gt; 1
+  n = 1234        -&gt; 4
+  n = -99         -&gt; 3  (minus + 2 digits)
+  n = -2147483648 -&gt; 11</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">' Right-align a score in a fixed-width column:
+Dim score As Long = 9870
+Dim col_start As Long = 75 - vt_digits(score)
+vt_locate(1, col_start)
+vt_print(Str(score))</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_cols');return false;">vt_cols</a>
+</div>
+</div>
+<div class="tdiv" id="vt_in_rect">
+<h2>vt_in_rect</h2>
+<div class="t-short">Point-in-rectangle test</div>
+<pre class="body-pre">Returns 1 if point (px, py) lies within the
+rectangle. The rect is half-open:
+[rx, rx+rw) x [ry, ry+rh) - the right and
+bottom edges are excluded. Returns 0 otherwise.
+Opt-in: define VT_USE_MATH before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_in_rect(px As Long, py As Long, _
+                    rx As Long, ry As Long, _
+                    rw As Long, rh As Long) _
+                    As Byte</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">px, py  Point coordinates.
+rx, ry  Rectangle top-left corner.
+rw      Rectangle width in cells.
+rh      Rectangle height in cells.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">Dim mcol As Long, mrow As Long, mbtns As Long
+vt_getmouse(@mcol, @mrow, @mbtns, 0)
+If (mbtns And VT_MOUSE_BTN_LEFT) AndAlso _
+   vt_in_rect(mcol, mrow, 10, 5, 20, 3) Then
+    button_clicked()
+End If</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_tui_mouse_in_rect');return false;">vt_tui_mouse_in_rect</a>
+</div>
+</div>
+<div class="tdiv" id="vt_lerp">
+<h2>vt_lerp</h2>
+<div class="t-short">Linear interpolation between two values</div>
+<pre class="body-pre">Linear interpolation between a and b. At t = 0
+the result is a; at t = 1 the result is b. t is
+not clamped - values outside [0..1] extrapolate
+beyond the endpoints.
+Opt-in: define VT_USE_MATH before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_lerp(a As Double, _
+                 b As Double, _
+                 t As Double) As Double</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">a  Start value (returned when t = 0).
+b  End value (returned when t = 1).
+t  Interpolation factor. Not clamped.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">Dim brightness As Double = _
+    vt_lerp(0, 100, elapsed / total)</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_approach');return false;">vt_approach</a>
+<a href="#" onclick="show('c_mathconsts');return false;">c_mathconsts</a>
+</div>
+</div>
+<div class="tdiv" id="vt_los">
+<h2>vt_los</h2>
+<div class="t-short">Line-of-sight check using Bresenham</div>
+<pre class="body-pre">Line-of-sight check from (x1, y1) to (x2, y2)
+using Bresenham's algorithm. The blocker function
+is called for each cell and must return 1 if
+that cell blocks sight, 0 if clear. The start
+cell is NEVER tested - the observer stands
+there. The end cell IS tested - a wall blocks
+LOS to itself. Returns 1 if the path is clear,
+0 if blocked. Use module-level Shared variables
+to give the blocker function access to map data.
+Opt-in: define VT_USE_MATH before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_los(x1 As Long, y1 As Long, _
+                x2 As Long, y2 As Long, _
+                blocker As Function(As Long, _
+                          As Long) As Byte) _
+                As Byte</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">x1, y1   Observer position. Not passed to blocker.
+x2, y2   Target position. Passed to blocker.
+blocker  Returns 1 if cell blocks sight. Pass @.</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Return values:
+  1  Line of sight is clear.
+  0  Blocked by at least one cell on the path.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">Dim Shared g_map(79, 49) As Byte
+
+Function is_wall(x As Long, y As Long) As Byte
+    Return g_map(x, y)
+End Function
+
+If vt_los(ex, ey, px, py, @is_wall) Then
+    alert_enemy()
+End If</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_bresenham_walk');return false;">vt_bresenham_walk</a>
+</div>
+</div>
+<div class="tdiv" id="vt_manhattan">
+<h2>vt_manhattan</h2>
+<div class="t-short">Manhattan (taxicab) distance between two points</div>
+<pre class="body-pre">Manhattan distance between two grid points.
+Counts only orthogonal steps -- no diagonals.
+Equivalent to Abs(x2-x1) + Abs(y2-y1).
+Opt-in: define VT_USE_MATH before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_manhattan(x1 As Long, y1 As Long, _
+                      x2 As Long, y2 As Long) _
+                      As Long</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">If vt_manhattan(ex, ey, px, py) &lt;= 4 Then
+    attack()
+End If</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_chebyshev');return false;">vt_chebyshev</a>
+<a href="#" onclick="show('vt_los');return false;">vt_los</a>
+</div>
+</div>
+<div class="tdiv" id="vt_mat_rotate_ccw">
+<h2>vt_mat_rotate_ccw</h2>
+<div class="t-short">Rotate a 2D Long array 90 degrees CCW</div>
+<pre class="body-pre">Rotate a 2D Long array 90 degrees counter-
+clockwise in-place. Identical behaviour to
+vt_mat_rotate_cw but in the opposite direction.
+Non-square arrays are silently ignored.
+Opt-in: define VT_USE_MATH before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_mat_rotate_ccw(m() As Long)</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">m()  Square 2D array to rotate in-place.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">' Four CCW rotations return to original:
+vt_mat_rotate_ccw( piece() )
+vt_mat_rotate_ccw( piece() )
+vt_mat_rotate_ccw( piece() )
+vt_mat_rotate_ccw( piece() )</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_mat_rotate_cw');return false;">vt_mat_rotate_cw</a>
+</div>
+</div>
+<div class="tdiv" id="vt_mat_rotate_cw">
+<h2>vt_mat_rotate_cw</h2>
+<div class="t-short">Rotate a 2D Long array 90 degrees clockwise</div>
+<pre class="body-pre">Rotate a 2D Long array 90 degrees clockwise
+in-place. The array must be square. LBound and
+UBound are used internally to detect the size,
+no size argument is needed. Non-square arrays
+are silently ignored. Works with any LBound
+(0-based or 1-based).
+Opt-in: define VT_USE_MATH before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_mat_rotate_cw(m() As Long)</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">m()  Square 2D array to rotate in-place.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">Dim piece(0 To 3, 0 To 3) As Long
+' ... fill piece with 0/1 values ...
+vt_mat_rotate_cw(piece())</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_mat_rotate_ccw');return false;">vt_mat_rotate_ccw</a>
+</div>
+</div>
+<div class="tdiv" id="vt_wrap">
+<h2>vt_wrap</h2>
+<div class="t-short">Modular roll-over wrap into a range</div>
+<pre class="body-pre">Wrap v into the inclusive range [lo .. hi]
+with roll-over. Unlike VT_CLAMP, hitting an
+edge rolls around to the opposite side.
+If hi - lo + 1 &lt;= 0, returns lo.
+Opt-in: define VT_USE_MATH before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_wrap(v  As Long, _
+                 lo As Long, _
+                 hi As Long) As Long</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">v   The value to wrap.
+lo  Lower bound (inclusive).
+hi  Upper bound (inclusive).</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">' Menu cursor that wraps at the edges:
+cursor_row = vt_wrap(cursor_row + delta, _
+                     1, num_items)
+
+' Toroidal map: walk off right, appear left:
+px = vt_wrap(px + 1, 0, map_width - 1)</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_approach');return false;">vt_approach</a>
+<a href="#" onclick="show('c_mathconsts');return false;">c_mathconsts</a>
+</div>
+</div>
+<div class="tdiv" id="vt_getmouse">
+<h2>vt_getmouse</h2>
+<div class="t-short">Non-blocking read of current mouse state</div>
+<pre class="body-pre">Non-blocking read of the current mouse state.
+All parameters are optional pointers; pass 0
+to skip any field. Must enable the mouse first
+with vt_mouse(1). The wheel accumulator resets
+to zero each time it is read. Button state uses
+VT_MOUSE_BTN_* bitmask constants.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_getmouse(col  As Long Ptr = 0, _
+                     row  As Long Ptr = 0, _
+                     btns As Long Ptr = 0, _
+                     whl  As Long Ptr = 0) _
+                     As Byte</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">col   Receives 1-based column. 0 to skip.
+row   Receives 1-based row. 0 to skip.
+btns  Receives button bitmask. 0 to skip.
+whl   Receives accumulated wheel delta
+      (+up / -down) since last read. 0 to skip.</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Return values:
+   0   OK
+  -1   Mouse not enabled, or library not ready.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">Dim mx As Long, my As Long, mb As Long
+vt_getmouse(@mx, @my, @mb)
+
+' Read buttons only:
+Dim mw As Long
+vt_getmouse(,, @mb)</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_mouse');return false;">vt_mouse</a>
+<a href="#" onclick="show('vt_setmouse');return false;">vt_setmouse</a>
+<a href="#" onclick="show('c_mousebtns');return false;">c_mousebtns</a>
+</div>
+</div>
+<div class="tdiv" id="vt_mouse">
+<h2>vt_mouse</h2>
+<div class="t-short">Enable or disable mouse tracking</div>
+<pre class="body-pre">Enable or disable mouse tracking entirely.
+Enabling hides the OS cursor, starts tracking,
+and snaps the character cursor to the current
+physical mouse position. Disabling restores the
+OS cursor and clears button/wheel state.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_mouse(enabled As Byte)</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">enabled  1 = enable mouse tracking, 0 = disable.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">vt_mouse(1)
+' ... use vt_getmouse in loop ...
+vt_mouse(0)</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_getmouse');return false;">vt_getmouse</a>
+<a href="#" onclick="show('vt_setmouse');return false;">vt_setmouse</a>
+<a href="#" onclick="show('vt_mouselock');return false;">vt_mouselock</a>
+</div>
+</div>
+<div class="tdiv" id="vt_mouselock">
+<h2>vt_mouselock</h2>
+<div class="t-short">Confine the mouse cursor to the window</div>
+<pre class="body-pre">Enable or disable window grab, which
+confines the mouse cursor to the window.
+Fullscreen modes enable this automatically at
+vt_screen time. Safe to call before or after
+vt_mouse(1).</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_mouselock(onoff As Byte)</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">onoff  1 = lock cursor inside window, 0 = unlock.</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_mouse');return false;">vt_mouse</a>
+</div>
+</div>
+<div class="tdiv" id="vt_setmouse">
+<h2>vt_setmouse</h2>
+<div class="t-short">Set mouse cursor position and visibility</div>
+<pre class="body-pre">Set the character cursor position and/or
+visibility. Coordinates are 1-based. Pass -1
+to leave any field unchanged. Safe to call
+when the mouse is disabled; settings take
+effect when re-enabled.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_setmouse(col As Long = -1, _
+                row As Long = -1, _
+                vis As Byte = -1)</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">col  Column, 1-based. Clamped to screen bounds.
+     -1 = keep current.
+row  Row, 1-based. Clamped to screen bounds.
+     -1 = keep current.
+vis  1 = show cursor, 0 = hide, -1 = keep.</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_mouse');return false;">vt_mouse</a>
+<a href="#" onclick="show('vt_getmouse');return false;">vt_getmouse</a>
+</div>
+</div>
+<div class="tdiv" id="vt_net_bind">
+<h2>vt_net_bind</h2>
+<div class="t-short">TCP server bind, listen, and accept</div>
+<pre class="body-pre">Server-side TCP setup. Typical sequence:
+vt_net_bind assigns a local port, vt_net_listen
+begins queuing incoming connections, then
+vt_net_accept is called in a loop to obtain a
+new socket for each client. vt_net_bind is also
+used for UDP sockets that need a fixed local port.
+TCP_NODELAY is set automatically on every socket
+returned by vt_net_accept. Manage each accepted
+socket independently and close it with
+vt_net_close when the client disconnects.
+Opt-in: define VT_USE_NET before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_net_bind(sock    As SOCKET_T, _
+                     port    As Long, _
+                     ip      As ULong = _
+                     INADDR_ANY) As Long</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">sock        The server/listening socket.
+port        Local port in host byte order.
+ip          Local interface IP in network byte
+            order. INADDR_ANY = all interfaces.
+backlog     Max pending connections. Default
+            SOMAXCONN (OS maximum).
+remote_ip   If non-null, receives client IP.
+remote_port If non-null, receives client port.</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Return (vt_net_bind, vt_net_listen):
+  1  success    0  failure
+Return (vt_net_accept): new SOCKET for the
+accepted connection, or INVALID_SOCKET if no
+connection is pending or on error.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">Dim srv As SOCKET = vt_net_open()
+vt_net_bind(srv, 7000)
+vt_net_listen(srv)
+vt_print(&quot;Waiting...&quot; &amp; VT_LF)
+vt_present()
+Dim client As SOCKET
+Dim cip As Long, cport As Long
+Do
+    client = vt_net_accept(srv, @cip, @cport)
+Loop While client = INVALID_SOCKET
+vt_print(&quot;Client: &quot; &amp; vt_net_ip_str(cip) &amp; _
+         &quot;:&quot; &amp; cport &amp; VT_LF)</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_net_open');return false;">vt_net_open</a>
+<a href="#" onclick="show('vt_net_send');return false;">vt_net_send</a>
+<a href="#" onclick="show('vt_net_ready');return false;">vt_net_ready</a>
+</div>
+</div>
+<div class="tdiv" id="vt_net_connect">
+<h2>vt_net_connect</h2>
+<div class="t-short">Connect a TCP socket to a remote host</div>
+<pre class="body-pre">Connect a TCP socket to a remote host. The
+Nagle algorithm is disabled automatically
+(TCP_NODELAY) to minimise send latency. If the
+socket is in non-blocking mode, the call returns
+immediately with 0 while the connection is in
+progress; use vt_net_ready with for_write = 1
+to detect when the connection is established.
+Opt-in: define VT_USE_NET before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_net_connect(sock As SOCKET_T, _
+                        ip   As Long, _
+                        port As Long) As Long</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">sock  An open TCP socket from vt_net_open(0).
+ip    Remote IP in network byte order, from
+      vt_net_resolve.
+port  Remote port in host byte order (e.g. 80).</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Return values:
+  1  Success (blocking) or immediate accept.
+  0  Failure or non-blocking in progress.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">Dim sock As SOCKET = vt_net_open()
+Dim ip   As Long   = vt_net_resolve(&quot;example.com&quot;)
+If vt_net_connect(sock, ip, 80) = 0 Then
+    vt_print(&quot;Connection failed.&quot; &amp; VT_LF)
+    vt_net_close(sock)
+    vt_shutdown()
+End If</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_net_open');return false;">vt_net_open</a>
+<a href="#" onclick="show('vt_net_resolve');return false;">vt_net_resolve</a>
+<a href="#" onclick="show('vt_net_send');return false;">vt_net_send</a>
+<a href="#" onclick="show('vt_net_ready');return false;">vt_net_ready</a>
+<a href="#" onclick="show('vt_net_nonblocking');return false;">vt_net_nonblocking</a>
+</div>
+</div>
+<div class="tdiv" id="vt_net_init">
+<h2>vt_net_init</h2>
+<div class="t-short">Initialise the networking subsystem (opt-in)</div>
+<pre class="body-pre">Initialise the networking subsystem.
+vt_net_init must be called once
+before any other vt_net_* function.
+Opt-in: define VT_USE_NET before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">    Function vt_net_init() As Long</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Return (vt_net_init):
+   0  success
+  -1  Winsock initialisation failed (Windows)</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">#Define VT_USE_NET
+#include once &quot;vt/vt.bi&quot;
+
+vt_screen(VT_SCREEN_0)
+If vt_net_init() &lt;&gt; 0 Then
+    vt_print(&quot;Network init failed.&quot; &amp; VT_LF)
+    vt_shutdown()
+End If
+' ... program ...
+vt_net_shutdown()</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_net_open');return false;">vt_net_open</a>
+<a href="#" onclick="show('vt_net_connect');return false;">vt_net_connect</a>
+</div>
+</div>
+<div class="tdiv" id="vt_net_local_addr">
+<h2>vt_net_local_addr</h2>
+<div class="t-short">Query the local IP and port of a socket</div>
+<pre class="body-pre">Query the local IP address and port that the OS
+has assigned to a socket. Useful after
+vt_net_connect to discover the ephemeral port
+chosen by the OS, or after vt_net_bind to
+confirm the binding.
+Opt-in: define VT_USE_NET before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_net_local_addr(sock As SOCKET_T, _
+                           ByRef local_ip   As Long, _
+                           ByRef local_port As Long) _
+                           As Long</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">sock        A bound or connected socket.
+local_ip    Receives local IP in network byte order.
+local_port  Receives local port in host byte order.</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Return: 1 on success, 0 on failure.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">Dim lip   As Long
+Dim lport As Long
+If vt_net_local_addr(sock, lip, lport) Then
+    vt_print(&quot;Local: &quot; &amp; vt_net_ip_str(lip) &amp; _
+             &quot;:&quot; &amp; lport &amp; VT_LF)
+End If</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_net_bind');return false;">vt_net_bind</a>
+<a href="#" onclick="show('vt_net_connect');return false;">vt_net_connect</a>
+</div>
+</div>
+<div class="tdiv" id="vt_net_nonblocking">
+<h2>vt_net_nonblocking</h2>
+<div class="t-short">Toggle non-blocking mode on a socket</div>
+<pre class="body-pre">Toggle non-blocking mode on a socket. In non-
+blocking mode, vt_net_connect, vt_net_send, and
+vt_net_recv return immediately even when the
+operation cannot yet complete. Combine with
+vt_net_ready to integrate network I/O into a
+frame-rate game loop without stalling.
+Opt-in: define VT_USE_NET before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_net_nonblocking(sock As SOCKET_T, state As Byte)</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">sock   Target socket handle.
+state  1 = enable non-blocking. 0 = blocking.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">' Switch to non-blocking before connect:
+vt_net_nonblocking(sock, 1)</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_net_ready');return false;">vt_net_ready</a>
+<a href="#" onclick="show('vt_net_connect');return false;">vt_net_connect</a>
+</div>
+</div>
+<div class="tdiv" id="vt_net_open">
+<h2>vt_net_open</h2>
+<div class="t-short">Create and destroy a socket</div>
+<pre class="body-pre">Create and destroy a socket. Pass udp = 1 for
+a UDP datagram socket; the default creates a TCP
+stream socket. After use, always pass the handle
+to vt_net_close to release OS resources.
+SOCKET is a Long on Linux and an opaque platform
+type on Windows. Always treat it as opaque and
+only compare against INVALID_SOCKET.
+Opt-in: define VT_USE_NET before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_net_open(udp As Byte = 0) As SOCKET_T</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">udp   0 = TCP stream socket (default).
+      1 = UDP datagram socket.
+sock  Socket handle to close and release.</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Return (vt_net_open): valid SOCKET on success.
+INVALID_SOCKET if the OS could not allocate.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">Dim sock As SOCKET = vt_net_open()
+If sock = INVALID_SOCKET Then
+    vt_print(&quot;Cannot create socket.&quot; &amp; VT_LF)
+    vt_shutdown()
+End If
+' ... use sock ...
+vt_net_close(sock)</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_net_connect');return false;">vt_net_connect</a>
+<a href="#" onclick="show('vt_net_bind');return false;">vt_net_bind</a>
+<a href="#" onclick="show('vt_net_send');return false;">vt_net_send</a>
+<a href="#" onclick="show('vt_net_send_udp');return false;">vt_net_send_udp</a>
+</div>
+</div>
+<div class="tdiv" id="vt_net_ready">
+<h2>vt_net_ready</h2>
+<div class="t-short">Non-blocking socket readiness poll</div>
+<pre class="body-pre">Non-blocking readiness poll on a single socket
+using select(). Use this before vt_net_recv or
+vt_net_accept in a game loop to avoid blocking
+the frame. Pass timeout_ms = 0 for an instant
+check, or timeout_ms = -1 to block until the
+socket is ready.
+Opt-in: define VT_USE_NET before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_net_ready(sock       As SOCKET_T, _
+                      for_write  As Byte = 0, _
+                      timeout_ms As Long = 0) _
+                      As Long</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">sock        Socket to poll.
+for_write   0 = check if data is available to
+            read (default). 1 = check if send
+            buffer has space.
+timeout_ms  Timeout in ms. 0 = return immediately.
+            -1 = block until socket is ready.</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Return values:
+   1  Socket is ready for the requested operation.
+   0  Timeout expired with no activity.
+  -1  Error.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">' Non-blocking receive in a game loop:
+Dim rxbuf     As ZString * 257
+Dim connected As Long = 1
+Dim k         As ULong
+Dim n         As Long
+Do
+    k = vt_inkey()
+    If vt_net_ready(sock) Then
+        n = vt_net_recv(sock, @rxbuf, 256)
+        If n &gt; 0 Then
+            rxbuf[n] = 0
+        ElseIf n = 0 Then
+            connected = 0
+        End If
+    End If
+    vt_sleep 16
+Loop While connected</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_net_send');return false;">vt_net_send</a>
+<a href="#" onclick="show('vt_net_bind');return false;">vt_net_bind</a>
+<a href="#" onclick="show('vt_net_nonblocking');return false;">vt_net_nonblocking</a>
+</div>
+</div>
+<div class="tdiv" id="vt_net_resolve">
+<h2>vt_net_resolve</h2>
+<div class="t-short">Hostname lookup and IP string formatting</div>
+<pre class="body-pre">Convert between host names and packed IP values.
+vt_net_resolve accepts dotted-decimal strings
+(&quot;192.168.0.1&quot;) and DNS host names (&quot;example.com&quot;)
+and returns the IP as a packed Long in network
+byte order -- the format expected by all other
+vt_net_* functions. vt_net_ip_str converts a
+packed value back to a dotted-decimal string.
+Opt-in: define VT_USE_NET before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_net_resolve(hostname As ZString Ptr) _
+                        As Long</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">hostname  Dotted-decimal IP or DNS host name.
+ip        Packed IP in network byte order, as
+          returned by vt_net_resolve.</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Return (vt_net_resolve): packed IP on success,
+0 on failure (unknown host or bad address).
+Return (vt_net_ip_str): dotted-decimal string
+e.g. &quot;93.184.216.34&quot;, or &quot;&quot; on failure.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">Dim ip As Long = vt_net_resolve(&quot;example.com&quot;)
+If ip = 0 Then
+    vt_print(&quot;Could not resolve host.&quot; &amp; VT_LF)
+Else
+    vt_print(&quot;IP: &quot; &amp; vt_net_ip_str(ip) &amp; VT_LF)
+End If</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_net_connect');return false;">vt_net_connect</a>
+<a href="#" onclick="show('vt_net_bind');return false;">vt_net_bind</a>
+</div>
+</div>
+<div class="tdiv" id="vt_net_send">
+<h2>vt_net_send</h2>
+<div class="t-short">Send and receive data on a TCP socket</div>
+<pre class="body-pre">Send and receive data on a connected TCP socket.
+Both functions map directly to OS send and recv.
+In blocking mode vt_net_recv waits until data
+arrives or the connection closes; call
+vt_net_ready first to avoid stalling a game loop.
+A single vt_net_send call may send fewer bytes
+than requested -- a robust send loop should retry
+until the full byte count has been delivered.
+vt_net_recv may similarly return fewer bytes than
+nbytes even when more data is on the way.
+Opt-in: define VT_USE_NET before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_net_send(sock   As SOCKET_T, _
+                     buf    As ZString Ptr, _
+                     nbytes As Long) As Long</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">sock    Connected TCP socket.
+buf     Pointer to the data buffer.
+nbytes  Bytes to send, or max bytes to receive.</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Return (vt_net_send): bytes actually sent,
+or &lt;= 0 on error or disconnection.
+Return (vt_net_recv): bytes received. 0 means
+peer closed gracefully; &lt; 0 is an error.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">Dim msg   As String = &quot;Hello, server!&quot;
+Dim rxbuf As ZString * 257
+Dim n     As Long
+
+n = vt_net_send(sock, StrPtr(msg), Len(msg))
+If n &lt;= 0 Then
+    vt_print(&quot;Send error.&quot; &amp; VT_LF)
+End If
+
+n = vt_net_recv(sock, @rxbuf, 256)
+If n &gt; 0 Then
+    rxbuf[n] = 0
+    vt_print(&quot;Recv: &quot; &amp; rxbuf &amp; VT_LF)
+ElseIf n = 0 Then
+    vt_print(&quot;Server closed.&quot; &amp; VT_LF)
+End If</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_net_ready');return false;">vt_net_ready</a>
+<a href="#" onclick="show('vt_net_connect');return false;">vt_net_connect</a>
+<a href="#" onclick="show('vt_net_send_udp');return false;">vt_net_send_udp</a>
+</div>
+</div>
+<div class="tdiv" id="vt_net_send_udp">
+<h2>vt_net_send_udp</h2>
+<div class="t-short">Send and receive UDP datagrams</div>
+<pre class="body-pre">Send and receive UDP datagrams. A UDP socket
+does not need to be connected; each send call
+specifies the destination explicitly. To receive,
+the socket should first be bound to a local port
+with vt_net_bind. UDP datagrams are delivered in
+full or not at all -- there is no partial-read
+scenario. If the receive buffer is smaller than
+the incoming datagram the excess bytes are
+discarded silently. Delivery is not ordered or
+guaranteed.
+Opt-in: define VT_USE_NET before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_net_send_udp(sock   As SOCKET_T, _
+                         ip     As Long, _
+                         port   As Long, _
+                         buf    As ZString Ptr, _
+                         nbytes As Long) As Long</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">sock      An open UDP socket from vt_net_open(1).
+ip        Destination IP in network byte order.
+port      Destination port in host byte order.
+src_ip    Receives sender IP (network byte order).
+src_port  Receives sender port (host byte order).
+buf       Pointer to the data buffer.
+nbytes    Bytes to send, or max bytes to receive.</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Return (vt_net_send_udp): bytes sent, or &lt;= 0
+on error.
+Return (vt_net_recv_udp): bytes received, or
+&lt;= 0 on error.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">Dim udp_sock As SOCKET = vt_net_open(1)
+Dim srv_ip   As Long   = vt_net_resolve(&quot;192.168.1.10&quot;)
+Dim msg      As String = &quot;ping&quot;
+vt_net_send_udp(udp_sock, srv_ip, 9999, _
+                StrPtr(msg), Len(msg))
+
+Dim rxbuf As ZString * 257
+Dim sip As Long, sport As Long
+Dim n As Long = _
+    vt_net_recv_udp(udp_sock, sip, sport, @rxbuf, 256)
+If n &gt; 0 Then
+    vt_print(&quot;Reply from &quot; &amp; vt_net_ip_str(sip) &amp; _
+             &quot;:&quot; &amp; sport &amp; VT_LF)
+End If
+vt_net_close(udp_sock)</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_net_open');return false;">vt_net_open</a>
+<a href="#" onclick="show('vt_net_bind');return false;">vt_net_bind</a>
+<a href="#" onclick="show('vt_net_send');return false;">vt_net_send</a>
+</div>
+</div>
+<div class="tdiv" id="vt_net_shutdown">
+<h2>vt_net_shutdown</h2>
+<div class="t-short">shutdown the networking subsystem (opt-in)</div>
+<pre class="body-pre">Shutdown the networking subsystem.
+Opt-in: define VT_USE_NET before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">    Sub vt_net_shutdown()</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_net_open');return false;">vt_net_open</a>
+<a href="#" onclick="show('vt_net_connect');return false;">vt_net_connect</a>
+</div>
+</div>
+<div class="tdiv" id="vt_tls_connect">
+<h2>vt_tls_connect</h2>
+<div class="t-short">TLS handshake on a connected TCP socket (opt-in)</div>
+<pre class="body-pre">Perform a TLS handshake on an already-connected
+TCP socket obtained from vt_net_connect.
+hostname is used for SNI and must match the
+server's certificate CN or SAN. On success conn
+receives an opaque handle used by all other
+vt_tls_* functions; on failure it is set to 0.
+Requires VT_USE_NET. Opt-in: define VT_USE_TLS
+before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_tls_connect(sock       As SOCKET_T, _
+                        hostname   As String, _
+                        ByRef conn As Any Ptr) _
+                        As Long</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">sock      An already-connected TCP socket (from vt_net_connect).
+hostname  Server hostname for SNI -- must match the certificate.
+conn      Receives the opaque TLS handle (0 on failure).</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Return:
+   0  success
+  -1  TLS handshake failed</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">Dim sock As SOCKET = vt_net_open()
+Dim ip   As Long   = vt_net_resolve(&quot;example.com&quot;)
+vt_net_connect(sock, ip, 443)
+
+Dim conn As Any Ptr
+If vt_tls_connect(sock, &quot;example.com&quot;, conn) &lt;&gt; 0 Then
+    vt_print(&quot;TLS handshake failed.&quot; &amp; VT_LF)
+    vt_net_close(sock)
+End If</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_net_connect');return false;">vt_net_connect</a>
+<a href="#" onclick="show('vt_tls_send');return false;">vt_tls_send</a>
+<a href="#" onclick="show('vt_tls_disconnect');return false;">vt_tls_disconnect</a>
+</div>
+</div>
+<div class="tdiv" id="vt_tls_disconnect">
+<h2>vt_tls_disconnect</h2>
+<div class="t-short">Graceful TLS shutdown and resource release (opt-in)</div>
+<pre class="body-pre">Send a TLS close_notify alert, free all internal
+TLS resources, and set conn to 0. Always call
+this before vt_net_close on the same socket to
+ensure a clean protocol shutdown.
+Requires VT_USE_NET. Opt-in: define VT_USE_TLS
+before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_tls_disconnect(ByRef conn As Any Ptr)</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">conn  Opaque TLS handle. Set to 0 on return.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">vt_tls_disconnect(conn)
+vt_net_close(sock)
+vt_net_shutdown()</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_tls_connect');return false;">vt_tls_connect</a>
+<a href="#" onclick="show('vt_net_open');return false;">vt_net_open</a>
+</div>
+</div>
+<div class="tdiv" id="vt_tls_fingerprint">
+<h2>vt_tls_fingerprint</h2>
+<div class="t-short">SHA-256 certificate fingerprint for TOFU (opt-in)</div>
+<pre class="body-pre">Returns the SHA-256 fingerprint of the peer's
+certificate DER encoding as a 64-character
+lowercase hex string. Use for Trust On First
+Use (TOFU): store on first contact, compare on
+subsequent connections to detect cert changes.
+Requires VT_USE_NET. Opt-in: define VT_USE_TLS
+before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_tls_fingerprint(conn As Any Ptr) _
+                             As String</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">conn  Opaque TLS handle from vt_tls_connect.</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Return: 64-char lowercase hex string (SHA-256).
+        &quot;&quot; if conn = 0 or no peer cert available.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">Dim fp As String = vt_tls_fingerprint(conn)
+vt_print(&quot;Certificate SHA-256: &quot; &amp; fp &amp; VT_LF)</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_tls_connect');return false;">vt_tls_connect</a>
+</div>
+</div>
+<div class="tdiv" id="vt_tls_recv">
+<h2>vt_tls_recv</h2>
+<div class="t-short">Receive data over a TLS connection (opt-in)</div>
+<pre class="body-pre">Receive up to nbytes bytes into buf from an
+established TLS connection. When the underlying
+socket is set to non-blocking mode via
+vt_net_nonblocking, returns 0 immediately if
+no data is available yet.
+Requires VT_USE_NET. Opt-in: define VT_USE_TLS
+before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_tls_recv(conn   As Any Ptr, _
+                     buf    As ZString Ptr, _
+                     nbytes As Long) As Long</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">conn    Opaque TLS handle from vt_tls_connect.
+buf     Buffer that receives the incoming data.
+nbytes  Maximum bytes to read into buf.</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Return:
+  &gt;= 1  bytes received
+     0  no data yet (non-blocking socket)
+    -1  peer closed cleanly (close_notify)
+    -2  connection error</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">Dim rxbuf As ZString * 4097
+Dim n     As Long
+Do
+    n = vt_tls_recv(conn, @rxbuf, 4096)
+    If n &gt; 0 Then
+        rxbuf[n] = 0
+        vt_print(rxbuf &amp; VT_LF)
+    End If
+Loop While n &gt; 0</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_tls_send');return false;">vt_tls_send</a>
+<a href="#" onclick="show('vt_net_nonblocking');return false;">vt_net_nonblocking</a>
+</div>
+</div>
+<div class="tdiv" id="vt_tls_send">
+<h2>vt_tls_send</h2>
+<div class="t-short">Send data over a TLS connection (opt-in)</div>
+<pre class="body-pre">Send nbytes bytes from buf over an established
+TLS connection. Like the underlying TCP send,
+this may send fewer bytes than requested -- loop
+until all bytes are consumed when full delivery
+is required.
+Requires VT_USE_NET. Opt-in: define VT_USE_TLS
+before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_tls_send(conn   As Any Ptr, _
+                     buf    As ZString Ptr, _
+                     nbytes As Long) As Long</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">conn    Opaque TLS handle from vt_tls_connect.
+buf     Data to send.
+nbytes  Number of bytes to send from buf.</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Return:
+  &gt;= 1  bytes sent
+    -1  error</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">Dim req  As String = &quot;GET / HTTP/1.0&quot; &amp; Chr(13,10) &amp; _
+                     &quot;Host: example.com&quot; &amp; Chr(13,10,13,10)
+Dim sent As Long = 0
+Do While sent &lt; Len(req)
+    Dim n As Long = vt_tls_send(conn, StrPtr(req) + sent, _
+                                Len(req) - sent)
+    If n &lt; 1 Then Exit Do
+    sent += n
+Loop</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_tls_connect');return false;">vt_tls_connect</a>
+<a href="#" onclick="show('vt_tls_recv');return false;">vt_tls_recv</a>
+</div>
+</div>
+<div class="tdiv" id="vt_page">
+<h2>vt_page</h2>
+<div class="t-short">Set the active draw and display page</div>
+<pre class="body-pre">Set the active drawing page and the visible
+display page independently. All drawing commands
+write to the work page; vt_present reads from
+the vis page. Multiple pages are allocated at
+vt_screen time via the pages argument (up to 8
+pages, indices 0-7). Page 0 (VT_VIDEO) is always
+the startup visible page. Invalid indices are
+silently ignored.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_page(work As Long, vis As Long)</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">work  Drawing page index (0 &lt;= work &lt; pages).
+      All drawing commands go here.
+vis   Display page index (0 &lt;= vis &lt; pages).
+      This page is shown by vt_present.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">' Classic double-buffer: draw on page 1:
+vt_page(1, VT_VIDEO)
+' ... draw on page 1 freely ...
+vt_pcopy(1, VT_VIDEO)
+vt_present()
+' Swap back:
+vt_page(VT_VIDEO, VT_VIDEO)</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_pcopy');return false;">vt_pcopy</a>
+<a href="#" onclick="show('vt_present');return false;">vt_present</a>
+<a href="#" onclick="show('vt_screen');return false;">vt_screen</a>
+</div>
+</div>
+<div class="tdiv" id="vt_pcopy">
+<h2>vt_pcopy</h2>
+<div class="t-short">Copy one page buffer to another</div>
+<pre class="body-pre">Copy one page buffer to another (equivalent to
+QBasic PCOPY). Marks the display dirty but does
+not call vt_present. src = dst is a no-op.
+Invalid indices are silently ignored.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_pcopy(src As Long, dst As Long)</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">src  Source page index.
+dst  Destination page index.</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_page');return false;">vt_page</a>
+<a href="#" onclick="show('vt_present');return false;">vt_present</a>
+</div>
+</div>
+<div class="tdiv" id="vt_palette">
+<h2>vt_palette</h2>
+<div class="t-short">Set one palette entry or reset all to EGA</div>
+<pre class="body-pre">Set a single palette entry, or reset all 16
+colours to EGA defaults. The palette is a flat
+array of 48 bytes: 16 colours x 3 channels
+(R, G, B). Entry idx starts at byte idx*3.
+When idx &gt;= 0, always supply all three channels
+-- the defaults (-1) only apply for the reset
+case (idx = -1). Omitting channels when setting
+a specific entry produces 255 (white) because
+-1 And 255 = 255.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_palette(idx As Long = -1, _
+               r   As Long = -1, _
+               g   As Long = -1, _
+               b   As Long = -1)</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">idx  Colour index (0-15). Pass -1 to reset all
+     16 entries to EGA defaults.
+r    Red channel   (0-255).
+g    Green channel (0-255).
+b    Blue channel  (0-255).</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">' Replace colour 4 (Red) with orange:
+vt_palette(4, 220, 120, 0)
+
+' Reset all 16 to EGA defaults:
+vt_palette()</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_palette_get');return false;">vt_palette_get</a>
+<a href="#" onclick="show('vt_palette_set');return false;">vt_palette_set</a>
+<a href="#" onclick="show('c_colors');return false;">c_colors</a>
+</div>
+</div>
+<div class="tdiv" id="vt_palette_get">
+<h2>vt_palette_get</h2>
+<div class="t-short">Bulk-read all 16 palette entries</div>
+<pre class="body-pre">Bulk-read all 16 palette entries into a
+caller-supplied UByte array of at least 48
+elements. Format: 16 colours x R, G, B bytes.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_palette_get(pal() As UByte)</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">pal()  Array to receive 48 bytes of palette
+       data (16 colours x R, G, B).</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">Dim pal(VT_PALETTE_SZ) As UByte
+vt_palette_get pal()
+' Restore later:
+vt_palette_set pal()</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_palette_set');return false;">vt_palette_set</a>
+<a href="#" onclick="show('vt_palette');return false;">vt_palette</a>
+</div>
+</div>
+<div class="tdiv" id="vt_palette_set">
+<h2>vt_palette_set</h2>
+<div class="t-short">Bulk-write all 16 palette entries</div>
+<pre class="body-pre">Bulk-write all 16 palette entries from a
+caller-supplied UByte array of 48 elements.
+Format: 16 colours x R, G, B bytes.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_palette_set(pal() As UByte)</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">pal()  Array containing 48 bytes of palette
+       data (16 colours x R, G, B).</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_palette_get');return false;">vt_palette_get</a>
+<a href="#" onclick="show('vt_palette');return false;">vt_palette</a>
+</div>
+</div>
+<div class="tdiv" id="vt_cls">
+<h2>vt_cls</h2>
+<div class="t-short">Clear the screen to the current background</div>
+<pre class="body-pre">Clear the active screen region to spaces using
+the current foreground and background colours.
+Resets the cursor to row 1, column 1 of the
+scroll region. Does not call vt_present.
+Respects the viewport set by vt_view_print,
+including column bounds. When column bounds are
+active only the cells within view_left..
+view_right are cleared per row.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_cls(bg As Long = -1)</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">bg  Background colour index (0-15).
+    empty keeps the current background colour.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">vt_color(VT_LIGHT_GREY, VT_BLACK)
+vt_cls()
+vt_present()</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_color');return false;">vt_color</a>
+<a href="#" onclick="show('vt_locate');return false;">vt_locate</a>
+<a href="#" onclick="show('vt_print');return false;">vt_print</a>
+<a href="#" onclick="show('vt_view_print');return false;">vt_view_print</a>
+</div>
+</div>
+<div class="tdiv" id="vt_color">
+<h2>vt_color</h2>
+<div class="t-short">Set the active foreground and background colour</div>
+<pre class="body-pre">Set the active foreground and/or background
+colour used by vt_print, vt_cls, and vt_input.
+Pass -1 for either parameter to keep the current
+value unchanged.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_color(fg As Long = -1, bg As Long = -1)</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">fg  Foreground colour (0-15), optionally OR'd
+    with VT_BLINK (16). -1 = keep current.
+bg  Background colour (0-15). -1 = keep current.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">' Set only foreground:
+vt_color(VT_BRIGHT_GREEN)
+
+' Set both:
+vt_color(VT_WHITE, VT_BLUE)
+
+' Blinking foreground:
+vt_color(VT_RED Or VT_BLINK, VT_BLACK)</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_print');return false;">vt_print</a>
+<a href="#" onclick="show('vt_cls');return false;">vt_cls</a>
+<a href="#" onclick="show('vt_locate');return false;">vt_locate</a>
+<a href="#" onclick="show('c_colors');return false;">c_colors</a>
+</div>
+</div>
+<div class="tdiv" id="vt_locate">
+<h2>vt_locate</h2>
+<div class="t-short">Move the cursor and optionally change its style</div>
+<pre class="body-pre">Move the text cursor and optionally change its
+visibility and glyph. Coordinates are 1-based.
+Parameters with value -1 are left unchanged.
+vt_locate is always absolute -- column bounds
+from vt_view_print do not affect it.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_locate(row As Long = -1, col As Long = -1, _
+              vis As Long = -1, _
+              cursor_ch As Long = -1)</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">row         Target row, 1-based. -1 = keep.
+col         Target column, 1-based. -1 = keep.
+vis         1 = show cursor, 0 = hide, -1 = keep.
+cursor_ch   CP437 glyph index (0-255) for cursor.
+            Default is 219 (solid block). -1=keep.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">vt_locate(1, 1)
+vt_print(&quot;Top-left corner&quot;)
+vt_locate(12, 40)
+vt_print(&quot;Center-ish&quot;)</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_print');return false;">vt_print</a>
+<a href="#" onclick="show('vt_color');return false;">vt_color</a>
+<a href="#" onclick="show('vt_csrlin');return false;">vt_csrlin</a>
+<a href="#" onclick="show('vt_pos');return false;">vt_pos</a>
+</div>
+</div>
+<div class="tdiv" id="vt_print">
+<h2>vt_print</h2>
+<div class="t-short">Print a string at the current cursor position</div>
+<pre class="body-pre">Print a string at the current cursor position
+using the active colour. The cursor advances
+after each character; the display is not
+automatically flipped. No implicit newline --
+use VT_LF or Chr(10) within the string
+for line breaks. CRLF pairs are collapsed to
+a single line feed. Characters beyond the
+right edge of the print region are wrapped
+to the start again in the same row.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_print(txt As String)</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">txt  The string to print. May contain Chr(10)
+     for newlines.</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">When #Define VT_USE_ANSI is set before the
+include, vt_print parses ANSI/VT100 escape
+sequences. Supported: SGR (ESC[...m colours),
+CUP (ESC[row;colH cursor), ED (ESC[2J clear).
+Use Chr(27) or !&quot;\x1b&quot; for the escape byte --
+do NOT use !&quot;\e&quot; as FreeBASIC drops \e silently.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">vt_locate(5, 1)
+vt_color(VT_CYAN, VT_BLACK)
+vt_print(&quot;Line one&quot; &amp; VT_LF &amp; &quot;Line two&quot;)
+vt_present()</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_locate');return false;">vt_locate</a>
+<a href="#" onclick="show('vt_color');return false;">vt_color</a>
+<a href="#" onclick="show('vt_cls');return false;">vt_cls</a>
+<a href="#" onclick="show('vt_print_center');return false;">vt_print_center</a>
+</div>
+</div>
+<div class="tdiv" id="vt_print_center">
+<h2>vt_print_center</h2>
+<div class="t-short">Print a string horizontally centred on a row</div>
+<pre class="body-pre">Print a string horizontally centred on the
+given screen row. Uses the current colour and
+does not call vt_present.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_print_center(row As Long, txt As String)</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">row  Target row, 1-based.
+txt  The string to centre and print.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">vt_color(VT_YELLOW, VT_BLACK)
+vt_print_center(12, &quot;Hello, World!&quot;)
+vt_color(VT_LIGHT_GREY, VT_BLACK)
+vt_print_center(14, &quot;Press any key...&quot;)
+vt_sleep()</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_print');return false;">vt_print</a>
+<a href="#" onclick="show('vt_color');return false;">vt_color</a>
+</div>
+</div>
+<div class="tdiv" id="vt_scroll_enable">
+<h2>vt_scroll_enable</h2>
+<div class="t-short">Enable or disable auto-scrolling</div>
+<pre class="body-pre">Enable or disable automatic scrolling of the
+scroll region. When disabled, text printed past
+the bottom of the scroll region stays on the
+last row. Scrolling is ENABLED by default.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_scroll_enable(state As Byte)</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">state  1 = enable scrolling, 0 = disable.</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_view_print');return false;">vt_view_print</a>
+<a href="#" onclick="show('vt_print');return false;">vt_print</a>
+</div>
+</div>
+<div class="tdiv" id="vt_cols">
+<h2>vt_cols</h2>
+<div class="t-short">Return the number of columns on screen</div>
+<pre class="body-pre">Returns the total number of columns in the
+current screen mode.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_cols() As Long</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_rows');return false;">vt_rows</a>
+<a href="#" onclick="show('vt_csrlin');return false;">vt_csrlin</a>
+<a href="#" onclick="show('vt_pos');return false;">vt_pos</a>
+</div>
+</div>
+<div class="tdiv" id="vt_csrlin">
+<h2>vt_csrlin</h2>
+<div class="t-short">Return the current cursor row</div>
+<pre class="body-pre">Returns the current cursor row (1-based).</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_csrlin() As Long</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_pos');return false;">vt_pos</a>
+<a href="#" onclick="show('vt_locate');return false;">vt_locate</a>
+<a href="#" onclick="show('vt_rows');return false;">vt_rows</a>
+</div>
+</div>
+<div class="tdiv" id="vt_pos">
+<h2>vt_pos</h2>
+<div class="t-short">Return the current cursor column</div>
+<pre class="body-pre">Returns the current cursor column (1-based).</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_pos() As Long</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_csrlin');return false;">vt_csrlin</a>
+<a href="#" onclick="show('vt_locate');return false;">vt_locate</a>
+<a href="#" onclick="show('vt_cols');return false;">vt_cols</a>
+</div>
+</div>
+<div class="tdiv" id="vt_rows">
+<h2>vt_rows</h2>
+<div class="t-short">Return the number of rows on screen</div>
+<pre class="body-pre">Returns the total number of rows in the current
+screen mode.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_rows() As Long</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_cols');return false;">vt_cols</a>
+<a href="#" onclick="show('vt_csrlin');return false;">vt_csrlin</a>
+</div>
+</div>
+<div class="tdiv" id="vt_screeninfo">
+<h2>vt_screeninfo</h2>
+<pre class="body-pre">:short: Queries the renderer's physical output gridsize in glyphs
+Queries the renderer's physical output size, divides by the current
+glyph dimensions, and compares the result to the active grid.
+When the user resizes the window the physical pixel dimensions change
+but the character grid does not - this function detects that delta
+and reports the new grid size snapped to whole character cells.
+Returns 1 and writes the new dimensions only when they differ from the
+current grid; returns 0 when nothing has changed.
+Pair with vt_width in the main loop to apply the resize.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_screeninfo(ByRef out_cols As Long, ByRef out_rows As Long) As Long</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">out_cols   Receives the new column count when
+           the function returns 1. Unchanged on return 0.
+out_rows   Receives the new row count when
+           the function returns 1. Unchanged on return 0.</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Return value
+1 - grid dimensions changed; cols and rows have been written.
+0 - no change, or library not initialised.
+
+The column and row values are always whole-cell counts.
+the physical pixel width is divided by the glyph width using integer
+division, so odd window sizes snap cleanly to the nearest full
+character boundary. Programs that want a fixed grid regardless of
+window size simply never call this function; the letterbox in
+vt_present handles any surplus pixels automatically.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">Dim nc As Long, nr As Long
+If vt_screeninfo(nc, nr) Then
+    vt_width(nc, nr)
+    relayout(nc, nr)   ' re-draw app at new grid size
+End If</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_width');return false;">vt_width</a>
+</div>
+</div>
+<div class="tdiv" id="vt_screen_to_live_row">
+<h2>vt_screen_to_live_row</h2>
+<div class="t-short">Map a screen row to a live buffer row</div>
+<pre class="body-pre">Translate a screen row number to the
+corresponding live buffer row while the
+scrollback view is offset. Useful for
+click-to-locate: call this before snapping
+back to the live view with vt_scroll(-99999).</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_screen_to_live_row(screen_row As Long) As Long</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">screen_row  1-based screen row as seen during
+            the current scrollback offset.</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Return values:
+  &gt; 0  Live buffer row corresponding to
+       screen_row.
+    0  Screen row is pure history with no
+       live equivalent.
+  (pass-through when scrollback is inactive)</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">Dim lr As Long = vt_screen_to_live_row(clk_row)
+If lr &gt; 0 Then
+    vt_scroll(-99999)
+    vt_locate(lr, clk_col)
+End If</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_scroll');return false;">vt_scroll</a>
+<a href="#" onclick="show('vt_scrollback');return false;">vt_scrollback</a>
+</div>
+</div>
+<div class="tdiv" id="vt_scroll">
+<h2>vt_scroll</h2>
+<div class="t-short">Move the scrollback view by a number of lines</div>
+<pre class="body-pre">Move the scrollback view offset. Positive values
+scroll toward older history; negative values
+scroll toward the live view. Scrollback must be
+enabled with vt_scrollback first. Does not call
+vt_present. vt_scroll is called automatically
+by the library for the built-in hotkeys -- you
+only need to call it directly for custom input
+such as a mouse wheel handler.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_scroll(amount As Long) As Byte</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">amount  Lines to scroll. Positive = back in
+        history, negative = toward live view.
+        Clamped to valid range automatically.</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Return values:
+  1  Offset changed.
+  0  Already at limit, amount is zero, or
+     scrollback is disabled.</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_scrollback');return false;">vt_scrollback</a>
+<a href="#" onclick="show('hk_scrollback');return false;">hk_scrollback</a>
+<a href="#" onclick="show('vt_screen_to_live_row');return false;">vt_screen_to_live_row</a>
+</div>
+</div>
+<div class="tdiv" id="vt_view_print">
+<h2>vt_view_print</h2>
+<div class="t-short">Restrict the scroll and print region</div>
+<pre class="body-pre">Restrict the scroll region and print region to
+a range of rows and/or columns (like QBasic
+VIEW PRINT, extended with column bounds). Rows
+and columns outside the active viewport are
+unaffected by vt_cls, vt_print, and scrolling.
+Call with no arguments (or all -1) to reset the
+full viewport including column bounds.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_view_print(top_row As Long = -1, _
+                  bot_row As Long = -1, _
+                  lft_col As Long = -1, _
+                  rgt_col As Long = -1)</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">top_row  First row of the scroll region, 1-based.
+         -1 resets all four bounds to full screen.
+bot_row  Last row of the scroll region. Must be
+         &gt;= top_row.
+lft_col  First column of the print region.
+         -1 means full screen width. vt_print
+         newlines land at this column.
+rgt_col  Last column of the print region. Must
+         be &gt;= lft_col. vt_print wraps here.</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">vt_locate is always absolute -- column bounds
+do not affect it. Calling with all -1 resets
+the entire viewport: row bounds, column bounds,
+and cursor position.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">' Leave row 1 and row 25 untouched (status bars):
+vt_view_print(2, 24)
+
+' Reset to full viewport:
+vt_view_print()</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_cls');return false;">vt_cls</a>
+<a href="#" onclick="show('vt_print');return false;">vt_print</a>
+<a href="#" onclick="show('vt_scroll_enable');return false;">vt_scroll_enable</a>
+</div>
+</div>
+<div class="tdiv" id="vt_sort">
+<h2>vt_sort</h2>
+<div class="t-short">Generic in-place array sort (opt-in)</div>
+<pre class="body-pre">Sort a 1D array in-place using Shellsort.
+Overloaded for all numeric types and String.
+The compiler selects the correct overload --
+a single call form works for every supported
+type. Arrays with any LBound are handled.
+
+NOTE: ZString * N is not supported. Store data
+as String for sorting. See vt_sort_apply for
+the index-sort pattern with ZString arrays.
+
+Two call forms:
+  Form 1: direction constant (VT_ASCENDING or
+  VT_DESCENDING). Form 2: comparator callback.
+
+The comparator returns negative if a comes
+first, zero if equal, positive if b comes first.
+To sort descending via a comparator, flip the
+return sign.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_sort(arr() As &lt;T&gt;, order As Long)
+
+Sub vt_sort(arr() As &lt;T&gt;, _
+            cmp As Function(As &lt;T&gt;, As &lt;T&gt;) _
+                           As Long)</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">arr()  1D array to sort in-place.
+order  VT_ASCENDING (0) or VT_DESCENDING (1).
+cmp    Comparator callback. Pass with @.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">#Define VT_USE_SORT
+Dim nums(4) As Long = {5, 1, 4, 2, 3}
+vt_sort(nums(), VT_ASCENDING)
+
+Dim words(2) As String = {&quot;c&quot;, &quot;a&quot;, &quot;b&quot;}
+vt_sort(words(), VT_ASCENDING)
+
+' Custom comparator:
+Function cmp_len(a As String, b As String) _
+                 As Long
+    Return Len(a) - Len(b)
+End Function
+Dim tags(2) As String = {&quot;hi&quot;, &quot;hello&quot;, &quot;hey&quot;}
+vt_sort(tags(), @cmp_len)</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_sort_apply');return false;">vt_sort_apply</a>
+<a href="#" onclick="show('vt_sort_shuffle');return false;">vt_sort_shuffle</a>
+<a href="#" onclick="show('c_sortconsts');return false;">c_sortconsts</a>
+</div>
+</div>
+<div class="tdiv" id="vt_sort_apply">
+<h2>vt_sort_apply</h2>
+<div class="t-short">Apply a permutation index to an array</div>
+<pre class="body-pre">Apply a permutation index to a 1D array,
+physically rearranging its elements in-place.
+This is the companion to the index-sort pattern
+for sorting tables stored as parallel arrays.
+
+pidx() values are 0-based offsets from
+LBound(arr), matching the index arrays built
+and sorted by vt_sort. The permutation index is
+consumed by the apply step -- build a fresh
+index array to apply the same order elsewhere.
+Overloaded for the same types as vt_sort.
+
+Index-sort pattern (three steps):
+  1. Build a Long index array {0, 1, 2, ...}
+  2. Sort the index array with a comparator
+     that reads real data via index values.
+  3. Either read in index order (non-destructive)
+     or call vt_sort_apply on each parallel array.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_sort_apply(arr()  As &lt;T&gt;, _
+                  pidx() As Long)</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">arr()   Array to rearrange in-place.
+pidx()  Permutation index. Values are 0-based
+        offsets into arr.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">#Define VT_USE_SORT
+Dim Shared g_item(3) As String
+Dim Shared g_qty (3) As Long
+g_item(0) = &quot;eggs&quot;   : g_qty(0) = 5
+g_item(1) = &quot;butter&quot; : g_qty(1) = 2
+g_item(2) = &quot;milk&quot;   : g_qty(2) = 10
+g_item(3) = &quot;bread&quot;  : g_qty(3) = 3
+
+Function cmp_qty(a As Long, b As Long) As Long
+    Return g_qty(a) - g_qty(b)
+End Function
+
+Dim idx(3) As Long
+Dim i As Long
+For i = 0 To 3 : idx(i) = i : Next i
+vt_sort(idx(), @cmp_qty)
+
+vt_sort_apply(g_item(), idx())
+vt_sort_apply(g_qty(),  idx())</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_sort');return false;">vt_sort</a>
+<a href="#" onclick="show('vt_sort_shuffle');return false;">vt_sort_shuffle</a>
+</div>
+</div>
+<div class="tdiv" id="vt_sort_shuffle">
+<h2>vt_sort_shuffle</h2>
+<div class="t-short">Fisher-Yates in-place array shuffle</div>
+<pre class="body-pre">Shuffle a 1D array in-place using the
+Fisher-Yates algorithm, producing an unbiased
+uniform random permutation. Seeding the RNG
+with Randomize is the caller's responsibility.
+Overloaded for the same types as vt_sort.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_sort_shuffle(arr() As &lt;T&gt;)</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">arr()  1D array to shuffle in-place.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">#Define VT_USE_SORT
+Randomize
+Dim deck(51) As Long
+Dim i As Long
+For i = 0 To 51 : deck(i) = i : Next i
+vt_sort_shuffle(deck())
+
+Dim names(3) As String = _
+    {&quot;Alice&quot;, &quot;Bob&quot;, &quot;Carol&quot;, &quot;Dave&quot;}
+vt_sort_shuffle(names())</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_sort');return false;">vt_sort</a>
+<a href="#" onclick="show('vt_rnd');return false;">vt_rnd</a>
+</div>
+</div>
+<div class="tdiv" id="soundconsts">
+<h2>soundconsts</h2>
+<div class="t-short">Sound constants (opt-in: VT_USE_SOUND)</div>
+<pre class="body-pre">Available when #define VT_USE_SOUND is placed
+before #include once &quot;vt/vt.bi&quot;.</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">Waveforms (wave parameter of vt_sound):
+Const VT_WAVE_SQUARE      = 0
+     PC speaker / chiptune square wave (default)
+
+Const VT_WAVE_TRIANGLE    = 1
+     NES triangle channel -- softer, bass feel
+
+Const VT_WAVE_SINE        = 2
+     pure sine tone
+
+Const VT_WAVE_NOISE       = 3
+     15-bit LFSR noise -- NES percussion / static
+
+Blocking mode (blocking parameter):
+Const VT_SOUND_BLOCKING   = 1
+    Wait for the note to finish (default).
+
+Const VT_SOUND_BACKGROUND = 0
+    Queue and return immediately.
+    Use vt_sound_wait to sync.</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_sound');return false;">vt_sound</a>
+<a href="#" onclick="show('vt_sound_wait');return false;">vt_sound_wait</a>
+</div>
+</div>
+<div class="tdiv" id="vt_beep">
+<h2>vt_beep</h2>
+<div class="t-short">Convenience macro: short 800 Hz beep</div>
+<pre class="body-pre">Convenience macro. Plays a short 800 Hz square-
+wave beep, blocking. Equivalent to calling
+vt_sound(800, 200).
+Opt-in: #define VT_USE_SOUND before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre"> #Define VT_BEEP vt_sound(800, 200)</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">' Simple error beep:
+VT_BEEP</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_sound');return false;">vt_sound</a>
+</div>
+</div>
+<div class="tdiv" id="vt_sound">
+<h2>vt_sound</h2>
+<div class="t-short">Generate and queue a tone (opt-in)</div>
+<pre class="body-pre">Generate samples for a tone of the given
+frequency and duration and add them to the
+audio queue. The waveform and blocking behaviour
+are selectable. The audio subsystem initializes
+automatically on the first vt_sound call and
+does not require vt_screen to be open. Pass
+freq = 0 to stop playback and clear the queue
+immediately.
+Opt-in: #define VT_USE_SOUND before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_sound(freq     As Long, _
+                  dur_ms   As Long = 200, _
+                  wave     As Long = VT_WAVE_SQUARE, _
+                  blocking As Long = _
+                  VT_SOUND_BLOCKING) As Long</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">freq      Frequency in Hz. 0 = stop and clear
+          the queue immediately.
+dur_ms    Duration in milliseconds. Default 200.
+wave      Waveform. One of VT_WAVE_* constants.
+blocking  VT_SOUND_BLOCKING = wait for note to
+          finish (window stays alive during wait).
+          VT_SOUND_BACKGROUND = queue and return.</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Return values:
+   0  success
+  -1  audio init or memory alloc failed
+  -2  queue cap exceeded, call was skipped</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">' Single blocking note:
+vt_sound(440, 500)
+
+' Melody blocking note-by-note:
+vt_sound(262, 200)
+vt_sound(330, 200)
+vt_sound(392, 400)
+
+' Same melody in background:
+vt_sound(262, 200, VT_WAVE_SQUARE, _
+         VT_SOUND_BACKGROUND)
+vt_sound(330, 200, VT_WAVE_SQUARE, _
+         VT_SOUND_BACKGROUND)
+vt_sound(392, 400, VT_WAVE_SQUARE, _
+         VT_SOUND_BACKGROUND)
+vt_print(&quot;Playing...&quot;)
+vt_present()
+vt_sound_wait()
+vt_shutdown()
+
+' Stop playback immediately:
+vt_sound(0)</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_sound_wait');return false;">vt_sound_wait</a>
+<a href="#" onclick="show('vt_beep');return false;">vt_beep</a>
+<a href="#" onclick="show('c_soundconsts');return false;">c_soundconsts</a>
+</div>
+</div>
+<div class="tdiv" id="vt_sound_wait">
+<h2>vt_sound_wait</h2>
+<div class="t-short">Block until the audio queue fully drains</div>
+<pre class="body-pre">Block until the audio queue fully drains. The
+sync barrier for sequences queued with
+VT_SOUND_BACKGROUND -- lets you run code while
+a melody plays, then wait for it to finish. The
+window stays alive during the wait. No-op if
+the sound subsystem was never initialized.
+Opt-in: define VT_USE_SOUND before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_sound_wait()</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_sound');return false;">vt_sound</a>
+</div>
+</div>
+<div class="tdiv" id="vt_str_count">
+<h2>vt_str_count</h2>
+<div class="t-short">Count non-overlapping occurrences of a substring</div>
+<pre class="body-pre">Count non-overlapping occurrences of find in s.
+Returns 0 if either string is empty.
+Opt-in: define VT_USE_STRINGS before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_str_count(s    As String, _
+                      find As String) As Long</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">s     String to search in.
+find  Substring to count. Empty = always 0.</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Return: number of non-overlapping occurrences.
+0 if none or if either argument is empty.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">Dim n As Long = vt_str_count(&quot;banana&quot;, &quot;a&quot;)
+' n = 3
+
+n = vt_str_count(&quot;banana&quot;, &quot;an&quot;)
+' n = 2  (&quot;b[an][an]a&quot;)</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_str_replace');return false;">vt_str_replace</a>
+</div>
+</div>
+<div class="tdiv" id="vt_str_ends_with">
+<h2>vt_str_ends_with</h2>
+<div class="t-short">Test whether a string ends with a suffix</div>
+<pre class="body-pre">Returns 1 if s ends with sfx, 0 otherwise.
+An empty sfx always returns 1.
+Opt-in: define VT_USE_STRINGS before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_str_ends_with(s   As String, _
+                          sfx As String) _
+                          As Byte</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">s    String to test.
+sfx  Expected suffix.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">If vt_str_ends_with(filename, &quot;.vts&quot;) Then
+    vt_bload(filename)
+End If</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_str_starts_with');return false;">vt_str_starts_with</a>
+</div>
+</div>
+<div class="tdiv" id="vt_str_pad_left">
+<h2>vt_str_pad_left</h2>
+<div class="t-short">Right-align a string in a fixed-width field</div>
+<pre class="body-pre">Right-align s in a field of exactly length
+characters by padding with ch on the left. If s
+is longer than length, the rightmost length
+characters are returned (truncation keeps the
+least-significant end, useful for numbers). Only
+the first character of ch is used; if ch is
+empty a space is substituted. Returns &quot;&quot; if
+length &lt;= 0.
+Opt-in: define VT_USE_STRINGS before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_str_pad_left(s      As String, _
+                         length As Long, _
+                         ch     As String) _
+                         As String</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">s       Source string.
+length  Desired output width in characters.
+ch      Fill character. Only first char is used.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">' Zero-pad a score to 6 digits:
+vt_print( vt_str_pad_left(Str(score), 6, &quot;0&quot;) )
+' &quot;001450&quot;</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_str_pad_right');return false;">vt_str_pad_right</a>
+</div>
+</div>
+<div class="tdiv" id="vt_str_pad_right">
+<h2>vt_str_pad_right</h2>
+<div class="t-short">Left-align a string in a fixed-width field</div>
+<pre class="body-pre">Left-align s in a field of exactly length
+characters by padding with ch on the right. If
+s is longer than length, the leftmost length
+characters are returned. Only the first character
+of ch is used; if ch is empty a space is
+substituted. Returns &quot;&quot; if length &lt;= 0.
+Opt-in: define VT_USE_STRINGS before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_str_pad_right(s      As String, _
+                          length As Long,   _
+                          ch     As String) _
+                          As String</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">s       Source string.
+length  Desired output width in characters.
+ch      Fill character. Only first char is used.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">' Fixed label next to a value:
+vt_print( vt_str_pad_right(&quot;SCORE&quot;, 10, &quot; &quot;) &amp; _
+          vt_str_pad_left(Str(score), 6, &quot;0&quot;) )</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_str_pad_left');return false;">vt_str_pad_left</a>
+</div>
+</div>
+<div class="tdiv" id="vt_str_repeat">
+<h2>vt_str_repeat</h2>
+<div class="t-short">Repeat a string n times</div>
+<pre class="body-pre">Return s concatenated n times. Returns &quot;&quot; for
+n &lt;= 0 or an empty s. Single-character strings
+use FreeBASIC's String() internally for
+efficiency.
+Opt-in: define VT_USE_STRINGS before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_str_repeat(s As String, _
+                       n As Long) As String</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">s  String to repeat.
+n  Number of repetitions. 0 or negative = &quot;&quot;.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">' Draw a separator line:
+vt_print(vt_str_repeat(&quot;-=&quot;, 20) &amp; VT_LF)
+
+' Progress bar string:
+Dim bar As String = &quot;[&quot; &amp; _
+    vt_str_repeat(&quot;#&quot;, filled) &amp; _
+    vt_str_repeat(&quot;.&quot;, empty_count) &amp; &quot;]&quot;</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_str_pad_left');return false;">vt_str_pad_left</a>
+<a href="#" onclick="show('vt_str_pad_right');return false;">vt_str_pad_right</a>
+</div>
+</div>
+<div class="tdiv" id="vt_str_replace">
+<h2>vt_str_replace</h2>
+<div class="t-short">Replace all occurrences of a substring</div>
+<pre class="body-pre">Replace every non-overlapping occurrence of
+find in s with repl. Scanning advances past the
+replacement so overlapping matches are not
+produced. Returns s unchanged if find is empty.
+Opt-in: define VT_USE_STRINGS before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_str_replace(s    As String, _
+                        find As String, _
+                        repl As String) As String</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">s     Source string.
+find  Substring to search for. Empty = no-op.
+repl  Replacement. May be empty to delete all.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">Dim fname As String = _
+    vt_str_replace(&quot;hello world&quot;, &quot; &quot;, &quot;_&quot;)
+' fname = &quot;hello_world&quot;
+
+Dim stripped As String = _
+    vt_str_replace(&quot;a--b--c&quot;, &quot;--&quot;, &quot;&quot;)
+' stripped = &quot;abc&quot;</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_str_split');return false;">vt_str_split</a>
+<a href="#" onclick="show('vt_str_count');return false;">vt_str_count</a>
+</div>
+</div>
+<div class="tdiv" id="vt_str_split">
+<h2>vt_str_split</h2>
+<div class="t-short">Split a string into an array by delimiter</div>
+<pre class="body-pre">Split s by delim and fill arr() with the
+resulting segments. The array is ReDim'd by this
+function; the caller only needs to declare
+Dim arr() As String. Returns the number of
+elements produced. If delim is empty, each
+character becomes its own element. A trailing
+delimiter produces a final empty element.
+An empty s always returns one element of &quot;&quot;.
+Opt-in: define VT_USE_STRINGS before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_str_split(s     As String, _
+                      delim As String, _
+                      arr() As String) As Long</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">s      Source string to split.
+delim  Delimiter. Empty = split into characters.
+arr()  Receives the segments. ReDim'd to
+       0 To count-1.</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Return: number of elements placed in arr().</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">Dim parts() As String
+Dim cnt As Long = _
+    vt_str_split(&quot;one,two,three&quot;, &quot;,&quot;, parts())
+' cnt=3  parts(0)=&quot;one&quot; parts(1)=&quot;two&quot; ...
+For i As Long = 0 To cnt - 1
+    vt_print(parts(i) + VT_LF)
+Next i</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_str_replace');return false;">vt_str_replace</a>
+<a href="#" onclick="show('vt_str_count');return false;">vt_str_count</a>
+</div>
+</div>
+<div class="tdiv" id="vt_str_starts_with">
+<h2>vt_str_starts_with</h2>
+<div class="t-short">Test whether a string begins with a prefix</div>
+<pre class="body-pre">Returns 1 if s begins with pfx, 0 otherwise.
+An empty pfx always returns 1.
+Opt-in: define VT_USE_STRINGS before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_str_starts_with(s   As String, _
+                            pfx As String) _
+                            As Byte</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">s    String to test.
+pfx  Expected prefix.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">If vt_str_starts_with(input_line, &quot;/quit&quot;) Then
+    end_game = 1
+End If</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_str_ends_with');return false;">vt_str_ends_with</a>
+</div>
+</div>
+<div class="tdiv" id="vt_str_trim_chars">
+<h2>vt_str_trim_chars</h2>
+<div class="t-short">Trim a custom character set from both ends</div>
+<pre class="body-pre">Remove any character found in the set chars
+from both ends of s and return the result.
+FreeBASIC's built-in Trim only removes spaces;
+this function accepts any set of characters.
+Returns &quot;&quot; if s consists entirely of chars.
+Returns s unchanged if chars is empty.
+Opt-in: define VT_USE_STRINGS before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_str_trim_chars(s     As String, _
+                           chars As String) _
+                           As String</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">s      Source string.
+chars  Set of characters to strip. Each
+       character is an individual candidate.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">Dim clean As String = _
+    vt_str_trim_chars(&quot;***hello***&quot;, &quot;*&quot;)
+' clean = &quot;hello&quot;
+
+clean = vt_str_trim_chars(&quot;  ..hi.. &quot;, &quot; .&quot;)
+' clean = &quot;hi&quot;</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_str_replace');return false;">vt_str_replace</a>
+</div>
+</div>
+<div class="tdiv" id="vt_str_wordwrap">
+<h2>vt_str_wordwrap</h2>
+<div class="t-short">Insert line breaks for word-wrapping</div>
+<pre class="body-pre">Insert Chr(10) line breaks into s so that no
+line exceeds col_width characters. Words are
+never split -- a word longer than col_width
+occupies its own line unbroken. Existing Chr(10)
+and Chr(13) characters are preserved and reset
+the line-length counter; CRLF pairs are collapsed
+to a single Chr(10). The return value is a plain
+string with embedded newlines -- pass it directly
+to vt_print. No screen required: col_width = -1
+falls back to 80 when no VT screen is open.
+Opt-in: define VT_USE_STRINGS before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_str_wordwrap(s            As String,    _
+                         col_width    As Long = -1, _
+                         first_offset As Long = 0)  _
+                         As String</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">s             Source text to wrap.
+col_width     Max line width. -1 uses screen
+              width or 80 if no screen is open.
+first_offset  Characters already consumed on
+              the first line before this text.
+              Subsequent lines always start at
+              column 0.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">Dim msg As String = _
+    &quot;This item restores your health fully &quot; &amp; _
+    &quot;and also cures poison.&quot;
+vt_print(vt_str_wordwrap(msg, 30))
+
+' Label already on same line:
+vt_print(&quot;Description: &quot;)
+vt_print(vt_str_wordwrap(msg, 40, 13))</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_print');return false;">vt_print</a>
+<a href="#" onclick="show('vt_cols');return false;">vt_cols</a>
+</div>
+</div>
+<div class="tdiv" id="c_tuiconsts">
+<h2>c_tuiconsts</h2>
+<div class="t-short">TUI constants/Types (opt-in: VT_USE_TUI)</div>
+<pre class="body-pre">Available when #define VT_USE_TUI is placed
+before #include once &quot;vt/vt.bi&quot;.</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">Dialog Return Codes:
+Const VT_RET_CANCEL = 0
+Const VT_RET_OK     = 1
+Const VT_RET_YES    = 2
+Const VT_RET_NO     = 3
+
+Dialog button set flags:
+Const VT_DLG_OK          = 1 ' Single OK button
+Const VT_DLG_OKCANCEL    = 2 ' OK + Cancel
+Const VT_DLG_YESNO       = 3 ' Yes + No
+Const VT_DLG_YESNOCANCEL = 4 ' Yes + No + Cancel
+Const VT_DLG_NO_ESC      = 8 ' No ESC, mandatory choice
+
+Form item kinds:
+Const VT_FORM_INPUT      = 0 ' Single-line text input
+Const VT_FORM_BUTTON     = 1 ' Push button
+Const VT_FORM_CHECKBOX   = 2 ' Toggleable checkbox
+Const VT_FORM_RADIO      = 3 ' Radio Button
+Const VT_FORM_LABEL      = 4 ' Static text label
+
+Widget flags:
+Const VT_TUI_WIN_CLOSEBTN = 1 ' Render [x] Button
+Const VT_TUI_WIN_SHADOW   = 2 ' Drop Shadow
+Const VT_TUI_PROG_LABEL   = 1 ' Show nn% on bar
+Const VT_TUI_FD_DIRS      = 1 ' Include subdirs in list
+Const VT_TUI_FD_DIRSONLY  = 2 ' Dirs only in picker
+Const VT_TUI_ED_READONLY  = 1 ' view/scroll only, no editing
+
+Label Alignment:
+Const VT_ALIGN_LEFT       = 0 ' (default)
+Const VT_ALIGN_CENTER     = 1
+Const VT_ALIGN_RIGHT      = 2
+
+Form return codes:
+Const VT_FORM_PENDING     = -2 ' Still active
+Const VT_FORM_CANCEL      = -1 ' Escape was pressed
+(&gt;= 0)                          Button .ret value
+
+Form flags:
+Const VT_FORM_NO_ESC      = 1  ' Escape does nothing
+
+Menu extraction macros:
+#Define VT_TUI_MENU_GROUP(r)  ((r) \ 1000)
+1-based group index from menu return.
+#Define VT_TUI_MENU_ITEM(r)   ((r) Mod 1000)
+1-based item index within that group.
+
+
+ Keymap action constants:
+Enum VT_TUI_ACT
+    VT_TUI_ACT_NEXT   ' Tab        - focus forward
+    VT_TUI_ACT_PREV   ' Shift+Tab  - focus backward
+    VT_TUI_ACT_CANCEL ' Escape     - cancel / close
+    VT_TUI_ACT_UP     ' Up arrow   - list / editor navigation
+    VT_TUI_ACT_DOWN   ' Down arrow
+    VT_TUI_ACT_LEFT   ' Left arrow - cursor in input, adjacent focus on buttons
+    VT_TUI_ACT_RIGHT  ' Right arrow
+    VT_TUI_ACT_PGUP   ' PgUp
+    VT_TUI_ACT_PGDN   ' PgDn
+    VT_TUI_ACT_HOME   ' Home
+    VT_TUI_ACT_END    ' End
+    VT_TUI_ACT_COUNT  ' sentinel only
+End Enum
+
+Key builder/test macros:
+  VT_TUI_MKKEY(scan, sh, ct, al)
+      Build a packed ULong from scancode and
+      Shift/Ctrl/Alt flags (0 or 1).
+  VT_TUI_KEY_IS(k, act)
+      True when key k matches the keymap slot
+      for action act. Always use this -- never
+      compare scancodes directly.</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_tui_dialog');return false;">vt_tui_dialog</a>
+<a href="#" onclick="show('vt_tui_form_*');return false;">vt_tui_form_*</a>
+<a href="#" onclick="show('vt_tui_listbox_*');return false;">vt_tui_listbox_*</a>
+<a href="#" onclick="show('vt_tui_menubar_*');return false;">vt_tui_menubar_*</a>
+<a href="#" onclick="show('vt_tui_keymap');return false;">vt_tui_keymap</a>
+</div>
+</div>
+<div class="tdiv" id="vt_tui_*line">
+<h2>vt_tui_*line</h2>
+<div class="t-short">Draw a horizontal or vertical separator line</div>
+<pre class="body-pre">Draw a horizontal or vertical separator line
+using CP437 box-drawing characters. The character
+is chosen automatically from the active theme's
+border_style: single-line or double-line.
+Opt-in: define VT_USE_TUI before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_tui_hline(x   As Long, y   As Long, _
+                 wid As Long, _
+                 fg  As UByte, bg As UByte)</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">x, y     1-based start column and row.
+wid/hei  Length of the line in cells.
+fg, bg   Foreground and background colour indices.</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">vt_tui_vline is the same, just traversing vertical.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">' Horizontal divider across 80-column screen:
+vt_tui_hline(1, 13, 80, VT_DARK_GREY, VT_BLACK)
+
+' Vertical divider at column 40:
+vt_tui_vline(40, 1, 25, VT_DARK_GREY, VT_BLACK)</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_tui_rect_fill');return false;">vt_tui_rect_fill</a>
+<a href="#" onclick="show('vt_tui_window');return false;">vt_tui_window</a>
+</div>
+</div>
+<div class="tdiv" id="vt_tui_dialog">
+<h2>vt_tui_dialog</h2>
+<div class="t-short">Blocking modal dialog (opt-in)</div>
+<pre class="body-pre">Self-contained blocking modal dialog. Saves the
+background before drawing and restores it on
+close. The text is word-wrapped automatically to
+fit; the window grows to accommodate the wrapped
+content and the button row. The dialog is centred
+on screen (default 60 columns, clamped to screen
+width minus 4).
+Opt-in: define VT_USE_TUI before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_tui_dialog(caption As String, _
+                       txt     As String, _
+                       flags   As Long = _
+                       VT_DLG_OK) As Long</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">caption  Title bar text.
+txt      Body text. Word-wrapped to fit width.
+flags    Button set constant, optionally
+         combined with VT_DLG_NO_ESC.</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Return: one of VT_RET_OK, VT_RET_CANCEL,
+VT_RET_YES, VT_RET_NO.
+
+Key/mouse bindings:
+  Tab          Advance focus to next button.
+  Left/Right   Move focus between buttons.
+  Enter        Activate the focused button.
+  Escape       Return VT_RET_CANCEL (unless
+               VT_DLG_NO_ESC is set).
+  Click        Activate clicked button immediately.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">' Quit confirmation:
+If vt_tui_dialog(&quot;Quit&quot;, _
+    &quot;Are you sure you want to quit?&quot;, _
+    VT_DLG_YESNO) = VT_RET_YES Then
+    vt_shutdown()
+End If
+
+' Mandatory choice (Escape disabled):
+Dim r As Long = vt_tui_dialog(&quot;Disk Full&quot;, _
+    &quot;Retry or abort the operation?&quot;, _
+    VT_DLG_OKCANCEL Or VT_DLG_NO_ESC)
+
+' Simple info box:
+vt_tui_dialog(&quot;Done&quot;, &quot;File saved successfully.&quot;)</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_tui_window');return false;">vt_tui_window</a>
+<a href="#" onclick="show('vt_tui_file_dialog');return false;">vt_tui_file_dialog</a>
+<a href="#" onclick="show('c_tuiconsts');return false;">c_tuiconsts</a>
+</div>
+</div>
+<div class="tdiv" id="vt_tui_editor_*">
+<h2>vt_tui_editor_*</h2>
+<div class="t-short">Non-blocking multi-line editor/viewer</div>
+<pre class="body-pre">Non-blocking multi-line editor and viewer.
+Two-function design: vt_tui_editor_draw renders
+the visible text each frame; vt_tui_editor_handle
+processes one key or mouse event and returns
+immediately. The caller owns the
+vt_tui_editor_state struct. Text is stored as a
+single String with Chr(10) line separators.
+Lines exceeding wid are truncated in display; no
+horizontal scrolling. Uses theme's inp_fg/inp_bg.
+NOTE: call vt_tui_editor_draw LAST in your loop,
+after any status bars or labels that use
+vt_locate. The draw function sets the text cursor
+position; any vt_locate after it moves the cursor
+to the wrong place before vt_sleep flips the frame.
+Opt-in: define VT_USE_TUI before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_tui_editor_draw(x   As Long, y   As Long, _
+                       wid As Long, hei As Long, _
+                       ByRef st As _
+                       vt_tui_editor_state)
+                       </pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">x, y     1-based top-left of the editing area.
+wid, hei Width and height in cells.
+st       Caller-owned state. Pass same struct to
+         both functions every frame.
+k        Key value from vt_inkey() this frame.</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Return (vt_tui_editor_handle):
+  VT_FORM_PENDING(-2)  Always while editing.
+  VT_FORM_CANCEL(-1)   Escape pressed.
+  Check st.dirty to know if edits were made.
+
+vt_tui_editor_state fields:
+  work    As String  ' text buffer (Chr(10) newlines)
+  cpos    As Long    ' byte cursor offset -- init 0
+  top_ln  As Long    ' first visible line -- init 0
+  dirty   As Byte    ' 0 until first edit
+  flags   As Long    ' VT_TUI_ED_READONLY etc.
+
+Key/mouse bindings:
+  Up/Down          Move cursor one line.
+  PgUp/PgDn        Move by hei lines.
+  Left/Right       Move cursor one character.
+  Home/End         Start/end of current line.
+  Enter            Insert newline (edit mode only).
+  Backspace/Del    Delete (edit mode only).
+  Printable char   Insert at cursor (edit only).
+  Escape           Return VT_FORM_CANCEL.
+  Scroll wheel     Scroll the view (both modes).</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">Dim st As vt_tui_editor_state
+st.work   = &quot;First line&quot; &amp; Chr(10) &amp; &quot;Second line&quot;
+st.cpos   = 0
+st.top_ln = 0
+st.dirty  = 0
+st.flags  = 0
+
+vt_tui_window(5, 3, 70, 20, &quot; Notes &quot;)
+Dim result As Long = VT_FORM_PENDING
+Dim k As ULong
+Do While result = VT_FORM_PENDING
+    k = vt_inkey()
+    result = vt_tui_editor_handle(6, 4, 68, 18, st, k)
+    vt_color(VT_BLACK, VT_CYAN)
+    vt_locate(24, 1)
+    vt_print(&quot; Esc=Close&quot; &amp; _
+             IIf(st.dirty, &quot;  *modified*&quot;, &quot;&quot;))
+    vt_tui_editor_draw(6, 4, 68, 18, st)
+    vt_sleep(16)
+Loop</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_tui_window');return false;">vt_tui_window</a>
+<a href="#" onclick="show('vt_tui_form_*');return false;">vt_tui_form_*</a>
+<a href="#" onclick="show('c_tuiconsts');return false;">c_tuiconsts</a>
+</div>
+</div>
+<div class="tdiv" id="vt_tui_file_dialog">
+<h2>vt_tui_file_dialog</h2>
+<div class="t-short">Blocking file/directory picker (opt-in)</div>
+<pre class="body-pre">Self-contained blocking file/directory picker.
+Saves the background before drawing and restores
+it on close. Centred on screen, automatically
+sized (max 70 columns). The listing always
+includes subdirectories (shown with trailing /)
+and a .. entry when a parent exists. Files are
+matched against pattern. All returned paths use
+forward slashes on both Windows and Linux.
+Opt-in: define VT_USE_TUI before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_tui_file_dialog(title      As String, _
+                            start_path As String, _
+                            pattern    As String, _
+                            flags      As Long = 0) _
+                            As String</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">title       Title bar text and confirm button label.
+start_path  Initial directory. Backslashes are
+            normalized to forward slashes. Pass &quot;&quot;
+            or &quot;./&quot; for the current directory.
+pattern     Filename wildcard, e.g. &quot;*.txt&quot; or &quot;*&quot;.
+            Ignored when VT_TUI_FD_DIRSONLY is set.
+flags       VT_TUI_FD_DIRSONLY = show only dirs;
+            Enter or OK on a dir confirms it.</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Return: full selected path as a String. Directory
+paths end with /. &quot;&quot; on cancel.
+
+Key/mouse bindings:
+  Up/Down/PgUp/PgDn/Home/End  Navigate list.
+  Enter on a file    Confirm that file.
+  Enter on a dir     Navigate into it (or
+                     confirm in DIRSONLY mode).
+  Double-click       Navigate dir or confirm file.
+  Backspace          Delete last char from name
+                     field, or navigate up a dir
+                     if name field is empty.
+  Tab                Activate name field for entry.
+  Printable char     Append to name field.
+  F2                 Keyboard OK button equivalent.
+  Escape             Cancel, return &quot;&quot;.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">Dim path As String = _
+    vt_tui_file_dialog(&quot;Open&quot;, &quot;./&quot;, &quot;*.bas&quot;)
+If Len(path) &gt; 0 Then
+    vt_print(&quot;Selected: &quot; &amp; path &amp; VT_LF)
+End If
+
+' Directory picker only:
+path = vt_tui_file_dialog(&quot;Choose Folder&quot;, _
+    &quot;./&quot;, &quot;*&quot;, VT_TUI_FD_DIRSONLY)</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_tui_dialog');return false;">vt_tui_dialog</a>
+<a href="#" onclick="show('vt_file_list');return false;">vt_file_list</a>
+<a href="#" onclick="show('c_tuiconsts');return false;">c_tuiconsts</a>
+</div>
+</div>
+<div class="tdiv" id="vt_tui_form_*">
+<h2>vt_tui_form_*</h2>
+<div class="t-short">Non-blocking form widget (opt-in)</div>
+<pre class="body-pre">Non-blocking form widget. Two-function design:
+vt_tui_form_draw renders all items passively
+each frame; vt_tui_form_handle processes one
+key or mouse event and returns immediately. The
+caller owns the vt_tui_form_item array and loops
+until vt_tui_form_handle returns a value other
+than VT_FORM_PENDING. VT_USE_TUI automatically
+pulls in VT_USE_STRINGS and VT_USE_FILE.
+NOTE: call vt_tui_form_draw LAST in your loop,
+after any status bars or labels that use
+vt_locate, so the text cursor is placed correctly
+in the focused input field.
+Opt-in: define VT_USE_TUI before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_tui_form_draw(items()       As _
+                     vt_tui_form_item, _
+                     ByRef focused As Long)</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">items()  Form items array. Any lower bound.
+focused  0-based index of the focused item.
+         Updated by form_handle on focus changes.
+k        Key value from vt_inkey() this frame.
+flags    VT_FORM_NO_ESC = Escape does nothing.</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Return (vt_tui_form_handle):
+  VT_FORM_PENDING(-2)  Still editing.
+  VT_FORM_CANCEL(-1)   Escape pressed.
+  &gt;= 0                 Activated button .ret value.
+Test for done with: result &lt;&gt; VT_FORM_PENDING
+
+vt_tui_form_item fields:
+  kind     As UByte  ' VT_FORM_INPUT/BUTTON etc.
+  x        As Long   ' 1-based column
+  y        As Long   ' 1-based row
+  wid      As Long   ' input/label: field width
+  val      As String ' input: text; button: label
+  ret      As Long   ' button: return value
+  max_len  As Long   ' input: max chars (0=wid)
+  checked  As Byte   ' checkbox/radio: 0 or 1
+  group_id As Long   ' radio: mutual-exclusion id
+  cpos     As Long   ' init to Len(val) for prefill
+  view_off As Long   ' init to 0 (internal)
+  align    As Long   ' label: VT_ALIGN_*
+  lbl_fg   As UByte  ' label: foreground colour
+  lbl_bg   As UByte  ' label: background colour
+
+Key/mouse bindings:
+  Tab/Shift+Tab  Advance/retreat focus (wraps).
+                 VT_FORM_LABEL items skipped.
+  Enter on input No-op; use Tab to leave field.
+  Enter on button Activate, return .ret.
+  Enter/Space on checkbox  Toggle .checked.
+  Enter/Space on radio     Select, clear group.
+  Left/Right on input      Move text cursor.
+  Left/Right on button     Move to adjacent item.
+  Home/End on input        Start/end of text.
+  Backspace/Del on input   Delete left/right.
+  Printable on input       Insert at cursor.
+  Click on input           Focus + cursor snap.
+  Click on button          Activate immediately.
+  Click on checkbox        Focus and toggle.
+  Click on radio           Focus and select.
+  Escape                   Return VT_FORM_CANCEL.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">Dim fitems(3) As vt_tui_form_item
+
+fitems(0).kind    = VT_FORM_INPUT
+fitems(0).x = 23 : fitems(0).y = 7
+fitems(0).wid     = 20
+fitems(0).val     = &quot;Player one&quot;
+fitems(0).max_len = 20
+fitems(0).cpos    = Len(fitems(0).val)
+
+fitems(1).kind    = VT_FORM_CHECKBOX
+fitems(1).x = 23 : fitems(1).y = 9
+fitems(1).val     = &quot;Enable sound&quot;
+fitems(1).checked = 1
+
+fitems(2).kind = VT_FORM_BUTTON
+fitems(2).x = 23 : fitems(2).y = 12
+fitems(2).val  = &quot;  OK  &quot;
+fitems(2).ret  = VT_RET_OK
+
+fitems(3).kind = VT_FORM_BUTTON
+fitems(3).x = 33 : fitems(3).y = 12
+fitems(3).val  = &quot;Cancel&quot;
+fitems(3).ret  = VT_RET_CANCEL
+
+Dim focused As Long = 0
+Dim result  As Long = VT_FORM_PENDING
+Dim k As ULong
+
+vt_tui_window 21, 5, 40, 12, &quot; Settings &quot;
+Do
+    k = vt_inkey()
+    result = vt_tui_form_handle(fitems(), focused, k)
+    vt_tui_statusbar(25, &quot; Tab=Next  Esc=Cancel &quot;)
+    vt_tui_form_draw(fitems(), focused)
+    vt_sleep(16)
+Loop While result = VT_FORM_PENDING</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_tui_form_offset');return false;">vt_tui_form_offset</a>
+<a href="#" onclick="show('vt_tui_window');return false;">vt_tui_window</a>
+<a href="#" onclick="show('vt_tui_label_draw');return false;">vt_tui_label_draw</a>
+<a href="#" onclick="show('c_tuiconsts');return false;">c_tuiconsts</a>
+</div>
+</div>
+<div class="tdiv" id="vt_tui_form_offset">
+<h2>vt_tui_form_offset</h2>
+<div class="t-short">Shift all form item positions by an offset</div>
+<pre class="body-pre">Shift all item positions in a form array by
+(ox, oy). Call once during setup - after filling
+the items array and before entering the main loop
+- to convert window-body-relative coordinates
+to absolute screen coordinates.
+Convention: lay out items with .x/.y relative to
+the inner window body, where (1,1) is the top-
+left cell inside the border. Pass the window's
+outer corner as ox, oy. Because items start at
+local 1 and the border consumes exactly one cell,
+the arithmetic works out without any manual +1.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_tui_form_offset(items() As vt_tui_form_item, _
+                       ox As Long, oy As Long)</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">items()  The form array to shift in place.
+ox, oy   Screen column and row of the window's
+         outer top-left corner (same values
+         passed to vt_tui_window).</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">vt_tui_form_offset mutates .x and .y
+permanently. Call it only once per items array.
+Calling it twice will shift everything twice.
+Opt-in: define VT_USE_TUI before the include.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">Const WIN_X = 21, WIN_Y = 5
+' fill items() with .x/.y relative to inner body
+' (1,1) = top-left inside the border
+vt_tui_form_offset(items(), WIN_X, WIN_Y)
+vt_tui_window(WIN_X, WIN_Y, 40, 16, &quot; Settings &quot;)</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_tui_form_*');return false;">vt_tui_form_*</a>
+<a href="#" onclick="show('vt_tui_window');return false;">vt_tui_window</a>
+</div>
+</div>
+<div class="tdiv" id="vt_tui_keymap">
+<h2>vt_tui_keymap</h2>
+<div class="t-short">Control TUI widget navigation key bindings</div>
+<pre class="body-pre">Control the navigation key bindings used by all
+TUI widgets. The keymap is a shared array indexed
+by VT_TUI_ACT_* constants. Default bindings
+mirror standard Windows TUI conventions and are
+applied automatically on the first draw call if
+neither function has been called. vt_tui_keymap
+overrides a single slot. vt_tui_keymap_default
+resets all slots to defaults. Neither function
+requires vt_screen first.
+Space (toggle for checkboxes/radio) is matched
+on the character value, not via the keymap, so
+it cannot be rebound.
+Opt-in: define VT_USE_TUI before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_tui_keymap(action As Long, k As ULong)</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">action  VT_TUI_ACT_* constant for the slot.
+k       Packed key value from VT_TUI_MKKEY()
+        or captured from vt_inkey(). Pass 0
+        to unbind the action.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">' Remap PgUp/PgDn to Ctrl+Up/Ctrl+Down:
+vt_tui_keymap VT_TUI_ACT_PGUP, _
+              VT_TUI_MKKEY(VT_KEY_UP,   0, 1, 0)
+vt_tui_keymap VT_TUI_ACT_PGDN, _
+              VT_TUI_MKKEY(VT_KEY_DOWN, 0, 1, 0)
+' Restore default bindings
+vt_tui_keymap_default()</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_tui_theme');return false;">vt_tui_theme</a>
+<a href="#" onclick="show('c_tuiconsts');return false;">c_tuiconsts</a>
+</div>
+</div>
+<div class="tdiv" id="vt_tui_label_draw">
+<h2>vt_tui_label_draw</h2>
+<div class="t-short">Draw a single-row text label at a position</div>
+<pre class="body-pre">Draw a single-row text label at an arbitrary
+1-based position. The label is clipped or padded
+to exactly wid cells: text shorter than wid is
+padded with the background colour; text longer
+is silently truncated. No state struct required --
+the function is purely passive and should be
+called each frame like any other draw primitive.
+The same functionality is available inside a
+vt_tui_form by setting an item's
+.kind = VT_FORM_LABEL. Label items in a form are
+never focused and are skipped by Tab/Shift+Tab.
+Opt-in: define VT_USE_TUI before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_tui_label_draw(x     As Long, _
+                      y     As Long, _
+                      wid   As Long, _
+                      txt   As String, _
+                      align As Long, _
+                      fg    As UByte, _
+                      bg    As UByte)</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">x, y   1-based column and row.
+wid    Field width in cells. Clipped or padded.
+txt    Label text. Truncated if longer than wid.
+align  VT_ALIGN_LEFT (0), VT_ALIGN_CENTER (1),
+       or VT_ALIGN_RIGHT (2).
+fg, bg Foreground and background colour indices
+       for the entire field including padding.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">' Left-aligned label:
+vt_tui_label_draw(4, 3, 10, &quot;Name:&quot;, _
+    VT_ALIGN_LEFT, VT_BLACK, VT_LIGHT_GREY)
+
+' Centred heading:
+vt_tui_label_draw(3, 2, 44, &quot;User Config&quot;, _
+    VT_ALIGN_CENTER, VT_BLUE, VT_LIGHT_GREY)</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_tui_form_draw');return false;">vt_tui_form_draw</a>
+<a href="#" onclick="show('c_tuiconsts');return false;">c_tuiconsts</a>
+</div>
+</div>
+<div class="tdiv" id="vt_tui_listbox_*">
+<h2>vt_tui_listbox_*</h2>
+<div class="t-short">Non-blocking scrollable list widget</div>
+<pre class="body-pre">Non-blocking scrollable list. Two-function
+design: vt_tui_listbox_draw renders the list
+passively each frame; vt_tui_listbox_handle
+processes one key or mouse event and returns
+immediately. The caller owns the
+vt_tui_listbox_state struct and loops until
+vt_tui_listbox_handle returns a value other
+than VT_FORM_PENDING. A scrollbar is drawn
+automatically on the right edge when the item
+count exceeds the visible height.
+Opt-in: define VT_USE_TUI before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_tui_listbox_draw(x       As Long, _
+                        y       As Long, _
+                        wid     As Long, _
+                        hei     As Long, _
+                        items() As String, _
+                        ByRef st As _
+                        vt_tui_listbox_state)</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">x, y     1-based column and row, top-left corner.
+wid, hei Width and visible height in cells.
+         Scrollbar occupies rightmost cell.
+items()  Items to display. Any lower bound.
+st       Caller-owned state. Pass same struct to
+         both functions every frame.
+k        Key value from vt_inkey() this frame.</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Return (vt_tui_listbox_handle):
+  &gt;= 0           Confirmed 0-based item index.
+  VT_FORM_PENDING(-2)  Still navigating.
+  VT_FORM_CANCEL(-1)   Escape pressed.
+
+vt_tui_listbox_state fields:
+  sel             As Long   ' highlighted index
+  top_item        As Long   ' first visible; init 0
+  last_click_item As Long   ' init to -1
+  last_click_time As Double ' init to 0.0
+  prev_btns       As Long   ' init to 0
+
+Key/mouse bindings:
+  Up/Down          Move selection one item.
+  PgUp/PgDn        Move by hei items.
+  Home/End         Jump to first/last item.
+  Enter            Confirm selection.
+  Escape           Return VT_FORM_CANCEL.
+  Click            Highlight clicked item.
+  Double-click     Confirm clicked item.
+  Scroll wheel     Scroll the view.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">Dim opts(2) As String
+opts(0) = &quot;Easy&quot; : opts(1) = &quot;Normal&quot;
+opts(2) = &quot;Hard&quot;
+
+Dim st As vt_tui_listbox_state
+st.sel = 0 : st.top_item = 0
+st.last_click_item = -1
+st.last_click_time = 0.0
+st.prev_btns = 0
+
+vt_tui_window(18, 6, 24, 7, &quot; Difficulty &quot;)
+Dim picked As Long = VT_FORM_PENDING
+Dim k As ULong
+Do While picked = VT_FORM_PENDING
+    k = vt_inkey()
+    picked = vt_tui_listbox_handle( _
+        19, 7, 22, 5, opts(), st, k)
+    vt_tui_listbox_draw(19, 7, 22, 5, opts(), st)
+    vt_sleep(16)
+Loop
+If picked &gt;= 0 Then
+    vt_print &quot;Chose: &quot; &amp; opts(picked) &amp; VT_LF
+End If</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_tui_window');return false;">vt_tui_window</a>
+<a href="#" onclick="show('vt_tui_dialog');return false;">vt_tui_dialog</a>
+<a href="#" onclick="show('c_tuiconsts');return false;">c_tuiconsts</a>
+</div>
+</div>
+<div class="tdiv" id="vt_tui_menubar_*">
+<h2>vt_tui_menubar_*</h2>
+<div class="t-short">Horizontal TUI menu bar (opt-in)</div>
+<pre class="body-pre">Horizontal menu bar. Two-function design:
+vt_tui_menubar_draw renders the bar passively
+(non-blocking, call once per frame);
+vt_tui_menubar_handle is non-blocking while no
+menu is open and blocks with its own inner event
+loop while a dropdown is open. No nested submenus
+in v1. No item-level hotkeys in v1.
+Opt-in: define VT_USE_TUI before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_tui_menubar_draw(row      As Long, _
+                        groups() As String)</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">row       1-based screen row for the menu bar.
+groups()  Group header labels, e.g. &quot;File&quot;,&quot;Edit&quot;.
+items()   Flat array of all items across all groups
+          in group order.
+counts()  Item count per group, parallel to groups.
+k         Key value from vt_inkey() this frame.</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Return (vt_tui_menubar_handle):
+  group*1000 + item_index (both 1-based) when an
+  item is activated. Use VT_TUI_MENU_GROUP(r) and
+  VT_TUI_MENU_ITEM(r) to unpack.
+  0  While idle or after Escape closes dropdown.
+
+Opening/navigating dropdowns:
+  Alt + first letter    Open that group's dropdown.
+  Click on group header Open that group's dropdown.
+  Up/Down (open)        Move selection (wraps).
+  Left/Right (open)     Switch to adjacent group.
+  Enter (open)          Activate selected item.
+  Click on item         Activate that item.
+  Click elsewhere       Close dropdown, return 0.
+  Escape                Close dropdown, return 0.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">Dim groups(2) As String
+groups(0)=&quot;File&quot; : groups(1)=&quot;Edit&quot;
+groups(2)=&quot;Help&quot;
+
+Dim items(6) As String
+items(0)=&quot;New&quot; : items(1)=&quot;Open&quot;
+items(2)=&quot;Save&quot; : items(3)=&quot;Quit&quot;
+items(4)=&quot;Cut&quot; : items(5)=&quot;Copy&quot;
+items(6)=&quot;About&quot;
+
+Dim counts(2) As Long
+counts(0)=4 : counts(1)=2 : counts(2)=1
+
+Dim k As ULong
+Do
+    k = vt_inkey()
+    vt_tui_menubar_draw(1, groups())
+    Dim r As Long = vt_tui_menubar_handle( _
+        1, groups(), items(), counts(), k)
+    If r &lt;&gt; 0 Then
+        Select Case VT_TUI_MENU_GROUP(r)
+            Case 1
+                If VT_TUI_MENU_ITEM(r) = 4 Then
+                    vt_shutdown()
+                End If
+        End Select
+    End If
+    vt_sleep(16)
+Loop</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_tui_statusbar');return false;">vt_tui_statusbar</a>
+<a href="#" onclick="show('vt_tui_window');return false;">vt_tui_window</a>
+<a href="#" onclick="show('hk_alt');return false;">hk_alt</a>
+<a href="#" onclick="show('c_tuiconsts');return false;">c_tuiconsts</a>
+</div>
+</div>
+<div class="tdiv" id="vt_tui_mouse_in_rect">
+<h2>vt_tui_mouse_in_rect</h2>
+<div class="t-short">Mouse hit-test helper for TUI widgets</div>
+<pre class="body-pre">Returns 1 if the current mouse position is
+inside the given 1-based rectangle, 0 otherwise.
+Returns 0 immediately if the library is not
+ready or the mouse is disabled. Reads the
+internal mouse state updated by vt_inkey --
+call this after polling input, not before.
+Opt-in: define VT_USE_TUI before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_tui_mouse_in_rect(x   As Long, _
+                              y   As Long, _
+                              wid As Long, _
+                              hei As Long) _
+                              As Byte</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">x, y       1-based top-left corner of hit area.
+wid, hei   Width and height in cells.</pre>
+<div class="sec-hdr">Notes</div>
+<pre class="body-pre">Return values:
+  1  Mouse cursor is inside the rectangle.
+  0  Outside, mouse disabled, or not ready.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">' Hover over a 10-cell button at row 5:
+If vt_tui_mouse_in_rect(10, 5, 10, 1) Then
+    ' highlight the button
+End If</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_tui_window');return false;">vt_tui_window</a>
+<a href="#" onclick="show('vt_getmouse');return false;">vt_getmouse</a>
+</div>
+</div>
+<div class="tdiv" id="vt_tui_progress">
+<h2>vt_tui_progress</h2>
+<div class="t-short">Draw a horizontal progress bar</div>
+<pre class="body-pre">Draw a horizontal progress bar at an arbitrary
+screen position. The filled portion uses the
+theme's title_bg colour; the empty portion uses
+inp_bg. Both halves use space (32) as the
+character so colour alone carries the bar. Pass
+VT_TUI_PROG_LABEL to render a centred nn% label;
+label fg inverts per-cell so it reads correctly
+across both halves.
+Opt-in: define VT_USE_TUI before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_tui_progress(x       As Long, _
+                    y       As Long, _
+                    wid     As Long, _
+                    value   As Long, _
+                    max_val As Long, _
+                    flags   As Long = 0)</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">x, y     1-based column and row.
+wid      Width of the bar in cells.
+value    Current progress. Clamped to [0..max_val].
+max_val  Maximum value. Must be &gt; 0.
+flags    VT_TUI_PROG_LABEL = show nn% label.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">For i As Long = 0 To 100
+    vt_tui_progress(5, 10, 40, i, 100, _
+                    VT_TUI_PROG_LABEL)
+    vt_sleep(20)
+Next i</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_tui_window');return false;">vt_tui_window</a>
+<a href="#" onclick="show('c_tuiconsts');return false;">c_tuiconsts</a>
+</div>
+</div>
+<div class="tdiv" id="vt_tui_rect_fill">
+<h2>vt_tui_rect_fill</h2>
+<div class="t-short">Fill a rectangle with a character and colour</div>
+<pre class="body-pre">Fill a 1-based rectangle with a single character
+and colour. This is the base drawing primitive --
+all other widgets use it internally to clear
+their area. Use character code 32 (space) for
+a solid colour block.
+Opt-in: define VT_USE_TUI before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_tui_rect_fill(x   As Long,  y   As Long, _
+                     wid As Long,  hei As Long, _
+                     ch  As UByte, _
+                     fg  As UByte, bg  As UByte)</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">x, y     1-based column and row, top-left corner.
+wid, hei Width and height in cells.
+ch       CP437 character code. Use 32 for solid.
+fg, bg   Foreground and background colour indices.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">' Clear a region to dark grey:
+vt_tui_rect_fill(1, 1, 40, 10, _
+                 32, VT_LIGHT_GREY, VT_DARK_GREY)
+
+' Solid red banner row:
+vt_tui_rect_fill(1, 1, 80, 1, 32, VT_BLACK, VT_RED)</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_tui_window');return false;">vt_tui_window</a>
+<a href="#" onclick="show('vt_tui_*line');return false;">vt_tui_*line</a>
+</div>
+</div>
+<div class="tdiv" id="vt_tui_statusbar">
+<h2>vt_tui_statusbar</h2>
+<div class="t-short">Draw a status/hint bar on a screen row</div>
+<pre class="body-pre">Fill an entire screen row with the theme's
+bar_bg colour and print caption left-aligned in
+bar_fg. Typical use: the last row for a keyboard
+hint bar, or row 2 below a menu bar.
+Opt-in: define VT_USE_TUI before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_tui_statusbar(row     As Long, _
+                     caption As String)</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">row      1-based screen row to fill (full width).
+caption  Text printed left-aligned. Clipped to
+         screen width.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">vt_tui_statusbar 25, _
+    &quot; F1=Help  F10=Menu  Esc=Quit&quot;</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_tui_window');return false;">vt_tui_window</a>
+<a href="#" onclick="show('vt_tui_menubar_draw');return false;">vt_tui_menubar_draw</a>
+</div>
+</div>
+<div class="tdiv" id="vt_tui_theme">
+<h2>vt_tui_theme</h2>
+<div class="t-short">Set the TUI colour theme (opt-in)</div>
+<pre class="body-pre">Set the colour theme used by all TUI widgets.
+All colours are EGA palette indices (0-15).
+The theme is a single global struct -- there is
+no per-widget override. vt_tui_theme_default
+restores the built-in DOS/BIOS defaults.
+vt_tui_theme sets all fields in one call.
+Neither function requires vt_screen first.
+Auto-init: if neither theme function nor the
+keymap functions are called before the first
+draw call, both the default DOS/BIOS theme and
+the default Windows-style keymap are applied
+automatically.
+Opt-in: define VT_USE_TUI before the include.
+
+Default values:
+  window body:   VT_BLACK on VT_LIGHT_GREY
+  title bar:     VT_WHITE on VT_BLUE
+  status/menu:   VT_BLACK on VT_CYAN
+  button:        VT_BLACK on VT_LIGHT_GREY
+  dialog body:   VT_BLACK on VT_LIGHT_GREY
+  input/editor:  VT_WHITE on VT_DARK_GREY
+
+Focused buttons, selected list items, and open
+menu group headers are rendered with fg and bg
+XOR'd with 15 (full colour inversion). This is
+not configurable.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_tui_theme(win_fg       As UByte = 16, win_bg       As UByte = 16, _
+                 title_fg     As UByte = 16, title_bg     As UByte = 16, _
+                 bar_fg       As UByte = 16, bar_bg       As UByte = 16, _
+                 btn_fg       As UByte = 16, btn_bg       As UByte = 16, _
+                 dlg_fg       As UByte = 16, dlg_bg       As UByte = 16, _
+                 inp_fg       As UByte = 16, inp_bg       As UByte = 16, _
+                 border_style As UByte = 16 _
+                )</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">win_fg/bg    Window body text and background.
+title_fg/bg  Title bar text and background.
+             Also progress bar filled colour.
+bar_fg/bg    Status/menu bar text and background.
+btn_fg/bg    Button text and background.
+dlg_fg/bg    Dialog body text and background.
+             Also dropdown menu item rows.
+inp_fg/bg    Input field and editor colours.
+             Also progress bar empty colour.
+border_style 0 = single-line CP437 (default).
+             1 = double-line CP437.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">' Restore DOS blue-scheme defaults:
+vt_tui_theme_default()
+
+' Custom dark theme:
+vt_tui_theme(VT_LIGHT_GREY, VT_BLACK, _
+             VT_WHITE,      VT_DARK_GREY, _
+             VT_BLACK,      VT_CYAN, _
+             VT_LIGHT_GREY, VT_DARK_GREY, _
+             VT_LIGHT_GREY, VT_BLACK, _
+             VT_WHITE,      VT_DARK_GREY, _
+             0)</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_tui_keymap');return false;">vt_tui_keymap</a>
+<a href="#" onclick="show('c_tuiconsts');return false;">c_tuiconsts</a>
+</div>
+</div>
+<div class="tdiv" id="vt_tui_window">
+<h2>vt_tui_window</h2>
+<div class="t-short">Draw window chrome: border and title bar</div>
+<pre class="body-pre">Draw window chrome: a border, a title bar, and
+optionally a close button and drop shadow. Does
+NOT save or restore the background and does NOT
+block. The window interior is filled with the
+theme's win_fg/win_bg colours.
+VT_TUI_WIN_CLOSEBTN renders [x] visually only.
+To detect clicks on it use:
+vt_tui_mouse_in_rect(x + wid - 4, y, 3, 1).
+Opt-in: define VT_USE_TUI before the include.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_tui_window(x     As Long, _
+                  y     As Long, _
+                  wid   As Long, _
+                  hei   As Long, _
+                  title As String, _
+                  flags As Long = 0)</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">x, y      1-based column and row, top-left.
+wid, hei  Outer width and height including border.
+title     Text centred in the title bar.
+          Truncated if too long.
+flags     VT_TUI_WIN_CLOSEBTN and/or
+          VT_TUI_WIN_SHADOW.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">' Centred 40x12 window with shadow:
+Dim wx As Long = (80 - 40) \ 2 + 1
+Dim wy As Long = (25 - 12) \ 2 + 1
+vt_tui_window(wx, wy, 40, 12, &quot;Settings&quot;, _
+              VT_TUI_WIN_SHADOW)</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_tui_rect_fill');return false;">vt_tui_rect_fill</a>
+<a href="#" onclick="show('vt_tui_*line');return false;">vt_tui_*line</a>
+<a href="#" onclick="show('vt_tui_mouse_in_rect');return false;">vt_tui_mouse_in_rect</a>
+<a href="#" onclick="show('c_tuiconsts');return false;">c_tuiconsts</a>
+</div>
+</div>
+<div class="tdiv" id="vt_rnd">
+<h2>vt_rnd</h2>
+<div class="t-short">Random Long in an inclusive range</div>
+<pre class="body-pre">Return a random Long in the inclusive range
+[lo .. hi]. Negative bounds are fully supported.
+If lo &gt; hi the two values are swapped silently.
+Seeding the RNG with Randomize is the caller's
+responsibility - vt_rnd does not call it.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_rnd(lo As Long, hi As Long) As Long</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">lo  Lower bound (inclusive).
+hi  Upper bound (inclusive).</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">Randomize
+
+Dim n As Long = vt_rnd(-15, 15)
+Dim d As Long = vt_rnd(1, 6)
+Dim x As Long = vt_rnd(1, vt_cols())</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="#" onclick="show('vt_wrap');return false;">vt_wrap</a>
+</div>
+</div>
+<div class="tdiv" id="vt_utf8_to_cp437">
+<h2>vt_utf8_to_cp437</h2>
+<div class="t-short">Decode a UTF-8 encoded string to CP437 bytes.</div>
+<pre class="body-pre">SDL2 delivers all keyboard and clipboard text as UTF-8;
+the VT cell buffer stores one raw CP437 byte per cell.
+This function bridges the two.
+
+Pure ASCII input (no byte ≥ 0x80) is returned unchanged
+with no allocation. 2-byte and 3-byte UTF-8 sequences
+are fully supported; continuation bytes are validated
+before decoding. 4-byte sequences (Unicode beyond the
+Basic Multilingual Plane) are always dropped as CP437
+has no glyphs for them. Codepoints with no CP437
+equivalent are silently dropped.
+
+Bytes that do not form a valid UTF-8 sequence — including
+raw CP437 high bytes such as box-drawing characters from
+vt_input are passed through unchanged. This makes the
+function safe to call on already-decoded CP437 strings
+as well as on raw UTF-8 input.
+vt_print calls this automatically. Call it explicitly only
+when you have genuinely UTF-8 encoded text outside of
+vt_print, for example when writing bytes directly
+via vt_set_cell, receiving network text, or processing
+a custom input loop.
+
+Do not call it on vt_input return values. vt_input
+already returns CP437 bytes (the SDL TEXTINPUT handler
+decodes them). Calling vt_utf8_to_cp437 on the result
+is redundant - it is idempotent on CP437 strings,
+but the call is unnecessary clutter.</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Function vt_utf8_to_cp437(src As String) As String</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">src   Input string. May be UTF-8
+      (source literals, clipboard, network) or
+      already-decoded CP437 — both are handled correctly.
+
+Return value
+A new string containing the CP437-decoded bytes.
+Unmappable codepoints are omitted; the result may therefore
+be shorter than the input. Raw CP437 high bytes
+(invalid UTF-8) are preserved unchanged.</pre>
+<div class="sec-hdr">Example</div>
+<pre class="code-pre">' Explicit call needed only for raw UTF-8 from outside vt_print:
+Dim line As String = receive_from_server()   ' arrives as UTF-8
+line = vt_utf8_to_cp437(line)
+vt_print line</pre>
+</div>
+</div>
+</div>
+</body>
+</html>
