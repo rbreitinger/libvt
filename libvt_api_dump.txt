@@ -1,0 +1,1977 @@
+============================================================
+ libvt Public API Dump
+ Generated : 05-15-2026  21:43:17
+ Source    : vt
+============================================================
+
+==== PUBLIC SUBS / FUNCTIONS + CONSTS / DEFINES / ENUMS (.bas) ==
+
+  [vt/vt_bsave.bas]
+    Function vt_bsave(fname As String) As Long
+        ':params
+        'fname  Destination file path. Created or
+        '       overwritten if it exists.
+        ':notes
+        'Return values:
+        '   0  success
+        '  -1  library not ready (call vt_screen first)
+        '  -2  file could not be opened for writing
+        ':example
+        'If vt_bsave("savegame.vts") <> 0 Then
+        '    vt_print("Save failed!" & VT_LF)
+        'End If
+        ':see
+        'vt_bload
+        '<<<
+
+    Function vt_bload(fname As String) As Long
+        ':params
+        'fname  Path to the .vts file to load.
+        ':notes
+        'Return values:
+        '   0  success
+        '  -1  library not ready (call vt_screen first)
+        '  -2  file could not be opened
+        '  -3  bad magic -- not a valid .vts file
+        '  -4  dimension mismatch (different screen mode)
+        ':example
+        'If vt_file_exists("savegame.vts") Then
+        '    If vt_bload("savegame.vts") = 0 Then
+        '        vt_present()
+        '    End If
+        'End If
+        ':see
+        'vt_bsave
+        'vt_file_exists
+        '<<<
+
+
+  [vt/vt_copypaste.bas]
+    Sub vt_copypaste(flags As Long)
+        ':params
+        'flags  VT_ENABLED (1) to enable,
+        '       VT_DISABLED (0) to disable. (default)
+        ':notes
+        'Selection: click-and-drag with LMB. A bare
+        'click without movement clears the selection.
+        'Copy: right-click copies the selection to the
+        'system clipboard and clears the selection.
+        'Copy also works during scrollback.
+        'Paste: MMB or Shift+Ins pastes from clipboard
+        'into the active vt_input field. Shift+Ins is
+        'always available regardless of this setting.
+        'Auto-scroll: holding the mouse at the top or
+        'bottom edge during a drag scrolls the content.
+        'When a column viewport is active via
+        'vt_view_print, selection is clipped to that
+        'column range. Selected text uses plain text
+        'format with trailing spaces trimmed and rows
+        'joined with CRLF.
+        ':example
+        'vt_screen(VT_SCREEN_0)
+        'vt_copypaste(VT_ENABLED)
+        ':see
+        'vt_screen
+        'vt_input
+        'hk_copypaste
+        '<<<
+
+
+  [vt/vt_core.bas]
+    Sub vt_pump()
+        ':see
+        'vt_inkey
+        'vt_present
+        'vt_sleep
+        '<<<
+
+    Sub vt_screen_minimum(cols As Long, rows As Long)
+        ':see
+        'vt_width
+        '<<<
+
+    Sub vt_screen_maximum(cols As Long, rows As Long)
+        ':see
+        'vt_width
+        '<<<
+
+    Function vt_screen(mode As Long = VT_SCREEN_0, flags As Long = VT_WINDOWED, pages As Long = 1) As Long
+        ':params
+        'mode   Screen mode. One of the VT_SCREEN_*
+        '       constants. Default VT_SCREEN_0.
+        '
+        'flags  Window flags. VT_WINDOWED,
+        '       VT_FULLSCREEN_* etc., combined with Or.
+        '
+        'pages  Cell buffer count (1-8). Page 0 is
+        '       always VT_VIDEO. Extra pages are used
+        '       with vt_page / vt_pcopy.
+        '
+        ':notes
+        'Return values:
+        '   0  success
+        '  -1  SDL_Init failed
+        '  -2  SDL window creation failed
+        '  -3  SDL renderer creation failed
+        '  -4  font texture creation failed
+        '  -5  page buffer alloc failed
+        '
+        '  custom modes up to 255x255 cells and
+        '  either font 8x8, 8x14 or 8x16
+        '  use the macro VT_SCREENPARAM(col, row, fw, fh)
+        '  as mode parameter
+        '
+        ':example
+        'If vt_screen(VT_SCREEN_12, _
+        '             VT_WINDOWED Or VT_NO_RESIZE) _
+        '             <> 0 Then
+        '    Print "Failed to open screen"
+        '    End 1
+        'End If
+        '
+        ''custom mode:
+        'vt_screen VT_SCREENPARAM(80, 10, 8, 8), VT_WINDOWED
+        '
+        ':see
+        'vt_shutdown
+        'vt_title
+        'vt_scrollback
+        'vt_copypaste
+        'c_screenmodes
+        'c_winflags
+        '<<<
+
+    Function vt_screeninfo(ByRef out_cols As Long, ByRef out_rows As Long) As Long
+        ':params
+        'out_cols   Receives the new column count when
+        '           the function returns 1. Unchanged on return 0.
+        'out_rows   Receives the new row count when
+        '           the function returns 1. Unchanged on return 0.
+        ':notes
+        'Return value
+        '1 - grid dimensions changed; cols and rows have been written.
+        '0 - no change, or library not initialised.
+        '
+        'The column and row values are always whole-cell counts.
+        'the physical pixel width is divided by the glyph width using integer
+        'division, so odd window sizes snap cleanly to the nearest full
+        'character boundary. Programs that want a fixed grid regardless of
+        'window size simply never call this function; the letterbox in
+        'vt_present handles any surplus pixels automatically.
+        ':example
+        'Dim nc As Long, nr As Long
+        'If vt_screeninfo(nc, nr) Then
+        '    vt_width(nc, nr)
+        '    relayout(nc, nr)   ' re-draw app at new grid size
+        'End If
+        ':see
+        'vt_width
+        '<<<
+
+    Sub vt_present()
+        ':example
+        'vt_locate(5, 1)
+        'vt_color(VT_CYAN, VT_BLACK)
+        'vt_print("Hello!")
+        'vt_present()
+        ':see
+        'vt_inkey
+        'vt_sleep
+        'vt_page
+        '<<<
+
+    Sub vt_on_close(cb As Function() As Byte)
+        ':params
+        'cb  Pointer to a Function() As Byte.
+        '    Pass 0 to restore default auto-close.
+        ':notes
+        'Callback return values:
+        '  0  Allow close: library calls vt_shutdown
+        '     then End.
+        '  1  Veto close: window stays open, program
+        '     continues normally.
+        ':example
+        'Function on_close() As Byte
+        '    vt_color(VT_BLACK, VT_LIGHT_GREY)
+        '    vt_locate(25, 1)
+        '    vt_print("Quit? (Y/N)" & String(48, " "))
+        '    Dim ans As String = vt_getchar("YyNn")
+        '    If LCase(ans) = "y" Then Return 0
+        '    draw_statusbar()
+        '    vt_present()
+        '    Return 1
+        'End Function
+        '
+        'vt_screen(VT_SCREEN_0)
+        'vt_on_close(@on_close)
+        '' Remove callback:
+        'vt_on_close(0)
+        ':see
+        'vt_screen
+        'vt_shutdown
+        '<<<
+
+    Sub vt_shutdown()
+        ':see
+        'vt_screen
+        '<<<
+
+    Sub vt_title(txt As String)
+        ':params
+        'txt   the title bar text.
+        ':example
+        'vt_title("My Application")
+        'vt_screen(VT_SCREEN_0)
+        ':see
+        'vt_screen
+        '<<<
+
+    Sub vt_key_repeat(initial_ms As Long = 400, rate_ms    As Long = 30)
+        ':params
+        'initial_ms  Delay in ms before the first repeat
+        '            event fires. Default 400.
+        'rate_ms     Interval in ms between subsequent
+        '            repeat events. Default 30.
+        ':see
+        'vt_inkey
+        '<<<
+
+    Function vt_inkey() As ULong
+        ':notes
+        'Return: packed key event (non-zero) if a key
+        'was waiting. 0 if the buffer is empty or the
+        'library is not ready.
+        ':example
+        '' Game loop pattern:
+        'Do
+        '    Dim k As ULong = vt_inkey()
+        '    If VT_SCAN(k) = VT_KEY_ESC Then Exit Do
+        '    ' ... update and draw ...
+        '    vt_sleep 16
+        'Loop
+        ':see
+        'vt_getkey
+        'vt_getchar
+        'vt_pump
+        'c_keymacros
+        'c_keyscans
+        '<<<
+
+    Function vt_key_held(vtscan As Long) As Byte
+        ':params
+        'vtscan  A VT_KEY_* scancode constant.
+        ':notes
+        'Return values:
+        '  1  Key is currently pressed.
+        '  0  Not pressed, scancode not recognized,
+        '     or library not ready.
+        ':example
+        'If vt_key_held(VT_KEY_LEFT)  Then x -= 1
+        'If vt_key_held(VT_KEY_RIGHT) Then x += 1
+        ':see
+        'vt_inkey
+        'c_keyscans
+        '<<<
+
+    Sub vt_sleep(ms As Long = 0)
+        ':params
+        'ms  Delay in milliseconds. 0 = wait for any
+        '    keypress (key is consumed from buffer).
+        ':example
+        '' Delay 2 seconds:
+        'vt_sleep(2000)
+        '
+        '' Wait for any keypress:
+        'vt_sleep()
+        ':see
+        'vt_inkey
+        'vt_pump
+        '<<<
+
+    Function vt_getkey() As ULong
+        ':notes
+        'Return: packed key event value. Decode with
+        'VT_CHAR, VT_SCAN, VT_SHIFT, VT_CTRL, VT_ALT,
+        'VT_REPEAT macros.
+        ':example
+        'Dim k As ULong = vt_getkey()
+        'If VT_SCAN(k) = VT_KEY_ESC Then End
+        'If VT_CHAR(k) = Asc("q") Then End
+        ':see
+        'vt_inkey
+        'vt_getchar
+        'c_keymacros
+        'c_keyscans
+        '<<<
+
+    Function vt_getchar(allowed As String = "") As String
+        ':params
+        'allowed  Whitelist of accepted characters.
+        '         Empty string = accept any printable.
+        ':notes
+        'Return: single-character String containing the
+        'accepted character.
+        ':example
+        'vt_print("Continue? (Y/N) ")
+        'Dim ans As String = UCase(vt_getchar("YyNn"))
+        ':see
+        'vt_getkey
+        'vt_inkey
+        'vt_input
+        '<<<
+
+    Sub vt_key_flush()
+        ':see
+        'vt_inkey
+        '<<<
+
+
+  [vt/vt_file.bas]
+    Function vt_file_exists(ByRef path As Const String) As Byte
+        ':params
+        'path  Path to test. May be relative or absolute.
+        ':notes
+        'Return values:
+        '  1  File exists.
+        '  0  Not found, or path is a directory.
+        ':example
+        'If vt_file_exists("savegame.vts") Then
+        '    vt_bload("savegame.vts")
+        'End If
+        ':see
+        'vt_file_isdir
+        'vt_bload
+        '<<<
+
+    Function vt_file_isdir(ByRef path As Const String) As Byte
+        ':params
+        'path  Path to test. May be relative or absolute.
+        ':notes
+        'Return values:
+        '  1  Path is an existing directory.
+        '  0  Not found, or path is a file.
+        ':example
+        'If vt_file_isdir("output") = 0 Then
+        '    MkDir("output")
+        'End If
+        ':see
+        'vt_file_exists
+        'vt_file_list
+        '<<<
+
+    Function vt_file_copy(ByRef src As Const String, ByRef dst As Const String, flags As Long = 0) As Long
+    Function vt_file_rmdir(ByRef path As Const String, flags As Long = 0) As Long
+    Function vt_file_list(ByRef path As Const String, ByRef pattern As Const String, arr() As String, flags As Long = 0) As Long
+        ':params
+        'path     Directory to scan. "" = current dir.
+        'pattern  Filename pattern, e.g. "*.txt" or "*".
+        '         Supports * and ? wildcards.
+        'arr()    Receives item names. ReDim'd to
+        '         0 To count-1.
+        'flags    Optional: VT_FILE_SHOW_HIDDEN,
+        '         VT_FILE_SHOW_DIRS, VT_FILE_DIRS_ONLY.
+        ':notes
+        'Return: number of items placed in arr(). 0 if
+        'nothing matched.
+        ':example
+        'Dim files() As String
+        'Dim cnt As Long = _
+        '    vt_file_list("notes", "*.txt", files())
+        'For i As Long = 0 To cnt - 1
+        '    vt_print(files(i) & VT_LF)
+        'Next i
+        '
+        '' List dirs only:
+        'cnt = vt_file_list("data", "*", files(), _
+        '                   VT_FILE_DIRS_ONLY)
+        ':see
+        'vt_file_exists
+        'vt_file_isdir
+        'fileflags
+        '<<<
+
+
+  -- Defines (5) --
+    #Define VT_FILE_SHOW_HIDDEN   1
+    #Define VT_FILE_SHOW_DIRS     2
+    #Define VT_FILE_DIRS_ONLY     4
+    #Define VT_FILE_OVERWRITE     8
+    #Define VT_FILE_RECURSIVE    16
+
+
+  [vt/vt_font.bas]
+    Function vt_font_reset() As Long
+        ':notes
+        'Return values:
+        '   0  success
+        '  -1  library not ready
+        '  -2  surface or texture creation failed
+        ':see
+        'vt_loadfont
+        'vt_screen
+        '<<<
+
+    Function vt_loadfont(fname   As String, sheet_w As Long  = -1, sheet_h As Long  = -1, mask_r  As UByte = 0, mask_g  As UByte = 0, mask_b  As UByte = 0) As Long
+        ':params
+        'fname    Path to a BMP file. Any bit depth.
+        'sheet_w  Expected BMP pixel width (-1 = any).
+        'sheet_h  Expected BMP pixel height (-1 = any).
+        'mask_r   Red component of the transparent colour.
+        'mask_g   Green component of the transparent colour.
+        'mask_b   Blue component of the transparent colour.
+        ':notes
+        'Return values:
+        '   0  success
+        '  -1  library not ready
+        '  -2  BMP load or surface creation failed
+        '  -3  image dimensions mismatch
+        '  -4  SDL texture upload failed
+        '
+        'Layout is detected automatically from the BMP
+        'pixel dimensions relative to the current glyph
+        'size (gw x gh):
+        '  16x16 grid:  16*gw x 16*gh  (e.g. 128x128)
+        '  256x1 strip: 256*gw x gh    (e.g. 2048x8)
+        '
+        'Common mask colours:
+        '  Black (default): mask_r=0   mask_g=0   mask_b=0
+        '  Magenta:         mask_r=255 mask_g=0   mask_b=255
+        '  White:           mask_r=255 mask_g=255 mask_b=255
+        '
+        'Non-mask pixels are normalized to white
+        'internally so colour-mod tinting applies
+        'the correct foreground colour.
+        ':example
+        'Dim r As Long = _
+        '    vt_loadfont("myfont.bmp", -1, -1, 255, 0, 255)
+        'If r <> 0 Then
+        '    vt_print("Font load failed: " & r & VT_LF)
+        'End If
+        ':see
+        'vt_font_reset
+        'vt_screen
+        '<<<
+
+
+  [vt/vt_input.bas]
+    Function vt_input(max_len   As Long = -1, initial   As String = "", allowed   As String = "", cancelled As Byte Ptr = 0) As String
+        ':params
+        'max_len   Max input length. -1 fills remaining
+        '          columns on the current row.
+        'initial   Pre-filled text. Escape restores this
+        '          text, clears the screen, and returns "".
+        'allowed   Whitelist of accepted characters.
+        '          Empty = accept any printable ASCII.
+        'cancelled Optional Byte Ptr. Set to 1 on Escape,
+        '          0 on Enter. Pass 0 to ignore.
+        ':example
+        'Dim esc As Byte
+        'vt_locate(10, 1)
+        'vt_print("Enter amount: ")
+        'Dim amount As String = _
+        '    vt_input(8, "0", "0123456789.", @esc)
+        'If esc Then
+        '    vt_print("Cancelled" & VT_LF)
+        'Else
+        '    vt_print("Got: " & amount & VT_LF)
+        'End If
+        'vt_present()
+        ':see
+        'vt_getchar
+        'vt_getkey
+        'vt_color
+        'vt_locate
+        'vt_copypaste
+        '<<<
+
+
+  [vt/vt_math.bas]
+    Function vt_wrap(v  As Long, lo As Long, hi As Long) As Long
+        ':params
+        'v   The value to wrap.
+        'lo  Lower bound (inclusive).
+        'hi  Upper bound (inclusive).
+        ':example
+        '' Menu cursor that wraps at the edges:
+        'cursor_row = vt_wrap(cursor_row + delta, _
+        '                     1, num_items)
+        '
+        '' Toroidal map: walk off right, appear left:
+        'px = vt_wrap(px + 1, 0, map_width - 1)
+        ':see
+        'vt_approach
+        'c_mathconsts
+        '<<<
+
+    Function vt_lerp(a As Double, b As Double, t As Double) As Double
+        ':params
+        'a  Start value (returned when t = 0).
+        'b  End value (returned when t = 1).
+        't  Interpolation factor. Not clamped.
+        ':example
+        'Dim brightness As Double = _
+        '    vt_lerp(0, 100, elapsed / total)
+        ':see
+        'vt_approach
+        'c_mathconsts
+        '<<<
+
+    Function vt_approach(cur As Long, tgt As Long, amt As Long) As Long
+        ':params
+        'cur  Current value.
+        'tgt  Target value to approach.
+        'amt  Step size per call. Should be positive.
+        ':example
+        'enemy_x = vt_approach(enemy_x, player_x, 1)
+        'enemy_y = vt_approach(enemy_y, player_y, 1)
+        '
+        '' Score counter catching up 10 per frame:
+        'display_score = vt_approach(display_score, _
+        '                             real_score, 10)
+        ':see
+        'vt_lerp
+        'vt_wrap
+        '<<<
+
+    Function vt_manhattan(x1 As Long, y1 As Long, x2 As Long, y2 As Long) As Long
+        ':example
+        'If vt_manhattan(ex, ey, px, py) <= 4 Then
+        '    attack()
+        'End If
+        ':see
+        'vt_chebyshev
+        'vt_los
+        '<<<
+
+    Function vt_chebyshev(x1 As Long, y1 As Long, x2 As Long, y2 As Long) As Long
+        ':example
+        'If vt_chebyshev(ax, ay, bx, by) = 1 Then
+        '    melee_attack()
+        'End If
+        ':see
+        'vt_manhattan
+        '<<<
+
+    Function vt_in_rect(px As Long, py As Long, rx As Long, ry As Long, rw As Long, rh As Long) As Byte
+        ':params
+        'px, py  Point coordinates.
+        'rx, ry  Rectangle top-left corner.
+        'rw      Rectangle width in cells.
+        'rh      Rectangle height in cells.
+        ':example
+        'Dim mcol As Long, mrow As Long, mbtns As Long
+        'vt_getmouse(@mcol, @mrow, @mbtns, 0)
+        'If (mbtns And VT_MOUSE_BTN_LEFT) AndAlso _
+        '   vt_in_rect(mcol, mrow, 10, 5, 20, 3) Then
+        '    button_clicked()
+        'End If
+        ':see
+        'vt_tui_mouse_in_rect
+        '<<<
+
+    Function vt_digits(n As Long) As Long
+        ':notes
+        'Opt-in: define VT_USE_MATH before the include.
+        '  n = 0           -> 1
+        '  n = 1234        -> 4
+        '  n = -99         -> 3  (minus + 2 digits)
+        '  n = -2147483648 -> 11
+        '
+        ':example
+        '' Right-align a score in a fixed-width column:
+        'Dim score As Long = 9870
+        'Dim col_start As Long = 75 - vt_digits(score)
+        'vt_locate(1, col_start)
+        'vt_print(Str(score))
+        ':see
+        'vt_cols
+        '<<<
+
+    Sub vt_bresenham_walk(x1 As Long, y1 As Long, x2 As Long, y2 As Long, cb As Sub(As Long, As Long))
+        ':params
+        'x1, y1  Start cell (included in walk).
+        'x2, y2  End cell (included in walk).
+        'cb      Called once per cell. Pass with @.
+        ':example
+        'Sub draw_dash(x As Long, y As Long)
+        '    vt_set_cell(x, y, Asc("-"), VT_WHITE, VT_BLACK)
+        'End Sub
+        '
+        'vt_bresenham_walk(1, 1, 40, 15, @draw_dash)
+        'vt_present()
+        ':see
+        'vt_los
+        '<<<
+
+    Function vt_los(x1 As Long, y1 As Long, x2 As Long, y2 As Long, blocker As Function(As Long, As Long) As Byte) As Byte
+        ':params
+        'x1, y1   Observer position. Not passed to blocker.
+        'x2, y2   Target position. Passed to blocker.
+        'blocker  Returns 1 if cell blocks sight. Pass @.
+        ':notes
+        'Return values:
+        '  1  Line of sight is clear.
+        '  0  Blocked by at least one cell on the path.
+        ':example
+        'Dim Shared g_map(79, 49) As Byte
+        '
+        'Function is_wall(x As Long, y As Long) As Byte
+        '    Return g_map(x, y)
+        'End Function
+        '
+        'If vt_los(ex, ey, px, py, @is_wall) Then
+        '    alert_enemy()
+        'End If
+        ':see
+        'vt_bresenham_walk
+        '<<<
+
+    Sub vt_mat_rotate_cw(m() As Long)
+        ':params
+        'm()  Square 2D array to rotate in-place.
+        ':example
+        'Dim piece(0 To 3, 0 To 3) As Long
+        '' ... fill piece with 0/1 values ...
+        'vt_mat_rotate_cw(piece())
+        ':see
+        'vt_mat_rotate_ccw
+        '<<<
+
+    Sub vt_mat_rotate_ccw(m() As Long)
+        ':params
+        'm()  Square 2D array to rotate in-place.
+        ':example
+        '' Four CCW rotations return to original:
+        'vt_mat_rotate_ccw( piece() )
+        'vt_mat_rotate_ccw( piece() )
+        'vt_mat_rotate_ccw( piece() )
+        'vt_mat_rotate_ccw( piece() )
+        ':see
+        'vt_mat_rotate_cw
+        '<<<
+
+
+  -- Defines (4) --
+    #define VT_MIN(a, b)          iif((a) < (b), (a), (b))
+    #define VT_MAX(a, b)          iif((a) > (b), (a), (b))
+    #define VT_CLAMP(v, lo, hi)   iif((v) < (lo), (lo), iif((v) > (hi), (hi), (v)))
+    #define VT_SIGN(x)            iif((x) > 0, 1, iif((x) < 0, -1, 0))
+
+
+  [vt/vt_misc.bas]
+    Function vt_rnd(lo As Long, hi As Long) As Long
+        ':params
+        'lo  Lower bound (inclusive).
+        'hi  Upper bound (inclusive).
+        ':example
+        'Randomize
+        '
+        'Dim n As Long = vt_rnd(-15, 15)
+        'Dim d As Long = vt_rnd(1, 6)
+        'Dim x As Long = vt_rnd(1, vt_cols())
+        ':see
+        'vt_wrap
+        '<<<
+
+    sub vt_sort overload (arr() as byte, order as long)
+    sub vt_sort overload (arr() as ubyte, order as long)
+    sub vt_sort overload (arr() as short, order as long)
+    sub vt_sort overload (arr() as ushort, order as long)
+    sub vt_sort overload (arr() as long, order as long)
+    sub vt_sort overload (arr() as ulong, order as long)
+    sub vt_sort overload (arr() as longint, order as long)
+    sub vt_sort overload (arr() as ulongint, order as long)
+    sub vt_sort overload (arr() as single, order as long)
+    sub vt_sort overload (arr() as double, order as long)
+    sub vt_sort overload (arr() as string, order as long)
+    sub vt_sort overload (arr() as byte, cmp as function(as byte, as byte) as long)
+    sub vt_sort overload (arr() as ubyte, cmp as function(as ubyte, as ubyte) as long)
+    sub vt_sort overload (arr() as short, cmp as function(as short, as short) as long)
+    sub vt_sort overload (arr() as ushort, cmp as function(as ushort, as ushort) as long)
+    sub vt_sort overload (arr() as long, cmp as function(as long, as long) as long)
+    sub vt_sort overload (arr() as ulong, cmp as function(as ulong, as ulong) as long)
+    sub vt_sort overload (arr() as longint, cmp as function(as longint, as longint) as long)
+    sub vt_sort overload (arr() as ulongint, cmp as function(as ulongint, as ulongint) as long)
+    sub vt_sort overload (arr() as single, cmp as function(as single, as single) as long)
+    sub vt_sort overload (arr() as double, cmp as function(as double, as double) as long)
+    sub vt_sort overload (arr() as string, cmp as function(as string, as string) as long)
+    sub vt_sort_apply overload (arr() as byte,     pidx() as long)
+    sub vt_sort_apply overload (arr() as ubyte,    pidx() as long)
+    sub vt_sort_apply overload (arr() as short,    pidx() as long)
+    sub vt_sort_apply overload (arr() as ushort,   pidx() as long)
+    sub vt_sort_apply overload (arr() as long,     pidx() as long)
+    sub vt_sort_apply overload (arr() as ulong,    pidx() as long)
+    sub vt_sort_apply overload (arr() as longint,  pidx() as long)
+    sub vt_sort_apply overload (arr() as ulongint, pidx() as long)
+    sub vt_sort_apply overload (arr() as single,   pidx() as long)
+    sub vt_sort_apply overload (arr() as double,   pidx() as long)
+    sub vt_sort_apply overload (arr() as string,   pidx() as long)
+    sub vt_sort_shuffle overload (arr() as byte)
+    sub vt_sort_shuffle overload (arr() as ubyte)
+    sub vt_sort_shuffle overload (arr() as short)
+    sub vt_sort_shuffle overload (arr() as ushort)
+    sub vt_sort_shuffle overload (arr() as long)
+    sub vt_sort_shuffle overload (arr() as ulong)
+    sub vt_sort_shuffle overload (arr() as longint)
+    sub vt_sort_shuffle overload (arr() as ulongint)
+    sub vt_sort_shuffle overload (arr() as single)
+    sub vt_sort_shuffle overload (arr() as double)
+    sub vt_sort_shuffle overload (arr() as string)
+
+  -- Constants (2) --
+    Const VT_ASCENDING  = 0
+    Const VT_DESCENDING = 1
+
+  [vt/vt_mouse.bas]
+    Sub vt_mouselock(onoff As Byte)
+        ':params
+        'onoff  1 = lock cursor inside window, 0 = unlock.
+        ':see
+        'vt_mouse
+        '<<<
+
+    Sub vt_mouse(enabled As Byte)
+        ':params
+        'enabled  1 = enable mouse tracking, 0 = disable.
+        ':example
+        'vt_mouse(1)
+        '' ... use vt_getmouse in loop ...
+        'vt_mouse(0)
+        ':see
+        'vt_getmouse
+        'vt_setmouse
+        'vt_mouselock
+        '<<<
+
+    Function vt_getmouse(col  As Long Ptr = 0, row  As Long Ptr = 0, btns As Long Ptr = 0, whl  As Long Ptr = 0) As Byte
+        ':params
+        'col   Receives 1-based column. 0 to skip.
+        'row   Receives 1-based row. 0 to skip.
+        'btns  Receives button bitmask. 0 to skip.
+        'whl   Receives accumulated wheel delta
+        '      (+up / -down) since last read. 0 to skip.
+        ':notes
+        'Return values:
+        '   0   OK
+        '  -1   Mouse not enabled, or library not ready.
+        ':example
+        'Dim mx As Long, my As Long, mb As Long
+        'vt_getmouse(@mx, @my, @mb)
+        '
+        '' Read buttons only:
+        'Dim mw As Long
+        'vt_getmouse(,, @mb)
+        ':see
+        'vt_mouse
+        'vt_setmouse
+        'c_mousebtns
+        '<<<
+
+    Sub vt_setmouse(col As Long = -1, row As Long = -1, vis As Byte = -1)
+        ':params
+        'col  Column, 1-based. Clamped to screen bounds.
+        '     -1 = keep current.
+        'row  Row, 1-based. Clamped to screen bounds.
+        '     -1 = keep current.
+        'vis  1 = show cursor, 0 = hide, -1 = keep.
+        ':see
+        'vt_mouse
+        'vt_getmouse
+        '<<<
+
+
+  [vt/vt_net.bas]
+    Function vt_net_init() As Long
+        ':notes
+        'Return (vt_net_init):
+        '   0  success
+        '  -1  Winsock initialisation failed (Windows)
+        ':example
+        '#Define VT_USE_NET
+        '#include once "vt/vt.bi"
+        '
+        'vt_screen(VT_SCREEN_0)
+        'If vt_net_init() <> 0 Then
+        '    vt_print("Network init failed." & VT_LF)
+        '    vt_shutdown()
+        'End If
+        '' ... program ...
+        'vt_net_shutdown()
+        ':see
+        'vt_net_open
+        'vt_net_connect
+        '<<<
+
+    Function vt_net_init() As Long
+    Sub vt_net_shutdown()
+        ':see
+        'vt_net_open
+        'vt_net_connect
+        '<<<
+
+    Sub vt_net_shutdown()
+    Function vt_net_resolve(hostname As ZString Ptr) As Long
+    Function vt_net_ip_str(ip As Long) As String
+    Function vt_net_open(udp As Byte = 0) As SOCKET_T
+    Sub vt_net_close(sock As SOCKET_T)
+    Sub vt_net_nonblocking(sock As SOCKET_T, state As Byte)
+        ':params
+        'sock   Target socket handle.
+        'state  1 = enable non-blocking. 0 = blocking.
+        ':example
+        '' Switch to non-blocking before connect:
+        'vt_net_nonblocking(sock, 1)
+        ':see
+        'vt_net_ready
+        'vt_net_connect
+        '<<<
+
+    Function vt_net_connect(sock As SOCKET_T, ip   As Long, port As Long) As Long
+        ':params
+        'sock  An open TCP socket from vt_net_open(0).
+        'ip    Remote IP in network byte order, from
+        '      vt_net_resolve.
+        'port  Remote port in host byte order (e.g. 80).
+        ':notes
+        'Return values:
+        '  1  Success (blocking) or immediate accept.
+        '  0  Failure or non-blocking in progress.
+        ':example
+        'Dim sock As SOCKET = vt_net_open()
+        'Dim ip   As Long   = vt_net_resolve("example.com")
+        'If vt_net_connect(sock, ip, 80) = 0 Then
+        '    vt_print("Connection failed." & VT_LF)
+        '    vt_net_close(sock)
+        '    vt_shutdown()
+        'End If
+        ':see
+        'vt_net_open
+        'vt_net_resolve
+        'vt_net_send
+        'vt_net_ready
+        'vt_net_nonblocking
+        '<<<
+
+    Function vt_net_bind(sock    As SOCKET_T, port    As Long, ip      As ULong = INADDR_ANY) As Long
+    Function vt_net_listen(sock As SOCKET_T, backlog As Long = SOMAXCONN) As Long
+    Function vt_net_accept(sock As SOCKET_T, remote_ip As Long Ptr = 0, remote_port As Long Ptr = 0) As SOCKET_T
+    Function vt_net_send(sock   As SOCKET_T, buf    As ZString Ptr, nbytes As Long) As Long
+    Function vt_net_recv(sock As SOCKET_T, buf As ZString Ptr, nbytes As Long) As Long
+    Function vt_net_send_udp(sock   As SOCKET_T, ip     As Long, port   As Long, buf    As ZString Ptr, nbytes As Long) As Long
+    Function vt_net_recv_udp(sock As SOCKET_T, Byref src_ip As Long, Byref src_port As Long, buf As ZString Ptr, nbytes As Long) As Long
+    Function vt_net_ready(sock       As SOCKET_T, for_write  As Byte = 0, timeout_ms As Long = 0) As Long
+        ':params
+        'sock        Socket to poll.
+        'for_write   0 = check if data is available to
+        '            read (default). 1 = check if send
+        '            buffer has space.
+        'timeout_ms  Timeout in ms. 0 = return immediately.
+        '            -1 = block until socket is ready.
+        ':notes
+        'Return values:
+        '   1  Socket is ready for the requested operation.
+        '   0  Timeout expired with no activity.
+        '  -1  Error.
+        ':example
+        '' Non-blocking receive in a game loop:
+        'Dim rxbuf     As ZString * 257
+        'Dim connected As Long = 1
+        'Dim k         As ULong
+        'Dim n         As Long
+        'Do
+        '    k = vt_inkey()
+        '    If vt_net_ready(sock) Then
+        '        n = vt_net_recv(sock, @rxbuf, 256)
+        '        If n > 0 Then
+        '            rxbuf[n] = 0
+        '        ElseIf n = 0 Then
+        '            connected = 0
+        '        End If
+        '    End If
+        '    vt_sleep 16
+        'Loop While connected
+        ':see
+        'vt_net_send
+        'vt_net_bind
+        'vt_net_nonblocking
+        '<<<
+
+    Function vt_net_local_addr(sock As SOCKET_T, ByRef local_ip   As Long, ByRef local_port As Long) As Long
+        ':params
+        'sock        A bound or connected socket.
+        'local_ip    Receives local IP in network byte order.
+        'local_port  Receives local port in host byte order.
+        ':notes
+        'Return: 1 on success, 0 on failure.
+        ':example
+        'Dim lip   As Long
+        'Dim lport As Long
+        'If vt_net_local_addr(sock, lip, lport) Then
+        '    vt_print("Local: " & vt_net_ip_str(lip) & _
+        '             ":" & lport & VT_LF)
+        'End If
+        ':see
+        'vt_net_bind
+        'vt_net_connect
+        '<<<
+
+
+  [vt/vt_pages.bas]
+    Sub vt_page(work As Long, vis As Long)
+        ':params
+        'work  Drawing page index (0 <= work < pages).
+        '      All drawing commands go here.
+        'vis   Display page index (0 <= vis < pages).
+        '      This page is shown by vt_present.
+        ':example
+        '' Classic double-buffer: draw on page 1:
+        'vt_page(1, VT_VIDEO)
+        '' ... draw on page 1 freely ...
+        'vt_pcopy(1, VT_VIDEO)
+        'vt_present()
+        '' Swap back:
+        'vt_page(VT_VIDEO, VT_VIDEO)
+        ':see
+        'vt_pcopy
+        'vt_present
+        'vt_screen
+        '<<<
+
+    Sub vt_pcopy(src As Long, dst As Long)
+        ':params
+        'src  Source page index.
+        'dst  Destination page index.
+        ':see
+        'vt_page
+        'vt_present
+        '<<<
+
+    Function vt_scroll(amount As Long) As Byte
+        ':params
+        'amount  Lines to scroll. Positive = back in
+        '        history, negative = toward live view.
+        '        Clamped to valid range automatically.
+        ':notes
+        'Return values:
+        '  1  Offset changed.
+        '  0  Already at limit, amount is zero, or
+        '     scrollback is disabled.
+        ':see
+        'vt_scrollback
+        'hk_scrollback
+        'vt_screen_to_live_row
+        '<<<
+
+    Sub vt_scrollback(lines As Long)
+        ':params
+        'lines  History lines to keep. Pass 0 to
+        '       disable scrollback and free the buffer.
+        ':see
+        'vt_screen
+        'vt_scroll
+        'hk_scrollback
+        '<<<
+
+    Function vt_screen_to_live_row(screen_row As Long) As Long
+        ':params
+        'screen_row  1-based screen row as seen during
+        '            the current scrollback offset.
+        ':notes
+        'Return values:
+        '  > 0  Live buffer row corresponding to
+        '       screen_row.
+        '    0  Screen row is pure history with no
+        '       live equivalent.
+        '  (pass-through when scrollback is inactive)
+        ':example
+        'Dim lr As Long = vt_screen_to_live_row(clk_row)
+        'If lr > 0 Then
+        '    vt_scroll(-99999)
+        '    vt_locate(lr, clk_col)
+        'End If
+        ':see
+        'vt_scroll
+        'vt_scrollback
+        '<<<
+
+
+  [vt/vt_palette.bas]
+    Sub vt_palette_set(pal() As UByte)
+        ':params
+        'pal()  Array containing 48 bytes of palette
+        '       data (16 colours x R, G, B).
+        ':see
+        'vt_palette_get
+        'vt_palette
+        '<<<
+
+    Sub vt_palette_get(pal() As UByte)
+        ':params
+        'pal()  Array to receive 48 bytes of palette
+        '       data (16 colours x R, G, B).
+        ':example
+        'Dim pal(VT_PALETTE_SZ) As UByte
+        'vt_palette_get pal()
+        '' Restore later:
+        'vt_palette_set pal()
+        ':see
+        'vt_palette_set
+        'vt_palette
+        '<<<
+
+    Sub vt_palette(idx As Long = -1, r   As Long = -1, g   As Long = -1, b   As Long = -1)
+    Sub vt_border_color(r As Long, g As Long, b As Long)
+        ':params
+        'r  Red channel   (0-255)
+        'g  Green channel (0-255)
+        'b  Blue channel  (0-255)
+        ':example
+        '' Dark navy letterbox:
+        'vt_border_color(0, 0, 64)
+        ':see
+        'vt_screen
+        '<<<
+
+
+  -- Constants (1) --
+    Const VT_PALETTE_SZ = 47
+
+  [vt/vt_print.bas]
+    Sub vt_scroll_enable(state As Byte)
+        ':params
+        'state  1 = enable scrolling, 0 = disable.
+        ':see
+        'vt_view_print
+        'vt_print
+        '<<<
+
+    Sub vt_cls(bg As Long = -1)
+        ':params
+        'bg  Background colour index (0-15).
+        '    empty keeps the current background colour.
+        ':example
+        'vt_color(VT_LIGHT_GREY, VT_BLACK)
+        'vt_cls()
+        'vt_present()
+        ':see
+        'vt_color
+        'vt_locate
+        'vt_print
+        'vt_view_print
+        '<<<
+
+    Function vt_width(new_cols As Long, new_rows As Long) As Long
+        ':params
+        'cols  Long  New column count. Clamped to a minimum of 10.
+        'rows  Long  New row count.    Clamped to a minimum of 3.
+        '
+        'Return value
+        '  0 - success.
+        ' -1 - library not initialized (vt_screen not called).
+        '
+        ':example
+        '' Dynamic resize in the main loop:
+        'Dim nc As Long, nr As Long
+        'Do
+        '    k = vt_inkey()
+        '    If VT_SCAN(k) = VT_KEY_ESC Then Exit Do
+        '
+        '    If vt_screeninfo(nc, nr) Then
+        '        vt_width nc, nr
+        '        relayout nc, nr   ' re-draw app at new grid size
+        '    End If
+        '
+        '    vt_sleep(16)
+        'Loop
+        '<<<
+
+    Sub vt_get_cell(col As Long, row As Long, ByRef ch As UByte, ByRef fg As UByte, ByRef bg As UByte)
+        ':params
+        'col  Column, 1-based.
+        'row  Row, 1-based.
+        'ch   Receives the CP437 character code.
+        'fg   Receives the foreground colour index
+        '     (may include blink bit 16).
+        'bg   Receives the background colour index.
+        ':example
+        'Dim ch As UByte, fg As UByte, bg As UByte
+        'vt_get_cell(5, 3, ch, fg, bg)
+        'vt_print("Char at (5,3): " & Chr(ch))
+        ':see
+        'vt_set_cell
+        '<<<
+
+    Sub vt_set_cell(col As Long, row As Long, ch As UByte, fg As UByte, bg As UByte)
+        ':params
+        'col  Column, 1-based.
+        'row  Row, 1-based.
+        'ch   CP437 character code (0-255).
+        'fg   Foreground colour (0-15), optionally
+        '     OR'd with 16 for blink.
+        'bg   Background colour (0-15).
+        ':example
+        '' Draw a solid blue block at (10, 5):
+        'vt_set_cell(10, 5, 219, VT_WHITE, VT_BLUE)
+        'vt_present()
+        ':see
+        'vt_get_cell
+        'vt_color
+        '<<<
+
+    Sub vt_color(fg As Long = -1, bg As Long = -1)
+        ':params
+        'fg  Foreground colour (0-15), optionally OR'd
+        '    with VT_BLINK (16). -1 = keep current.
+        'bg  Background colour (0-15). -1 = keep current.
+        ':example
+        '' Set only foreground:
+        'vt_color(VT_BRIGHT_GREEN)
+        '
+        '' Set both:
+        'vt_color(VT_WHITE, VT_BLUE)
+        '
+        '' Blinking foreground:
+        'vt_color(VT_RED Or VT_BLINK, VT_BLACK)
+        ':see
+        'vt_print
+        'vt_cls
+        'vt_locate
+        'c_colors
+        '<<<
+
+    Sub vt_locate(row As Long = -1, col As Long = -1, vis As Long = -1, cursor_ch As Long = -1)
+        ':params
+        'row         Target row, 1-based. -1 = keep.
+        'col         Target column, 1-based. -1 = keep.
+        'vis         1 = show cursor, 0 = hide, -1 = keep.
+        'cursor_ch   CP437 glyph index (0-255) for cursor.
+        '            Default is 219 (solid block). -1=keep.
+        ':example
+        'vt_locate(1, 1)
+        'vt_print("Top-left corner")
+        'vt_locate(12, 40)
+        'vt_print("Center-ish")
+        ':see
+        'vt_print
+        'vt_color
+        'vt_csrlin
+        'vt_pos
+        '<<<
+
+    Function vt_csrlin() As Long
+        ':see
+        'vt_pos
+        'vt_locate
+        'vt_rows
+        '<<<
+
+    Function vt_pos() As Long
+        ':see
+        'vt_csrlin
+        'vt_locate
+        'vt_cols
+        '<<<
+
+    Function vt_cols() As Long
+        ':see
+        'vt_rows
+        'vt_csrlin
+        'vt_pos
+        '<<<
+
+    Function vt_rows() As Long
+        ':see
+        'vt_cols
+        'vt_csrlin
+        '<<<
+
+    Sub vt_view_print(top_row As Long = -1, bot_row As Long = -1, lft_col As Long = -1, rgt_col As Long = -1)
+        ':params
+        'top_row  First row of the scroll region, 1-based.
+        '         -1 resets all four bounds to full screen.
+        'bot_row  Last row of the scroll region. Must be
+        '         >= top_row.
+        'lft_col  First column of the print region.
+        '         -1 means full screen width. vt_print
+        '         newlines land at this column.
+        'rgt_col  Last column of the print region. Must
+        '         be >= lft_col. vt_print wraps here.
+        ':notes
+        'vt_locate is always absolute -- column bounds
+        'do not affect it. Calling with all -1 resets
+        'the entire viewport: row bounds, column bounds,
+        'and cursor position.
+        ':example
+        '' Leave row 1 and row 25 untouched (status bars):
+        'vt_view_print(2, 24)
+        '
+        '' Reset to full viewport:
+        'vt_view_print()
+        ':see
+        'vt_cls
+        'vt_print
+        'vt_scroll_enable
+        '<<<
+
+    Function vt_utf8_to_cp437(src As String) As String
+        ':params
+        'src   Input string. May be UTF-8
+        '      (source literals, clipboard, network) or
+        '      already-decoded CP437 — both are handled correctly.
+        '
+        'Return value
+        'A new string containing the CP437-decoded bytes.
+        'Unmappable codepoints are omitted; the result may therefore
+        'be shorter than the input. Raw CP437 high bytes
+        '(invalid UTF-8) are preserved unchanged.
+        '
+        ':example
+        '' Explicit call needed only for raw UTF-8 from outside vt_print:
+        'Dim line As String = receive_from_server()   ' arrives as UTF-8
+        'line = vt_utf8_to_cp437(line)
+        'vt_print line
+        '<<<
+
+    Sub vt_print(txt As String)
+        ':params
+        'txt  The string to print. May contain Chr(10)
+        '     for newlines.
+        ':notes
+        'When #Define VT_USE_ANSI is set before the
+        'include, vt_print parses ANSI/VT100 escape
+        'sequences. Supported: SGR (ESC[...m colours),
+        'CUP (ESC[row;colH cursor), ED (ESC[2J clear).
+        'Use Chr(27) or !"\x1b" for the escape byte --
+        'do NOT use !"\e" as FreeBASIC drops \e silently.
+        ':example
+        'vt_locate(5, 1)
+        'vt_color(VT_CYAN, VT_BLACK)
+        'vt_print("Line one" & VT_LF & "Line two")
+        'vt_present()
+        ':see
+        'vt_locate
+        'vt_color
+        'vt_cls
+        'vt_print_center
+        '<<<
+
+    Sub vt_print_center(row As Long, txt As String)
+        ':params
+        'row  Target row, 1-based.
+        'txt  The string to centre and print.
+        ':example
+        'vt_color(VT_YELLOW, VT_BLACK)
+        'vt_print_center(12, "Hello, World!")
+        'vt_color(VT_LIGHT_GREY, VT_BLACK)
+        'vt_print_center(14, "Press any key...")
+        'vt_sleep()
+        ':see
+        'vt_print
+        'vt_color
+        '<<<
+
+
+  [vt/vt_sound.bas]
+    Function vt_sound(freq     As Long, dur_ms   As Long = 200, wave     As Long = VT_WAVE_SQUARE, blocking As Long = VT_SOUND_BLOCKING) As Long
+        ':params
+        'freq      Frequency in Hz. 0 = stop and clear
+        '          the queue immediately.
+        'dur_ms    Duration in milliseconds. Default 200.
+        'wave      Waveform. One of VT_WAVE_* constants.
+        'blocking  VT_SOUND_BLOCKING = wait for note to
+        '          finish (window stays alive during wait).
+        '          VT_SOUND_BACKGROUND = queue and return.
+        ':notes
+        'Return values:
+        '   0  success
+        '  -1  audio init or memory alloc failed
+        '  -2  queue cap exceeded, call was skipped
+        ':example
+        '' Single blocking note:
+        'vt_sound(440, 500)
+        '
+        '' Melody blocking note-by-note:
+        'vt_sound(262, 200)
+        'vt_sound(330, 200)
+        'vt_sound(392, 400)
+        '
+        '' Same melody in background:
+        'vt_sound(262, 200, VT_WAVE_SQUARE, _
+        '         VT_SOUND_BACKGROUND)
+        'vt_sound(330, 200, VT_WAVE_SQUARE, _
+        '         VT_SOUND_BACKGROUND)
+        'vt_sound(392, 400, VT_WAVE_SQUARE, _
+        '         VT_SOUND_BACKGROUND)
+        'vt_print("Playing...")
+        'vt_present()
+        'vt_sound_wait()
+        'vt_shutdown()
+        '
+        '' Stop playback immediately:
+        'vt_sound(0)
+        ':see
+        'vt_sound_wait
+        'vt_beep
+        'c_soundconsts
+        '<<<
+
+    Sub vt_sound_wait()
+        ':see
+        'vt_sound
+        '<<<
+
+
+  -- Constants (6) --
+    Const VT_WAVE_SQUARE      = 0
+    Const VT_WAVE_TRIANGLE    = 1
+    Const VT_WAVE_SINE        = 2
+    Const VT_WAVE_NOISE       = 3
+    Const VT_SOUND_BLOCKING   = 1
+    Const VT_SOUND_BACKGROUND = 0
+
+  [vt/vt_strings.bas]
+    Function vt_str_replace(s    As String, find As String, repl As String) As String
+        ':params
+        's     Source string.
+        'find  Substring to search for. Empty = no-op.
+        'repl  Replacement. May be empty to delete all.
+        ':example
+        'Dim fname As String = _
+        '    vt_str_replace("hello world", " ", "_")
+        '' fname = "hello_world"
+        '
+        'Dim stripped As String = _
+        '    vt_str_replace("a--b--c", "--", "")
+        '' stripped = "abc"
+        ':see
+        'vt_str_split
+        'vt_str_count
+        '<<<
+
+    Function vt_str_split(s     As String, delim As String, arr() As String) As Long
+        ':params
+        's      Source string to split.
+        'delim  Delimiter. Empty = split into characters.
+        'arr()  Receives the segments. ReDim'd to
+        '       0 To count-1.
+        ':notes
+        'Return: number of elements placed in arr().
+        ':example
+        'Dim parts() As String
+        'Dim cnt As Long = _
+        '    vt_str_split("one,two,three", ",", parts())
+        '' cnt=3  parts(0)="one" parts(1)="two" ...
+        'For i As Long = 0 To cnt - 1
+        '    vt_print(parts(i) + VT_LF)
+        'Next i
+        ':see
+        'vt_str_replace
+        'vt_str_count
+        '<<<
+
+    Function vt_str_pad_left(s      As String, length As Long, ch     As String) As String
+        ':params
+        's       Source string.
+        'length  Desired output width in characters.
+        'ch      Fill character. Only first char is used.
+        ':example
+        '' Zero-pad a score to 6 digits:
+        'vt_print( vt_str_pad_left(Str(score), 6, "0") )
+        '' "001450"
+        ':see
+        'vt_str_pad_right
+        '<<<
+
+    Function vt_str_pad_right(s      As String, length As Long, ch     As String) As String
+        ':params
+        's       Source string.
+        'length  Desired output width in characters.
+        'ch      Fill character. Only first char is used.
+        ':example
+        '' Fixed label next to a value:
+        'vt_print( vt_str_pad_right("SCORE", 10, " ") & _
+        '          vt_str_pad_left(Str(score), 6, "0") )
+        ':see
+        'vt_str_pad_left
+        '<<<
+
+    Function vt_str_repeat(s As String, n As Long) As String
+        ':params
+        's  String to repeat.
+        'n  Number of repetitions. 0 or negative = "".
+        ':example
+        '' Draw a separator line:
+        'vt_print(vt_str_repeat("-=", 20) & VT_LF)
+        '
+        '' Progress bar string:
+        'Dim bar As String = "[" & _
+        '    vt_str_repeat("#", filled) & _
+        '    vt_str_repeat(".", empty_count) & "]"
+        ':see
+        'vt_str_pad_left
+        'vt_str_pad_right
+        '<<<
+
+    Function vt_str_count(s    As String, find As String) As Long
+        ':params
+        's     String to search in.
+        'find  Substring to count. Empty = always 0.
+        ':notes
+        'Return: number of non-overlapping occurrences.
+        '0 if none or if either argument is empty.
+        ':example
+        'Dim n As Long = vt_str_count("banana", "a")
+        '' n = 3
+        '
+        'n = vt_str_count("banana", "an")
+        '' n = 2  ("b[an][an]a")
+        ':see
+        'vt_str_replace
+        '<<<
+
+    Function vt_str_starts_with(s   As String, pfx As String) As Byte
+        ':params
+        's    String to test.
+        'pfx  Expected prefix.
+        ':example
+        'If vt_str_starts_with(input_line, "/quit") Then
+        '    end_game = 1
+        'End If
+        ':see
+        'vt_str_ends_with
+        '<<<
+
+    Function vt_str_ends_with(s   As String, sfx As String) As Byte
+        ':params
+        's    String to test.
+        'sfx  Expected suffix.
+        ':example
+        'If vt_str_ends_with(filename, ".vts") Then
+        '    vt_bload(filename)
+        'End If
+        ':see
+        'vt_str_starts_with
+        '<<<
+
+    Function vt_str_trim_chars(s     As String, chars As String) As String
+        ':params
+        's      Source string.
+        'chars  Set of characters to strip. Each
+        '       character is an individual candidate.
+        ':example
+        'Dim clean As String = _
+        '    vt_str_trim_chars("***hello***", "*")
+        '' clean = "hello"
+        '
+        'clean = vt_str_trim_chars("  ..hi.. ", " .")
+        '' clean = "hi"
+        ':see
+        'vt_str_replace
+        '<<<
+
+    Function vt_str_wordwrap(s            As String, col_width    As Long = -1, first_offset As Long = 0) As String
+        ':params
+        's             Source text to wrap.
+        'col_width     Max line width. -1 uses screen
+        '              width or 80 if no screen is open.
+        'first_offset  Characters already consumed on
+        '              the first line before this text.
+        '              Subsequent lines always start at
+        '              column 0.
+        ':example
+        'Dim msg As String = _
+        '    "This item restores your health fully " & _
+        '    "and also cures poison."
+        'vt_print(vt_str_wordwrap(msg, 30))
+        '
+        '' Label already on same line:
+        'vt_print("Description: ")
+        'vt_print(vt_str_wordwrap(msg, 40, 13))
+        ':see
+        'vt_print
+        'vt_cols
+        '<<<
+
+
+  [vt/vt_tls.bas]
+    Function vt_tls_connect(sock       As SOCKET_T, hostname   As String, ByRef conn As Any Ptr) As Long
+        ':params
+        'sock      An already-connected TCP socket (from vt_net_connect).
+        'hostname  Server hostname for SNI -- must match the certificate.
+        'conn      Receives the opaque TLS handle (0 on failure).
+        ':notes
+        'Return:
+        '   0  success
+        '  -1  TLS handshake failed
+        ':example
+        'Dim sock As SOCKET = vt_net_open()
+        'Dim ip   As Long   = vt_net_resolve("example.com")
+        'vt_net_connect(sock, ip, 443)
+        '
+        'Dim conn As Any Ptr
+        'If vt_tls_connect(sock, "example.com", conn) <> 0 Then
+        '    vt_print("TLS handshake failed." & VT_LF)
+        '    vt_net_close(sock)
+        'End If
+        ':see
+        'vt_net_connect
+        'vt_tls_send
+        'vt_tls_disconnect
+        '<<<
+
+    Function vt_tls_send(conn   As Any Ptr, buf    As ZString Ptr, nbytes As Long) As Long
+        ':params
+        'conn    Opaque TLS handle from vt_tls_connect.
+        'buf     Data to send.
+        'nbytes  Number of bytes to send from buf.
+        ':notes
+        'Return:
+        '  >= 1  bytes sent
+        '    -1  error
+        ':example
+        'Dim req  As String = "GET / HTTP/1.0" & Chr(13,10) & _
+        '                     "Host: example.com" & Chr(13,10,13,10)
+        'Dim sent As Long = 0
+        'Do While sent < Len(req)
+        '    Dim n As Long = vt_tls_send(conn, StrPtr(req) + sent, _
+        '                                Len(req) - sent)
+        '    If n < 1 Then Exit Do
+        '    sent += n
+        'Loop
+        ':see
+        'vt_tls_connect
+        'vt_tls_recv
+        '<<<
+
+    Function vt_tls_recv(conn   As Any Ptr, buf    As ZString Ptr, nbytes As Long) As Long
+        ':params
+        'conn    Opaque TLS handle from vt_tls_connect.
+        'buf     Buffer that receives the incoming data.
+        'nbytes  Maximum bytes to read into buf.
+        ':notes
+        'Return:
+        '  >= 1  bytes received
+        '     0  no data yet (non-blocking socket)
+        '    -1  peer closed cleanly (close_notify)
+        '    -2  connection error
+        ':example
+        'Dim rxbuf As ZString * 4097
+        'Dim n     As Long
+        'Do
+        '    n = vt_tls_recv(conn, @rxbuf, 4096)
+        '    If n > 0 Then
+        '        rxbuf[n] = 0
+        '        vt_print(rxbuf & VT_LF)
+        '    End If
+        'Loop While n > 0
+        ':see
+        'vt_tls_send
+        'vt_net_nonblocking
+        '<<<
+
+    Function vt_tls_fingerprint(conn As Any Ptr) As String
+        ':params
+        'conn  Opaque TLS handle from vt_tls_connect.
+        ':notes
+        'Return: 64-char lowercase hex string (SHA-256).
+        '        "" if conn = 0 or no peer cert available.
+        ':example
+        'Dim fp As String = vt_tls_fingerprint(conn)
+        'vt_print("Certificate SHA-256: " & fp & VT_LF)
+        ':see
+        'vt_tls_connect
+        '<<<
+
+    Sub vt_tls_disconnect(ByRef conn As Any Ptr)
+        ':params
+        'conn  Opaque TLS handle. Set to 0 on return.
+        ':example
+        'vt_tls_disconnect(conn)
+        'vt_net_close(sock)
+        'vt_net_shutdown()
+        ':see
+        'vt_tls_connect
+        'vt_net_open
+        '<<<
+
+
+  [vt/vt_tui.bas]
+    Sub vt_tui_theme_default()
+    Sub vt_tui_theme(win_fg       As UByte = 16, win_bg       As UByte = 16, title_fg     As UByte = 16, title_bg     As UByte = 16, bar_fg       As UByte = 16, bar_bg       As UByte = 16, btn_fg       As UByte = 16, btn_bg       As UByte = 16, dlg_fg       As UByte = 16, dlg_bg       As UByte = 16, inp_fg       As UByte = 16, inp_bg       As UByte = 16, border_style As UByte = 16 )
+        ':params
+        'win_fg/bg    Window body text and background.
+        'title_fg/bg  Title bar text and background.
+        '             Also progress bar filled colour.
+        'bar_fg/bg    Status/menu bar text and background.
+        'btn_fg/bg    Button text and background.
+        'dlg_fg/bg    Dialog body text and background.
+        '             Also dropdown menu item rows.
+        'inp_fg/bg    Input field and editor colours.
+        '             Also progress bar empty colour.
+        'border_style 0 = single-line CP437 (default).
+        '             1 = double-line CP437.
+        ':example
+        '' Restore DOS blue-scheme defaults:
+        'vt_tui_theme_default()
+        '
+        '' Custom dark theme:
+        'vt_tui_theme(VT_LIGHT_GREY, VT_BLACK, _
+        '             VT_WHITE,      VT_DARK_GREY, _
+        '             VT_BLACK,      VT_CYAN, _
+        '             VT_LIGHT_GREY, VT_DARK_GREY, _
+        '             VT_LIGHT_GREY, VT_BLACK, _
+        '             VT_WHITE,      VT_DARK_GREY, _
+        '             0)
+        ':see
+        'vt_tui_keymap
+        'c_tuiconsts
+        '<<<
+
+    Sub vt_tui_keymap_default()
+    Sub vt_tui_keymap(action As Long, k As ULong)
+        ':params
+        'action  VT_TUI_ACT_* constant for the slot.
+        'k       Packed key value from VT_TUI_MKKEY()
+        '        or captured from vt_inkey(). Pass 0
+        '        to unbind the action.
+        ':example
+        '' Remap PgUp/PgDn to Ctrl+Up/Ctrl+Down:
+        'vt_tui_keymap VT_TUI_ACT_PGUP, _
+        '              VT_TUI_MKKEY(VT_KEY_UP,   0, 1, 0)
+        'vt_tui_keymap VT_TUI_ACT_PGDN, _
+        '              VT_TUI_MKKEY(VT_KEY_DOWN, 0, 1, 0)
+        '' Restore default bindings
+        'vt_tui_keymap_default()
+        ':see
+        'vt_tui_theme
+        'c_tuiconsts
+        '<<<
+
+    Sub vt_tui_rect_fill(x   As Long,  y   As Long, wid As Long,  hei As Long, ch  As UByte, fg  As UByte, bg  As UByte)
+        ':params
+        'x, y     1-based column and row, top-left corner.
+        'wid, hei Width and height in cells.
+        'ch       CP437 character code. Use 32 for solid.
+        'fg, bg   Foreground and background colour indices.
+        ':example
+        '' Clear a region to dark grey:
+        'vt_tui_rect_fill(1, 1, 40, 10, _
+        '                 32, VT_LIGHT_GREY, VT_DARK_GREY)
+        '
+        '' Solid red banner row:
+        'vt_tui_rect_fill(1, 1, 80, 1, 32, VT_BLACK, VT_RED)
+        ':see
+        'vt_tui_window
+        'vt_tui_*line
+        '<<<
+
+    Sub vt_tui_hline(x   As Long, y   As Long, wid As Long, fg  As UByte, bg As UByte)
+    Sub vt_tui_vline(x As Long, y As Long, hei As Long, fg As UByte, bg As UByte)
+    Sub vt_tui_draw_button(x As Long, y As Long, lbl As String, fg As UByte, bg As UByte)
+    Sub vt_tui_label_draw(x     As Long, y     As Long, wid   As Long, txt   As String, align As Long, fg    As UByte, bg    As UByte)
+        ':params
+        'x, y   1-based column and row.
+        'wid    Field width in cells. Clipped or padded.
+        'txt    Label text. Truncated if longer than wid.
+        'align  VT_ALIGN_LEFT (0), VT_ALIGN_CENTER (1),
+        '       or VT_ALIGN_RIGHT (2).
+        'fg, bg Foreground and background colour indices
+        '       for the entire field including padding.
+        ':example
+        '' Left-aligned label:
+        'vt_tui_label_draw(4, 3, 10, "Name:", _
+        '    VT_ALIGN_LEFT, VT_BLACK, VT_LIGHT_GREY)
+        '
+        '' Centred heading:
+        'vt_tui_label_draw(3, 2, 44, "User Config", _
+        '    VT_ALIGN_CENTER, VT_BLUE, VT_LIGHT_GREY)
+        ':see
+        'vt_tui_form_draw
+        'c_tuiconsts
+        '<<<
+
+    Sub vt_tui_window(x     As Long, y     As Long, wid   As Long, hei   As Long, title As String, flags As Long = 0)
+        ':params
+        'x, y      1-based column and row, top-left.
+        'wid, hei  Outer width and height including border.
+        'title     Text centred in the title bar.
+        '          Truncated if too long.
+        'flags     VT_TUI_WIN_CLOSEBTN and/or
+        '          VT_TUI_WIN_SHADOW.
+        ':example
+        '' Centred 40x12 window with shadow:
+        'Dim wx As Long = (80 - 40) \ 2 + 1
+        'Dim wy As Long = (25 - 12) \ 2 + 1
+        'vt_tui_window(wx, wy, 40, 12, "Settings", _
+        '              VT_TUI_WIN_SHADOW)
+        ':see
+        'vt_tui_rect_fill
+        'vt_tui_*line
+        'vt_tui_mouse_in_rect
+        'c_tuiconsts
+        '<<<
+
+    Sub vt_tui_statusbar(row     As Long, caption As String)
+        ':params
+        'row      1-based screen row to fill (full width).
+        'caption  Text printed left-aligned. Clipped to
+        '         screen width.
+        ':example
+        'vt_tui_statusbar 25, _
+        '    " F1=Help  F10=Menu  Esc=Quit"
+        ':see
+        'vt_tui_window
+        'vt_tui_menubar_draw
+        '<<<
+
+    Sub vt_tui_progress(x       As Long, y       As Long, wid     As Long, value   As Long, max_val As Long, flags   As Long = 0)
+        ':params
+        'x, y     1-based column and row.
+        'wid      Width of the bar in cells.
+        'value    Current progress. Clamped to [0..max_val].
+        'max_val  Maximum value. Must be > 0.
+        'flags    VT_TUI_PROG_LABEL = show nn% label.
+        ':example
+        'For i As Long = 0 To 100
+        '    vt_tui_progress(5, 10, 40, i, 100, _
+        '                    VT_TUI_PROG_LABEL)
+        '    vt_sleep(20)
+        'Next i
+        ':see
+        'vt_tui_window
+        'c_tuiconsts
+        '<<<
+
+    Function vt_tui_mouse_in_rect(x   As Long, y   As Long, wid As Long, hei As Long) As Byte
+        ':params
+        'x, y       1-based top-left corner of hit area.
+        'wid, hei   Width and height in cells.
+        ':notes
+        'Return values:
+        '  1  Mouse cursor is inside the rectangle.
+        '  0  Outside, mouse disabled, or not ready.
+        ':example
+        '' Hover over a 10-cell button at row 5:
+        'If vt_tui_mouse_in_rect(10, 5, 10, 1) Then
+        '    ' highlight the button
+        'End If
+        ':see
+        'vt_tui_window
+        'vt_getmouse
+        '<<<
+
+    Sub vt_tui_listbox_draw(x       As Long, y       As Long, wid     As Long, hei     As Long, items() As String, ByRef st As vt_tui_listbox_state)
+    Function vt_tui_listbox_handle(x As Long, y As Long, wid As Long, hei As Long, items() As String, ByRef st As vt_tui_listbox_state, k As ULong) As Long
+    Sub vt_tui_editor_draw(x   As Long, y   As Long, wid As Long, hei As Long, ByRef st As vt_tui_editor_state)
+    Function vt_tui_editor_handle(x As Long, y As Long, wid As Long, hei As Long, ByRef st As vt_tui_editor_state, k As ULong) As Long
+    Function vt_tui_dialog(caption As String, txt     As String, flags   As Long = VT_DLG_OK) As Long
+        ':params
+        'caption  Title bar text.
+        'txt      Body text. Word-wrapped to fit width.
+        'flags    Button set constant, optionally
+        '         combined with VT_DLG_NO_ESC.
+        ':notes
+        'Return: one of VT_RET_OK, VT_RET_CANCEL,
+        'VT_RET_YES, VT_RET_NO.
+        '
+        'Key/mouse bindings:
+        '  Tab          Advance focus to next button.
+        '  Left/Right   Move focus between buttons.
+        '  Enter        Activate the focused button.
+        '  Escape       Return VT_RET_CANCEL (unless
+        '               VT_DLG_NO_ESC is set).
+        '  Click        Activate clicked button immediately.
+        ':example
+        '' Quit confirmation:
+        'If vt_tui_dialog("Quit", _
+        '    "Are you sure you want to quit?", _
+        '    VT_DLG_YESNO) = VT_RET_YES Then
+        '    vt_shutdown()
+        'End If
+        '
+        '' Mandatory choice (Escape disabled):
+        'Dim r As Long = vt_tui_dialog("Disk Full", _
+        '    "Retry or abort the operation?", _
+        '    VT_DLG_OKCANCEL Or VT_DLG_NO_ESC)
+        '
+        '' Simple info box:
+        'vt_tui_dialog("Done", "File saved successfully.")
+        ':see
+        'vt_tui_window
+        'vt_tui_file_dialog
+        'c_tuiconsts
+        '<<<
+
+    Function vt_tui_file_dialog(title      As String, start_path As String, pattern    As String, flags      As Long = 0) As String
+        ':params
+        'title       Title bar text and confirm button label.
+        'start_path  Initial directory. Backslashes are
+        '            normalized to forward slashes. Pass ""
+        '            or "./" for the current directory.
+        'pattern     Filename wildcard, e.g. "*.txt" or "*".
+        '            Ignored when VT_TUI_FD_DIRSONLY is set.
+        'flags       VT_TUI_FD_DIRSONLY = show only dirs;
+        '            Enter or OK on a dir confirms it.
+        ':notes
+        'Return: full selected path as a String. Directory
+        'paths end with /. "" on cancel.
+        '
+        'Key/mouse bindings:
+        '  Up/Down/PgUp/PgDn/Home/End  Navigate list.
+        '  Enter on a file    Confirm that file.
+        '  Enter on a dir     Navigate into it (or
+        '                     confirm in DIRSONLY mode).
+        '  Double-click       Navigate dir or confirm file.
+        '  Backspace          Delete last char from name
+        '                     field, or navigate up a dir
+        '                     if name field is empty.
+        '  Tab                Activate name field for entry.
+        '  Printable char     Append to name field.
+        '  F2                 Keyboard OK button equivalent.
+        '  Escape             Cancel, return "".
+        '
+        ':example
+        'Dim path As String = _
+        '    vt_tui_file_dialog("Open", "./", "*.bas")
+        'If Len(path) > 0 Then
+        '    vt_print("Selected: " & path & VT_LF)
+        'End If
+        '
+        '' Directory picker only:
+        'path = vt_tui_file_dialog("Choose Folder", _
+        '    "./", "*", VT_TUI_FD_DIRSONLY)
+        ':see
+        'vt_tui_dialog
+        'vt_file_list
+        'c_tuiconsts
+        '<<<
+
+    Sub vt_tui_menubar_draw(row      As Long, groups() As String)
+    Function vt_tui_menubar_handle(row As Long, groups() As String, items() As String, counts() As Long, k As ULong) As Long
+    Sub vt_tui_form_offset(items() As vt_tui_form_item, ox As Long, oy As Long)
+        ':params
+        'items()  The form array to shift in place.
+        'ox, oy   Screen column and row of the window's
+        '         outer top-left corner (same values
+        '         passed to vt_tui_window).
+        ':example
+        'Const WIN_X = 21, WIN_Y = 5
+        '' fill items() with .x/.y relative to inner body
+        '' (1,1) = top-left inside the border
+        'vt_tui_form_offset(items(), WIN_X, WIN_Y)
+        'vt_tui_window(WIN_X, WIN_Y, 40, 16, " Settings ")
+        ':see
+        'vt_tui_form_*
+        'vt_tui_window
+        '<<<
+
+    Sub vt_tui_form_draw(items()       As vt_tui_form_item, ByRef focused As Long)
+    Function vt_tui_form_handle(items() As vt_tui_form_item, ByRef focused As Long, k As ULong, flags As Long = 0) As Long
+
+  Total: 171 public sub/function(s)
+
+==== PUBLIC CONSTANTS / DEFINES / MACROS / ENUMS (vt.bi) ==
+
+  -- Constants (57) --
+    Const VT_WINDOWED           = 1
+    Const VT_FULLSCREEN_ASPECT  = 2
+    Const VT_FULLSCREEN_STRETCH = 4
+    Const VT_NO_RESIZE          = 8
+    Const VT_VSYNC              = 16
+    Const VT_WINDOWED_MAX       = 32
+    Const VT_RENDERER_HW        = 64
+    Const VT_SCREEN_0       = 0
+    Const VT_SCREEN_2       = 2
+    Const VT_SCREEN_9       = 9
+    Const VT_SCREEN_12      = 12
+    Const VT_SCREEN_13      = 13
+    Const VT_SCREEN_EGA43   = 43
+    Const VT_SCREEN_VGA50   = 50
+    Const VT_SCREEN_TILES   = 100
+    Const VT_SCREEN_100_40  = 200
+    Const VT_SCREEN_100_50  = 201
+    Const VT_SCREEN_120_45  = 300
+    Const VT_SCREEN_120_50  = 301
+    Const VT_KEY_F1     = 59
+    Const VT_KEY_F2     = 60
+    Const VT_KEY_F3     = 61
+    Const VT_KEY_F4     = 62
+    Const VT_KEY_F5     = 63
+    Const VT_KEY_F6     = 64
+    Const VT_KEY_F7     = 65
+    Const VT_KEY_F8     = 66
+    Const VT_KEY_F9     = 67
+    Const VT_KEY_F10    = 68
+    Const VT_KEY_F11    = 133
+    Const VT_KEY_F12    = 134
+    Const VT_KEY_UP     = 72
+    Const VT_KEY_DOWN   = 80
+    Const VT_KEY_LEFT   = 75
+    Const VT_KEY_RIGHT  = 77
+    Const VT_KEY_HOME   = 71
+    Const VT_KEY_END    = 79
+    Const VT_KEY_PGUP   = 73
+    Const VT_KEY_PGDN   = 81
+    Const VT_KEY_INS    = 82
+    Const VT_KEY_DEL    = 83
+    Const VT_KEY_ESC    = 1
+    Const VT_KEY_ENTER  = 28
+    Const VT_KEY_BKSP   = 14
+    Const VT_KEY_TAB    = 15
+    Const VT_KEY_SPACE  = 57
+    Const VT_KEY_LSHIFT = 42
+    Const VT_KEY_RSHIFT = 54
+    Const VT_KEY_LCTRL  = 29
+    Const VT_KEY_RCTRL  = 157
+    Const VT_KEY_LALT   = 56
+    Const VT_KEY_RALT   = 184
+    Const VT_KEY_LWIN   = 219
+    Const VT_KEY_RWIN   = 220
+    Const VT_MOUSE_BTN_LEFT   = 1
+    Const VT_MOUSE_BTN_RIGHT  = 2
+    Const VT_MOUSE_BTN_MIDDLE = 4
+
+  -- Defines (13) --
+    #Define VT_VER_MAJOR = 1          ' preprocessor Versioning
+    #Define VT_VER_MINOR = 10
+    #Define VT_VER_PATCH = 0
+    #Define VT_NEWLINE     Chr(10)    ' newline for vt_print
+    #Define VT_LF          VT_NEWLINE ' short alias
+    #define VT_SCREENPARAM(_p...) type<vt_screenparam_t>(_p).n ' custom mode
+    #Define VT_CHAR(k)    ((k) And &hFF)
+    #Define VT_SCAN(k)    (((k) Shr 16) And &hFFF)
+    #Define VT_REPEAT(k)  (((k) Shr 28) And 1)
+    #Define VT_SHIFT(k)   (((k) Shr 29) And 1)
+    #Define VT_CTRL(k)    (((k) Shr 30) And 1)
+    #Define VT_ALT(k)     (((k) Shr 31) And 1)
+    #define VT_USE_NET
+
+  -- Macros (0) --
+    (none)
+
+  -- Enums (1) --
+    Enum
+      VT_BLACK          ' 0
+      VT_BLUE           ' 1
+      VT_GREEN          ' 2
+      VT_CYAN           ' 3
+      VT_RED            ' 4
+      VT_MAGENTA        ' 5
+      VT_BROWN          ' 6
+      VT_LIGHT_GREY     ' 7
+      VT_DARK_GREY      ' 8
+      VT_BRIGHT_BLUE    ' 9
+      VT_BRIGHT_GREEN   ' 10
+      VT_BRIGHT_CYAN    ' 11
+      VT_BRIGHT_RED     ' 12
+      VT_BRIGHT_MAGENTA ' 13
+      VT_YELLOW         ' 14
+      VT_WHITE          ' 15
+      VT_BLINK          ' 16
+      End Enum
+
+
+
+============================================================
+ End of dump
+============================================================

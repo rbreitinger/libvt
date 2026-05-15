@@ -2,12 +2,12 @@
 ' vt.bi - VT Virtual Text Screen Library
 ' Usage: #include once "vt/vt.bi"
 ' =============================================================================
-#Ifndef BACKEND_VT
+#Ifndef BACKEND_VT    
     #Include Once "driver/sdl2.bi"
 #Else
-    #Include Once "driver/vt.bas"
+    #Include Once "driver/fbgfx.bi"
 #Endif
-    
+
 '>>>
 ':topic c_misc
 ':short Miscellaneous constants
