@@ -39,136 +39,217 @@ enum
 end enum
 
 ' --- event types ---
-#define _VT_DRV_KEYDOWN                   SDL_KEYDOWN
-#define _VT_DRV_KEYUP                     SDL_KEYUP
-#define _VT_DRV_TEXTINPUT                 SDL_TEXTINPUT
-#define _VT_DRV_WINDOWEVENT               SDL_WINDOWEVENT
-#define _VT_DRV_MOUSEMOTION               SDL_MOUSEMOTION
-#define _VT_DRV_MOUSEBUTTONDOWN           SDL_MOUSEBUTTONDOWN
-#define _VT_DRV_MOUSEBUTTONUP             SDL_MOUSEBUTTONUP
-#define _VT_DRV_MOUSEWHEEL                SDL_MOUSEWHEEL
-
-' --- enum value (not a function!) ---
-#define _VT_DRV_Quit_                     SDL_QUIT_
+enum
+    _VT_DRV_QUIT_           = &h100
+    _VT_DRV_WINDOWEVENT     = &h200
+    _VT_DRV_KEYDOWN         = &h300
+    _VT_DRV_KEYUP           = &h301
+    _VT_DRV_TEXTINPUT       = &h303
+	_VT_DRV_MOUSEMOTION     = &h400
+	_VT_DRV_MOUSEBUTTONDOWN = &h401
+	_VT_DRV_MOUSEBUTTONUP   = &h402
+    _VT_DRV_MOUSEWHEEL      = &h403
+end enum
 
 ' --- mouse buttons ---
-#define _VT_DRV_BUTTON_LEFT               SDL_BUTTON_LEFT
-#define _VT_DRV_BUTTON_MIDDLE             SDL_BUTTON_MIDDLE
-#define _VT_DRV_BUTTON_RIGHT              SDL_BUTTON_RIGHT
+enum
+    _VT_DRV_BUTTON_LEFT     = 1
+    _VT_DRV_BUTTON_MIDDLE   = 2
+    _VT_DRV_BUTTON_RIGHT    = 3
+end enum
 
 ' --- keymods / keys ---
-#define _VT_DRVKMOD_SHIFT                 KMOD_SHIFT
-#define _VT_DRVKMOD_CTRL                  KMOD_CTRL
-#define _VT_DRVKMOD_ALT                   KMOD_ALT
-#define _VT_DRVK_a                        SDLK_a
-#define _VT_DRVK_z                        SDLK_z
+enum
+	_VT_DRVKMOD_NONE = &h0000
+	_VT_DRVKMOD_LSHIFT = &h0001
+	_VT_DRVKMOD_RSHIFT = &h0002
+	_VT_DRVKMOD_LCTRL = &h0040
+	_VT_DRVKMOD_RCTRL = &h0080
+	_VT_DRVKMOD_LALT = &h0100
+	_VT_DRVKMOD_RALT = &h0200
+    _VT_DRVKMOD_CTRL = _VT_DRVKMOD_LCTRL or _VT_DRVKMOD_RCTRL
+    _VT_DRVKMOD_SHIFT = _VT_DRVKMOD_LSHIFT or _VT_DRVKMOD_RSHIFT
+	_VT_DRVKMOD_ALT = _VT_DRVKMOD_LALT or _VT_DRVKMOD_RALT
+end enum
+
+Const _VT_DRVK_a = asc("a")
+Const _VT_DRVK_z = asc("z")
 
 ' --- bool / enable ---
-#define _VT_DRV_TRUE                      SDL_TRUE
-#define _VT_DRV_FALSE                     SDL_FALSE
-#define _VT_DRV_DISABLE                   SDL_DISABLE
-#define _VT_DRV_ENABLE                    SDL_ENABLE
+enum
+	_VT_DRV_FALSE = 0
+	_VT_DRV_TRUE = 1
+end enum
+const _VT_DRV_DISABLE = 0
+const _VT_DRV_ENABLE = 1
 
 ' --- init flags ---
-#define _VT_DRV_INIT_VIDEO                SDL_INIT_VIDEO
-#define _VT_DRV_INIT_AUDIO                SDL_INIT_AUDIO
+const _VT_DRV_INIT_AUDIO = &h00000010u
+const _VT_DRV_INIT_VIDEO = &h00000020u
 
 ' --- window flags / positions / events ---
-#define _VT_DRV_WINDOW_SHOWN              SDL_WINDOW_SHOWN
-#define _VT_DRV_WINDOW_RESIZABLE          SDL_WINDOW_RESIZABLE
-#define _VT_DRV_WINDOW_FULLSCREEN         SDL_WINDOW_FULLSCREEN
-#define _VT_DRV_WINDOW_FULLSCREEN_DESKTOP SDL_WINDOW_FULLSCREEN_DESKTOP
-#define _VT_DRV_WINDOWPOS_CENTERED        SDL_WINDOWPOS_CENTERED
-#define _VT_DRV_WINDOWEVENT_RESIZED       SDL_WINDOWEVENT_RESIZED
+enum
+	_VT_DRV_WINDOW_FULLSCREEN = &h00000001
+	'_VT_DRV_WINDOW_OPENGL = &h00000002
+	_VT_DRV_WINDOW_SHOWN = &h00000004
+	'_VT_DRV_WINDOW_HIDDEN = &h00000008
+	'_VT_DRV_WINDOW_BORDERLESS = &h00000010
+	_VT_DRV_WINDOW_RESIZABLE = &h00000020
+	'_VT_DRV_WINDOW_MINIMIZED = &h00000040
+	'_VT_DRV_WINDOW_MAXIMIZED = &h00000080
+	'_VT_DRV_WINDOW_INPUT_GRABBED = &h00000100
+	'_VT_DRV_WINDOW_INPUT_FOCUS = &h00000200
+	'_VT_DRV_WINDOW_MOUSE_FOCUS = &h00000400
+	_VT_DRV_WINDOW_FULLSCREEN_DESKTOP = _VT_DRV_WINDOW_FULLSCREEN or &h00001000
+	'_VT_DRV_WINDOW_FOREIGN = &h00000800
+	'_VT_DRV_WINDOW_ALLOW_HIGHDPI = &h00002000
+	'_VT_DRV_WINDOW_MOUSE_CAPTURE = &h00004000
+	'_VT_DRV_WINDOW_ALWAYS_ON_TOP = &h00008000
+	'_VT_DRV_WINDOW_SKIP_TASKBAR = &h00010000
+	'_VT_DRV_WINDOW_UTILITY = &h00020000
+	'_VT_DRV_WINDOW_TOOLTIP = &h00040000
+	'_VT_DRV_WINDOW_POPUP_MENU = &h00080000
+end enum
+
+'const   _VT_DRV_WINDOWPOS_CENTERED_MASK = &h2FFF0000u
+'#define _VT_DRV_WINDOWPOS_CENTERED_       DISPLAY(_X) (_VT_DRV_WINDOWPOS_CENTERED_MASK or (_X))
+'#define _VT_DRV_WINDOWPOS_CENTERED        _VT_DRV_WINDOWPOS_CENTERED_DISPLAY(0)
+Const _VT_DRV_WINDOWPOS_CENTERED    = &h2FFF0000u
+Const _VT_DRV_WINDOWEVENT_RESIZED   = 5
 
 ' --- renderer flags ---
-#define _VT_DRV_RENDERER_SOFTWARE         SDL_RENDERER_SOFTWARE
-#define _VT_DRV_RENDERER_ACCELERATED      SDL_RENDERER_ACCELERATED
-#define _VT_DRV_RENDERER_PRESENTVSYNC     SDL_RENDERER_PRESENTVSYNC
+enum
+	_VT_DRV_RENDERER_SOFTWARE      = &h00000001
+	_VT_DRV_RENDERER_ACCELERATED   = &h00000002
+	_VT_DRV_RENDERER_PRESENTVSYNC  = &h00000004
+	'_VT_DRV_RENDERER_TARGETTEXTURE = &h00000008
+end enum
 
 ' --- hints ---
-#define _VT_DRV_HINT_RENDER_SCALE_QUALITY SDL_HINT_RENDER_SCALE_QUALITY
+Const _VT_DRV_HINT_RENDER_SCALE_QUALITY = "SDL_RENDER_SCALE_QUALITY"
 
 ' --- pixel / texture ---
-#define _VT_DRV_PIXELFORMAT_RGBA8888      SDL_PIXELFORMAT_RGBA8888
-#define _VT_DRV_PIXELFORMAT_RGB24         SDL_PIXELFORMAT_RGB24
-#define _VT_DRV_TEXTUREACCESS_TARGET      SDL_TEXTUREACCESS_TARGET
-#define _VT_DRV_BLENDMODE_BLEND           SDL_BLENDMODE_BLEND
+enum
+	_VT_DRV_PIXELTYPE_UNKNOWN
+	_VT_DRV_PIXELTYPE_INDEX1
+	_VT_DRV_PIXELTYPE_INDEX4
+	_VT_DRV_PIXELTYPE_INDEX8
+	_VT_DRV_PIXELTYPE_PACKED8
+	_VT_DRV_PIXELTYPE_PACKED16
+	_VT_DRV_PIXELTYPE_PACKED32
+	_VT_DRV_PIXELTYPE_ARRAYU8  = 7
+	_VT_DRV_PIXELTYPE_ARRAYU16
+	_VT_DRV_PIXELTYPE_ARRAYU32
+	_VT_DRV_PIXELTYPE_ARRAYF16
+	_VT_DRV_PIXELTYPE_ARRAYF32
+end enum
+enum
+	_VT_DRV_PACKEDORDER_NONE = 0
+	_VT_DRV_PACKEDORDER_XRGB = 1
+	_VT_DRV_PACKEDORDER_RGBX = 2
+	_VT_DRV_PACKEDORDER_ARGB = 3
+	_VT_DRV_PACKEDORDER_RGBA = 4
+	_VT_DRV_PACKEDORDER_XBGR = 5
+	_VT_DRV_PACKEDORDER_BGRX = 6
+	_VT_DRV_PACKEDORDER_ABGR = 7
+	_VT_DRV_PACKEDORDER_BGRA = 8
+end enum
+enum
+	_VT_DRV_PACKEDLAYOUT_NONE
+	_VT_DRV_PACKEDLAYOUT_332
+	_VT_DRV_PACKEDLAYOUT_4444
+	_VT_DRV_PACKEDLAYOUT_1555
+	_VT_DRV_PACKEDLAYOUT_5551
+	_VT_DRV_PACKEDLAYOUT_565
+	_VT_DRV_PACKEDLAYOUT_8888    = 6
+	_VT_DRV_PACKEDLAYOUT_2101010
+	_VT_DRV_PACKEDLAYOUT_1010102
+end enum
+enum
+	SDL_ARRAYORDER_NONE
+	SDL_ARRAYORDER_RGB   = 1
+	SDL_ARRAYORDER_RGBA
+	SDL_ARRAYORDER_ARGB
+	SDL_ARRAYORDER_BGR
+	SDL_ARRAYORDER_BGRA
+	SDL_ARRAYORDER_ABGR
+end enum
+#define _VT_DRV_DEFINE_PIXELFORMAT(type, order, layout, bits, bytes) ((((((1 shl 28) or ((type) shl 24)) or ((order) shl 20)) or ((layout) shl 16)) or ((bits) shl 8)) or ((bytes) shl 0))
+_VT_DRV_PIXELFORMAT_RGBA8888 = _VT_DRV_DEFINE_PIXELFORMAT(_VT_DRV_PIXELTYPE_PACKED32, _VT_DRV_PACKEDORDER_RGBA, _VT_DRV_PACKEDLAYOUT_8888, 32, 4)
+_VT_DRV_PIXELFORMAT_RGB24    = _VT_DRV_DEFINE_PIXELFORMAT(_VT_DRV_PIXELTYPE_ARRAYU8,  _VT_DRV_ARRAYORDER_RGB, 0, 24, 3)
+Const   _VT_DRV_TEXTUREACCESS_TARGET = 2
+Const   _VT_DRV_BLENDMODE_BLEND = &h00000001
 
 ' --- audio ---
-#define _VT_DRV_AUDIO_U8                  AUDIO_U8
+Const   _VT_DRV_AUDIO_U8 = &h0008
 
 ' --- types ---
-Type _VT_DRV_Texture       As SDL_Texture
-Type _VT_DRV_Window        As SDL_Window
-Type _VT_DRV_Renderer      As SDL_Renderer
-Type _VT_DRV_Event         As SDL_Event
-Type _VT_DRV_Keymod        As SDL_Keymod
-Type _VT_DRV_Rect          As SDL_Rect
-Type _VT_DRV_Surface       As SDL_Surface
-Type _VT_DRV_PixelFormat   As SDL_PixelFormat
-Type _VT_DRV_AudioDeviceID As SDL_AudioDeviceID
-Type _VT_DRV_AudioSpec     As SDL_AudioSpec
-
-' --- SDL_LoadBMP is a C macro wrapping SDL_LoadBMP_RW — cannot use Alias ---
-#define _VT_DRV_LoadBmp                   SDL_LoadBmp
+Type _VT_DRV_Texture       As _VT_DRV_Texture ptr
+Type _VT_DRV_Window        As _VT_DRV_Window ptr
+Type _VT_DRV_Renderer      As _VT_DRV_Renderer ptr
+Type _VT_DRV_Event         As _VT_DRV_Event ptr
+Type _VT_DRV_Keymod        As _VT_DRV_Keymod ptr
+Type _VT_DRV_Rect          As _VT_DRV_Rect ptr
+Type _VT_DRV_Surface       As _VT_DRV_Surface ptr
+Type _VT_DRV_PixelFormat   As _VT_DRV_PixelFormat ptr
+Type _VT_DRV_AudioDeviceID As _VT_DRV_AudioDeviceID ptr
+Type _VT_DRV_AudioSpec     As _VT_DRV_AudioSpec ptr
 
 ' --- function / sub declarations ---
-Extern "C"
-
-Declare Function _VT_DRV_GetTicks              Alias "SDL_GetTicks"              ()                                                                                                                As ULong
-Declare Sub      _VT_DRV_RenderGetScale        Alias "SDL_RenderGetScale"        (renderer As _VT_DRV_Renderer Ptr, scaleX As Single Ptr, scaleY As Single Ptr)
-Declare Function _VT_DRV_GetRendererOutputSize Alias "SDL_GetRendererOutputSize" (renderer As _VT_DRV_Renderer Ptr, w As Long Ptr, h As Long Ptr)                                                    As Long
-Declare Function _VT_DRV_PollEvent             Alias "SDL_PollEvent"             (evt As _VT_DRV_Event Ptr)                                                                                           As Long
-Declare Function _VT_DRV_GetModState           Alias "SDL_GetModState"           ()                                                                                                               As _VT_DRV_Keymod
-Declare Sub      _VT_DRV_DestroyTexture        Alias "SDL_DestroyTexture"        (texture As _VT_DRV_Texture Ptr)
-Declare Sub      _VT_DRV_DestroyRenderer       Alias "SDL_DestroyRenderer"       (renderer As _VT_DRV_Renderer Ptr)
-Declare Sub      _VT_DRV_DestroyWindow         Alias "SDL_DestroyWindow"         (wnd As _VT_DRV_Window Ptr)
-Declare Function _VT_DRV_Init                  Alias "SDL_Init"                  (flags As ULong)                                                                                                 As Long
-Declare Sub      _VT_DRV_Quit                  Alias "SDL_Quit"                  ()
-Declare Function _VT_DRV_CreateWindow          Alias "SDL_CreateWindow"          (title As ZString Ptr, x As Long, y As Long, w As Long, h As Long, flags As ULong)                              As _VT_DRV_Window Ptr
-Declare Function _VT_DRV_SetWindowFullscreen   Alias "SDL_SetWindowFullscreen"   (wnd As _VT_DRV_Window Ptr, flags As ULong)                                                                         As Long
-Declare Sub      _VT_DRV_MaximizeWindow        Alias "SDL_MaximizeWindow"        (wnd As _VT_DRV_Window Ptr)
-Declare Function _VT_DRV_CreateRenderer        Alias "SDL_CreateRenderer"        (wnd As _VT_DRV_Window Ptr, idx As Long, flags As ULong)                                                            As _VT_DRV_Renderer Ptr
-Declare Function _VT_DRV_SetHint               Alias "SDL_SetHint"               (nm As ZString Ptr, vl As ZString Ptr)                                                                          As Long
-Declare Function _VT_DRV_RenderSetLogicalSize  Alias "SDL_RenderSetLogicalSize"  (renderer As _VT_DRV_Renderer Ptr, w As Long, h As Long)                                                           As Long
-Declare Function _VT_DRV_RenderSetIntegerScale Alias "SDL_RenderSetIntegerScale" (renderer As _VT_DRV_Renderer Ptr, enable As Long)                                                                  As Long
-Declare Function _VT_DRV_CreateTexture         Alias "SDL_CreateTexture"         (renderer As _VT_DRV_Renderer Ptr, fmt As ULong, access As Long, w As Long, h As Long)                             As _VT_DRV_Texture Ptr
-Declare Function _VT_DRV_SetTextureBlendMode   Alias "SDL_SetTextureBlendMode"   (texture As _VT_DRV_Texture Ptr, blendMode As Long)                                                                 As Long
-Declare Function _VT_DRV_SetRenderTarget       Alias "SDL_SetRenderTarget"       (renderer As _VT_DRV_Renderer Ptr, texture As _VT_DRV_Texture Ptr)                                                     As Long
-Declare Function _VT_DRV_SetRenderDrawColor    Alias "SDL_SetRenderDrawColor"    (renderer As _VT_DRV_Renderer Ptr, r As UByte, g As UByte, b As UByte, a As UByte)                                As Long
-Declare Function _VT_DRV_RenderClear           Alias "SDL_RenderClear"           (renderer As _VT_DRV_Renderer Ptr)                                                                                  As Long
-Declare Function _VT_DRV_SetTextureColorMod    Alias "SDL_SetTextureColorMod"    (texture As _VT_DRV_Texture Ptr, r As UByte, g As UByte, b As UByte)                                              As Long
-Declare Function _VT_DRV_RenderFillRect        Alias "SDL_RenderFillRect"        (renderer As _VT_DRV_Renderer Ptr, rect As _VT_DRV_Rect Ptr)                                                           As Long
-Declare Function _VT_DRV_RenderCopy            Alias "SDL_RenderCopy"            (renderer As _VT_DRV_Renderer Ptr, texture As _VT_DRV_Texture Ptr, srcrect As _VT_DRV_Rect Ptr, dstrect As _VT_DRV_Rect Ptr) As Long
-Declare Sub      _VT_DRV_RenderPresent         Alias "SDL_RenderPresent"         (renderer As _VT_DRV_Renderer Ptr)
-Declare Sub      _VT_DRV_SetWindowTitle        Alias "SDL_SetWindowTitle"        (wnd As _VT_DRV_Window Ptr, title As ZString Ptr)
-Declare Function _VT_DRV_GetKeyboardState      Alias "SDL_GetKeyboardState"      (numkeys As Long Ptr)                                                                                            As UByte Ptr
-Declare Function _VT_DRV_GetClipboardText      Alias "SDL_GetClipboardText"      ()                                                                                                               As ZString Ptr
-Declare Sub      _VT_DRV_free                  Alias "SDL_free"                  (mem As Any Ptr)
-Declare Sub      _VT_DRV_SetWindowGrab         Alias "SDL_SetWindowGrab"         (wnd As _VT_DRV_Window Ptr, grabbed As Long)
-Declare Sub      _VT_DRV_SetWindowMinimumSize   Alias "SDL_SetWindowMinimumSize"   (wnd As _VT_DRV_Window Ptr, min_w As Long, min_h As Long)
-Declare Sub      _VT_DRV_SetWindowMaximumSize   Alias "SDL_SetWindowMaximumSize"   (wnd As _VT_DRV_Window Ptr, max_w As Long, max_h As Long)
-Declare Sub      _VT_DRV_GetWindowSize Alias "SDL_GetWindowSize" (wnd As _VT_DRV_Window Ptr, w As Long Ptr, h As Long Ptr)
-Declare Sub      _VT_DRV_SetWindowSize          Alias "SDL_SetWindowSize"          (wnd As _VT_DRV_Window Ptr, w As Long, h As Long)
-Declare Function _VT_DRV_ShowCursor            Alias "SDL_ShowCursor"            (toggle As Long)                                                                                                 As Long
-Declare Function _VT_DRV_GetMouseState         Alias "SDL_GetMouseState"         (x As Long Ptr, y As Long Ptr)                                                                                  As ULong
-Declare Function _VT_DRV_SetClipboardText      Alias "SDL_SetClipboardText"      (txt As ZString Ptr)                                                                                            As Long
-Declare Function _VT_DRV_CreateRGBSurface      Alias "SDL_CreateRGBSurface"      (flags As ULong, w As Long, h As Long, depth As Long, rmask As ULong, gmask As ULong, bmask As ULong, amask As ULong) As _VT_DRV_Surface Ptr
-Declare Function _VT_DRV_LockSurface           Alias "SDL_LockSurface"           (surface As _VT_DRV_Surface Ptr)                                                                                    As Long
-Declare Sub      _VT_DRV_UnlockSurface         Alias "SDL_UnlockSurface"         (surface As _VT_DRV_Surface Ptr)
-Declare Function _VT_DRV_CreateTextureFromSurface Alias "SDL_CreateTextureFromSurface" (renderer As _VT_DRV_Renderer Ptr, surface As _VT_DRV_Surface Ptr)                                              As _VT_DRV_Texture Ptr
-Declare Sub      _VT_DRV_FreeSurface           Alias "SDL_FreeSurface"           (surface As _VT_DRV_Surface Ptr)
-Declare Function _VT_DRV_AllocFormat           Alias "SDL_AllocFormat"           (pixel_format As ULong)                                                                                         As _VT_DRV_PixelFormat Ptr
-Declare Function _VT_DRV_ConvertSurface        Alias "SDL_ConvertSurface"        (src As _VT_DRV_Surface Ptr, pixfmt As _VT_DRV_PixelFormat Ptr, flags As ULong)                                       As _VT_DRV_Surface Ptr
-Declare Sub      _VT_DRV_FreeFormat            Alias "SDL_FreeFormat"            (pixfmt As _VT_DRV_PixelFormat Ptr)
-Declare Function _VT_DRV_InitSubSystem         Alias "SDL_InitSubSystem"         (flags As ULong)                                                                                                As Long
-Declare Function _VT_DRV_OpenAudioDevice       Alias "SDL_OpenAudioDevice"       (device As ZString Ptr, iscapture As Long, desired As _VT_DRV_AudioSpec Ptr, obtained As _VT_DRV_AudioSpec Ptr, allowed_changes As Long) As _VT_DRV_AudioDeviceID
-Declare Sub      _VT_DRV_QuitSubsystem         Alias "SDL_QuitSubSystem"         (flags As ULong)
-Declare Sub      _VT_DRV_PauseAudioDevice      Alias "SDL_PauseAudioDevice"      (dev As _VT_DRV_AudioDeviceID, pause_on As Long)
-Declare Sub      _VT_DRV_CloseAudioDevice      Alias "SDL_CloseAudioDevice"      (dev As _VT_DRV_AudioDeviceID)
-Declare Function _VT_DRV_ClearQueuedAudio      Alias "SDL_ClearQueuedAudio"      (dev As _VT_DRV_AudioDeviceID)                                                                                     As Long
-Declare Function _VT_DRV_QueueAudio            Alias "SDL_QueueAudio"            (dev As _VT_DRV_AudioDeviceID, data As Any Ptr, sz As ULong)                                                       As Long
-Declare Function _VT_DRV_GetQueuedAudioSize    Alias "SDL_GetQueuedAudioSize"    (dev As _VT_DRV_AudioDeviceID)                                                                                     As ULong
-
-End Extern
+'Extern "C"
+Declare Function _VT_DRV_LoadBMP               ( pzFile as zstring ptr ) As _VT_DRV_Surface ptr
+Declare Function _VT_DRV_GetTicks              () As ULong
+Declare Sub      _VT_DRV_RenderGetScale        (renderer As _VT_DRV_Renderer Ptr, scaleX As Single Ptr, scaleY As Single Ptr)
+Declare Function _VT_DRV_GetRendererOutputSize (renderer As _VT_DRV_Renderer Ptr, w As Long Ptr, h As Long Ptr) As Long
+Declare Function _VT_DRV_PollEvent             (evt As _VT_DRV_Event Ptr) As Long
+Declare Function _VT_DRV_GetModState           () As _VT_DRV_Keymod
+Declare Sub      _VT_DRV_DestroyTexture        (texture As _VT_DRV_Texture Ptr)
+Declare Sub      _VT_DRV_DestroyRenderer       (renderer As _VT_DRV_Renderer Ptr)
+Declare Sub      _VT_DRV_DestroyWindow         (wnd As _VT_DRV_Window Ptr)
+Declare Function _VT_DRV_Init                  (flags As ULong) As Long
+Declare Sub      _VT_DRV_Quit                  ()
+Declare Function _VT_DRV_CreateWindow          (title As ZString Ptr, x As Long, y As Long, w As Long, h As Long, flags As ULong) As _VT_DRV_Window Ptr
+Declare Function _VT_DRV_SetWindowFullscreen   (wnd As _VT_DRV_Window Ptr, flags As ULong) As Long
+Declare Sub      _VT_DRV_MaximizeWindow        (wnd As _VT_DRV_Window Ptr)
+Declare Function _VT_DRV_CreateRenderer        (wnd As _VT_DRV_Window Ptr, idx As Long, flags As ULong) As _VT_DRV_Renderer Ptr
+Declare Function _VT_DRV_SetHint               (nm As ZString Ptr, vl As ZString Ptr) As Long
+Declare Function _VT_DRV_RenderSetLogicalSize  (renderer As _VT_DRV_Renderer Ptr, w As Long, h As Long) As Long
+Declare Function _VT_DRV_RenderSetIntegerScale (renderer As _VT_DRV_Renderer Ptr, enable As Long) As Long
+Declare Function _VT_DRV_CreateTexture         (renderer As _VT_DRV_Renderer Ptr, fmt As ULong, access As Long, w As Long, h As Long) As _VT_DRV_Texture Ptr
+Declare Function _VT_DRV_SetTextureBlendMode   (texture As _VT_DRV_Texture Ptr, blendMode As Long) As Long
+Declare Function _VT_DRV_SetRenderTarget       (renderer As _VT_DRV_Renderer Ptr, texture As _VT_DRV_Texture Ptr) As Long
+Declare Function _VT_DRV_SetRenderDrawColor    (renderer As _VT_DRV_Renderer Ptr, r As UByte, g As UByte, b As UByte, a As UByte) As Long
+Declare Function _VT_DRV_RenderClear           (renderer As _VT_DRV_Renderer Ptr) As Long
+Declare Function _VT_DRV_SetTextureColorMod    (texture As _VT_DRV_Texture Ptr, r As UByte, g As UByte, b As UByte) As Long
+Declare Function _VT_DRV_RenderFillRect        (renderer As _VT_DRV_Renderer Ptr, rect As _VT_DRV_Rect Ptr) As Long
+Declare Function _VT_DRV_RenderCopy            (renderer As _VT_DRV_Renderer Ptr, texture As _VT_DRV_Texture Ptr, srcrect As _VT_DRV_Rect Ptr, dstrect As _VT_DRV_Rect Ptr) As Long
+Declare Sub      _VT_DRV_RenderPresent         (renderer As _VT_DRV_Renderer Ptr)
+Declare Sub      _VT_DRV_SetWindowTitle        (wnd As _VT_DRV_Window Ptr, title As ZString Ptr)
+Declare Function _VT_DRV_GetKeyboardState      (numkeys As Long Ptr) As UByte Ptr
+Declare Function _VT_DRV_GetClipboardText      () As ZString Ptr
+Declare Sub      _VT_DRV_free                  (mem As Any Ptr)
+Declare Sub      _VT_DRV_SetWindowGrab         (wnd As _VT_DRV_Window Ptr, grabbed As Long)
+Declare Sub      _VT_DRV_SetWindowMinimumSize  (wnd As _VT_DRV_Window Ptr, min_w As Long, min_h As Long)
+Declare Sub      _VT_DRV_SetWindowMaximumSize  (wnd As _VT_DRV_Window Ptr, max_w As Long, max_h As Long)
+Declare Sub      _VT_DRV_GetWindowSize         (wnd As _VT_DRV_Window Ptr, w As Long Ptr, h As Long Ptr)
+Declare Sub      _VT_DRV_SetWindowSize         (wnd As _VT_DRV_Window Ptr, w As Long, h As Long)
+Declare Function _VT_DRV_ShowCursor            (toggle As Long) As Long
+Declare Function _VT_DRV_GetMouseState         (x As Long Ptr, y As Long Ptr) As ULong
+Declare Function _VT_DRV_SetClipboardText      (txt As ZString Ptr) As Long
+Declare Function _VT_DRV_CreateRGBSurface      (flags As ULong, w As Long, h As Long, depth As Long, rmask As ULong, gmask As ULong, bmask As ULong, amask As ULong) As _VT_DRV_Surface Ptr
+Declare Function _VT_DRV_LockSurface           (surface As _VT_DRV_Surface Ptr) As Long
+Declare Sub      _VT_DRV_UnlockSurface         (surface As _VT_DRV_Surface Ptr)
+Declare Function _VT_DRV_CreateTextureFromSurface (renderer As _VT_DRV_Renderer Ptr, surface As _VT_DRV_Surface Ptr) As _VT_DRV_Texture Ptr
+Declare Sub      _VT_DRV_FreeSurface           (surface As _VT_DRV_Surface Ptr)
+Declare Function _VT_DRV_AllocFormat           (pixel_format As ULong)              As _VT_DRV_PixelFormat Ptr
+Declare Function _VT_DRV_ConvertSurface        (src As _VT_DRV_Surface Ptr, pixfmt As _VT_DRV_PixelFormat Ptr, flags As ULong) As _VT_DRV_Surface Ptr
+Declare Sub      _VT_DRV_FreeFormat            (pixfmt As _VT_DRV_PixelFormat Ptr)
+Declare Function _VT_DRV_InitSubSystem         (flags As ULong) As Long
+Declare Function _VT_DRV_OpenAudioDevice       (device As ZString Ptr, iscapture As Long, desired As _VT_DRV_AudioSpec Ptr, obtained As _VT_DRV_AudioSpec Ptr, allowed_changes As Long) As _VT_DRV_AudioDeviceID
+Declare Sub      _VT_DRV_QuitSubsystem         (flags As ULong)
+Declare Sub      _VT_DRV_PauseAudioDevice      (dev As _VT_DRV_AudioDeviceID, pause_on As Long)
+Declare Sub      _VT_DRV_CloseAudioDevice      (dev As _VT_DRV_AudioDeviceID)
+Declare Function _VT_DRV_ClearQueuedAudio      (dev As _VT_DRV_AudioDeviceID) As Long
+Declare Function _VT_DRV_QueueAudio            (dev As _VT_DRV_AudioDeviceID, data As Any Ptr, sz As ULong) As Long
+Declare Function _VT_DRV_GetQueuedAudioSize    (dev As _VT_DRV_AudioDeviceID) As ULong
+'End Extern
