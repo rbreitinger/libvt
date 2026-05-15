@@ -336,9 +336,9 @@ Function write_html(byref outfname As String, byref page_title As String) As Lon
         For si = 0 To gcnt - 1
             ti = gtopics(si)
             Dim tid As String = all_topics(ti).t_id
-            Print #fh, "<a class=""tlnk"" href=""#"" " & _
-                        "onclick=""show('" & html_esc(tid) & "');return false;"">" & _
-                        html_esc(tid) & "</a>"
+            Print #fh, "<a class=""tlnk"" href=""javascript:void(0)"" " & _
+            "onclick=""show('" & html_esc(tid) & "')"">" & _
+            html_esc(tid) & "</a>"
         Next si
     Next gi
     Print #fh, "</div>"   ' #nav
@@ -399,8 +399,8 @@ Function write_html(byref outfname As String, byref page_title As String) As Lon
                     see_pos = 0
                 End If
                 If Len(see_it) > 0 Then
-                    Print #fh, "<a href=""#"" onclick=""show('" & html_esc(see_it) & _
-                                "');return false;"">" & html_esc(see_it) & "</a>"
+                    Print #fh, "<a href=""javascript:void(0)"" onclick=""show('" & html_esc(see_it) & _
+                                "')"">" & html_esc(see_it) & "</a>"
                 End If
             Loop While see_pos > 0
             Print #fh, "</div>"
