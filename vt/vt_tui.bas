@@ -10,21 +10,6 @@
 ' =============================================================================
 
 ' -----------------------------------------------------------------------------
-' vt_internal_tui_autoinit
-' Auto-applies default theme and keymap on first draw if the user never called
-' either setup function. Avoids all-black-on-black / unbound-key surprises.
-' No ready guard -- pure struct write, screen not required.
-' -----------------------------------------------------------------------------
-Private Sub vt_internal_tui_autoinit()
-    If vt_internal_tui_inited = 0 Then
-        vt_tui_theme_default()
-    End If
-    If vt_internal_tui_keymap_inited = 0 Then
-        vt_tui_keymap_default()
-    End If
-End Sub
-
-' -----------------------------------------------------------------------------
 ' vt_internal_tui_save_rect
 ' Saves a 1-based (ox, oy) rectangle of wid x hei cells into buf().
 ' ReDims buf to wid * hei - 1. No ready guard -- callers already checked.
@@ -313,6 +298,21 @@ Sub vt_tui_keymap(action As Long, k As ULong)
     '<<<
     If action >= 0 AndAlso action < VT_TUI_ACT_COUNT Then
         vt_internal_tui_keymap(action) = k
+    End If
+End Sub
+
+' -----------------------------------------------------------------------------
+' vt_internal_tui_autoinit
+' Auto-applies default theme and keymap on first draw if the user never called
+' either setup function. Avoids all-black-on-black / unbound-key surprises.
+' No ready guard -- pure struct write, screen not required.
+' -----------------------------------------------------------------------------
+Private Sub vt_internal_tui_autoinit()
+    If vt_internal_tui_inited = 0 Then
+        vt_tui_theme_default()
+    End If
+    If vt_internal_tui_keymap_inited = 0 Then
+        vt_tui_keymap_default()
     End If
 End Sub
 
@@ -1194,8 +1194,8 @@ End Function
 'to the wrong place before vt_sleep flips the frame.
 'Opt-in: define VT_USE_TUI before the include.
 ':syntax
-Sub vt_tui_editor_draw(x   As Long, y   As Long,
-                       wid As Long, hei As Long,
+Sub vt_tui_editor_draw(x   As Long, y   As Long, _
+                       wid As Long, hei As Long, _
                        ByRef st As _
                        vt_tui_editor_state)
                        
