@@ -132,7 +132,7 @@ working together — run `vtetris-bake.bas` once first to generate the screen as
 ## API Reference
 
 **Full function reference, constants and parameter details**
-[Online Version](https://rbreitinger.github.io/libvt/vt_api.html)
+[Online Version](https://rbreitinger.github.io/libvt/libvt.html)
 [Offline Version](https://github.com/rbreitinger/vthelp)
 
 ---
