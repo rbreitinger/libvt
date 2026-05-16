@@ -508,5 +508,7 @@ Close #outFH
 Print ""
 Print "Done -> " & OUT_FILE
 Print ""
-Print "< any key to quit >"
-Sleep
+If Command(1) = "" Then
+    Print "< any key to quit >"
+    Sleep
+End If
