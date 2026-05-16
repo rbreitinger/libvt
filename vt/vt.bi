@@ -2,6 +2,13 @@
 ' vt.bi - VT Virtual Text Screen Library
 ' Usage: #include once "vt/vt.bi"
 ' =============================================================================
+
+'#Define _FIX_ARTIFACT_ISSUE 'fixes artifact issue on HW render BUT needs revisit as
+    ' theres something fishy, rarely random crashes on window resize, not certain if lib
+    ' related or vtirc related yet.
+    ' see: vt_core.bas - vt_present() - line ~1565
+
+
 #Ifndef BACKEND_VT    
     #Include Once "driver/sdl2.bi"
 #Else

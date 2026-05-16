@@ -1562,6 +1562,11 @@ Sub vt_present()
     _VT_DRV_SetRenderTarget(vt_internal.sdl_renderer, NULL)
 
     If vt_internal.init_flags And VT_RENDERER_HW Then
+        #Ifdef _FIX_ARTIFACT_ISSUE
+            ' clear letterbox bars to black before the scaled blit
+            _VT_DRV_SetRenderDrawColor(vt_internal.sdl_renderer, 0, 0, 0, 255)
+            _VT_DRV_RenderClear(vt_internal.sdl_renderer)
+        #Endif
         ' HW: SDL_RenderSetLogicalSize already maps sdl_buffer to the window
         _VT_DRV_RenderCopy(vt_internal.sdl_renderer, vt_internal.sdl_buffer, NULL, NULL)
     Else
