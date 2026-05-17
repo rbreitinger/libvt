@@ -1,6 +1,6 @@
 ============================================================
  libvt Public API Dump
- Generated : 05-17-2026  12:14:57
+ Generated : 05-17-2026  21:29:37
  Source    : vt
 ============================================================
 
@@ -9,8 +9,7 @@
   [vt/vt_bsave.bas]
     Function vt_bsave(fname As String) As Long
         ':params
-        'fname  Destination file path. Created or
-        '       overwritten if it exists.
+        'fname  Destination file path. Created or overwritten if it exists.
         ':notes
         'Return values:
         '   0  success
@@ -34,6 +33,12 @@
         '  -2  file could not be opened
         '  -3  bad magic -- not a valid .vts file
         '  -4  dimension mismatch (different screen mode)
+        '
+        'The .vts format:
+        '   4-byte magic "VTBS"
+        '   4-byte cols
+        '   4-byte rows (all little-endian Long),
+        '   followed by cols x rows x 3 bytes (ch, fg, bg per cell, left-to-right, top-to-bottom).
         ':example
         'If vt_file_exists("savegame.vts") Then
         '    If vt_bload("savegame.vts") = 0 Then

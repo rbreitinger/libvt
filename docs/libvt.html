@@ -837,17 +837,8 @@ vt_file_rmdir(&quot;build_output&quot;, VT_FILE_RECURSIVE)</pre>
 <div class="tdiv" id="vt_bload">
 <h2>vt_bload</h2>
 <div class="t-short">Load a .vts screen file into the work page</div>
-<pre class="body-pre">Load a .vts file into the active work page.
-Validates the magic and screen dimensions before
-touching the cell buffer. Sets the display dirty
-on success so the next vt_present reflects the
-loaded content. Unaffected by any viewport -
-always loads the full screen.
-
-The .vts format: 4-byte magic &quot;VTBS&quot;, 4-byte
-cols, 4-byte rows (all little-endian Long),
-followed by cols x rows x 3 bytes (ch, fg, bg
-per cell, left-to-right, top-to-bottom).</pre>
+<pre class="body-pre">Load a .vts file into the active work page. Validates the magic and screen dimensions before touching the cell buffer. Sets the display dirty
+on success so the next vt_present reflects the loaded content. Unaffected by any viewport - always loads the full screen.</pre>
 <div class="sec-hdr">Syntax</div>
 <pre class="code-pre">Function vt_bload(fname As String) As Long</pre>
 <div class="sec-hdr">Parameters</div>
@@ -858,7 +849,13 @@ per cell, left-to-right, top-to-bottom).</pre>
   -1  library not ready (call vt_screen first)
   -2  file could not be opened
   -3  bad magic -- not a valid .vts file
-  -4  dimension mismatch (different screen mode)</pre>
+  -4  dimension mismatch (different screen mode)
+
+The .vts format:
+   4-byte magic &quot;VTBS&quot;
+   4-byte cols
+   4-byte rows (all little-endian Long),
+   followed by cols x rows x 3 bytes (ch, fg, bg per cell, left-to-right, top-to-bottom).</pre>
 <div class="sec-hdr">Example</div>
 <pre class="code-pre">If vt_file_exists(&quot;savegame.vts&quot;) Then
     If vt_bload(&quot;savegame.vts&quot;) = 0 Then
@@ -874,14 +871,11 @@ End If</pre>
 <div class="tdiv" id="vt_bsave">
 <h2>vt_bsave</h2>
 <div class="t-short">Save the work page to a .vts file</div>
-<pre class="body-pre">Save the active work page to a .vts file.
-Unaffected by any viewport -- always saves the
-full screen. Created or overwritten.</pre>
+<pre class="body-pre">Save the active work page to a .vts file. Unaffected by any viewport. Always saves the full screen. Created or overwritten.</pre>
 <div class="sec-hdr">Syntax</div>
 <pre class="code-pre">Function vt_bsave(fname As String) As Long</pre>
 <div class="sec-hdr">Parameters</div>
-<pre class="param-pre">fname  Destination file path. Created or
-       overwritten if it exists.</pre>
+<pre class="param-pre">fname  Destination file path. Created or overwritten if it exists.</pre>
 <div class="sec-hdr">Notes</div>
 <pre class="body-pre">Return values:
    0  success

@@ -2,7 +2,7 @@
 setlocal enabledelayedexpansion
 
 echo ========================================
-echo  libvt test suite - compile examples
+echo  libvt test suite - build examples
 echo ========================================
 echo.
 
