@@ -1,19 +1,14 @@
 ' =============================================================================
-' vt_input.bas : single-line blocking text editor
+' vt_input.bas : single-line blocking text editor                              
 ' =============================================================================
 
 '>>>
-':topic vt_input
-':short Full-featured blocking single-line editor
-':group Keyboard
-'Blocking single-line text editor at the current
-'cursor position. Supports Home, End, Left, Right,
-'Insert, Delete, Backspace, and clipboard paste
-'when copy/paste is enabled. Returns the entered
-'string on Enter, or "" on Escape. Colour must
-'be set with vt_color before calling. The editor
-'does not call vt_present directly; internal
-'vt_inkey calls handle presentation.
+    ':topic vt_input
+    ':short Full-featured blocking single-line editor
+    ':group Keyboard
+    'Blocking single-line text editor at the current cursor position. Supports Home, End, Left, Right,
+    'Insert, Delete, Backspace, and clipboard paste when copy/paste is enabled. Returns the entered
+    'string on Enter, or "" on Escape. Colour must be set with vt_color before calling.
 ':syntax
 Function vt_input(max_len   As Long = -1, _
                   initial   As String = "", _
@@ -30,17 +25,19 @@ Function vt_input(max_len   As Long = -1, _
         'cancelled Optional Byte Ptr. Set to 1 on Escape,
         '          0 on Enter. Pass 0 to ignore.
         ':example
+        '#Include Once "vt/vt.bi"
+        'vt_screen()
         'Dim esc As Byte
         'vt_locate(10, 1)
         'vt_print("Enter amount: ")
-        'Dim amount As String = _
-        '    vt_input(8, "0", "0123456789.", @esc)
+        'Dim amount As String = vt_input(8, "0", "0123456789.", @esc)
         'If esc Then
         '    vt_print("Cancelled" & VT_LF)
         'Else
         '    vt_print("Got: " & amount & VT_LF)
         'End If
-        'vt_present()
+        'vt_sleep()
+        'vt_shutdown()
         ':see
         'vt_getchar
         'vt_getkey

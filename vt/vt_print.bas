@@ -136,8 +136,11 @@ End Sub
 ':syntax
 Sub vt_scroll_enable(state As Byte)
         ':params
-        'state  1 = enable scrolling, 0 = disable.
+        'state  1 = enable scrolling (default)
+        '       0 = disable.
         ':see
+        'vt_scroll
+        'vt_scrollback
         'vt_view_print
         'vt_print
     '<<<

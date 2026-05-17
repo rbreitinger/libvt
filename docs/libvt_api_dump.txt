@@ -1,6 +1,6 @@
 ============================================================
  libvt Public API Dump
- Generated : 05-16-2026  22:39:31
+ Generated : 05-17-2026  12:14:57
  Source    : vt
 ============================================================
 
@@ -465,17 +465,19 @@
         'cancelled Optional Byte Ptr. Set to 1 on Escape,
         '          0 on Enter. Pass 0 to ignore.
         ':example
+        '#Include Once "vt/vt.bi"
+        'vt_screen()
         'Dim esc As Byte
         'vt_locate(10, 1)
         'vt_print("Enter amount: ")
-        'Dim amount As String = _
-        '    vt_input(8, "0", "0123456789.", @esc)
+        'Dim amount As String = vt_input(8, "0", "0123456789.", @esc)
         'If esc Then
         '    vt_print("Cancelled" & VT_LF)
         'Else
         '    vt_print("Got: " & amount & VT_LF)
         'End If
-        'vt_present()
+        'vt_sleep()
+        'vt_shutdown()
         ':see
         'vt_getchar
         'vt_getkey
@@ -957,9 +959,9 @@
         '  0  Already at limit, amount is zero, or
         '     scrollback is disabled.
         ':see
+        'vt_scroll_enable
         'vt_scrollback
         'hk_scrollback
-        'vt_screen_to_live_row
         '<<<
 
     Sub vt_scrollback(lines As Long)
@@ -970,28 +972,7 @@
         'vt_screen
         'vt_scroll
         'hk_scrollback
-        '<<<
-
-    Function vt_screen_to_live_row(screen_row As Long) As Long
-        ':params
-        'screen_row  1-based screen row as seen during
-        '            the current scrollback offset.
-        ':notes
-        'Return values:
-        '  > 0  Live buffer row corresponding to
-        '       screen_row.
-        '    0  Screen row is pure history with no
-        '       live equivalent.
-        '  (pass-through when scrollback is inactive)
-        ':example
-        'Dim lr As Long = vt_screen_to_live_row(clk_row)
-        'If lr > 0 Then
-        '    vt_scroll(-99999)
-        '    vt_locate(lr, clk_col)
-        'End If
-        ':see
-        'vt_scroll
-        'vt_scrollback
+        'vt_scroll_enable
         '<<<
 
 
@@ -1039,8 +1020,11 @@
   [vt/vt_print.bas]
     Sub vt_scroll_enable(state As Byte)
         ':params
-        'state  1 = enable scrolling, 0 = disable.
+        'state  1 = enable scrolling (default)
+        '       0 = disable.
         ':see
+        'vt_scroll
+        'vt_scrollback
         'vt_view_print
         'vt_print
         '<<<
@@ -1211,25 +1195,6 @@
         'vt_cls
         'vt_print
         'vt_scroll_enable
-        '<<<
-
-    Function vt_utf8_to_cp437(src As String) As String
-        ':params
-        'src   Input string. May be UTF-8
-        '      (source literals, clipboard, network) or
-        '      already-decoded CP437 — both are handled correctly.
-        '
-        'Return value
-        'A new string containing the CP437-decoded bytes.
-        'Unmappable codepoints are omitted; the result may therefore
-        'be shorter than the input. Raw CP437 high bytes
-        '(invalid UTF-8) are preserved unchanged.
-        '
-        ':example
-        '' Explicit call needed only for raw UTF-8 from outside vt_print:
-        'Dim line As String = receive_from_server()   ' arrives as UTF-8
-        'line = vt_utf8_to_cp437(line)
-        'vt_print line
         '<<<
 
     Sub vt_print(txt As String)
@@ -1867,6 +1832,35 @@
 
     Sub vt_tui_form_draw(items()       As vt_tui_form_item, ByRef focused As Long)
     Function vt_tui_form_handle(items() As vt_tui_form_item, ByRef focused As Long, k As ULong, flags As Long = 0) As Long
+
+  [vt/vt_utf8.bas]
+    Function vt_utf8_to_cp437(src As String) As String
+        ':params
+        'src   Input string. May be UTF-8
+        '      (source literals, clipboard, network) or
+        '      already-decoded CP437 — both are handled correctly.
+        '
+        'Return value
+        'A new string containing the CP437-decoded bytes.
+        'Unmappable codepoints are omitted; the result may therefore
+        'be shorter than the input. Raw CP437 high bytes
+        '(invalid UTF-8) are preserved unchanged.
+        '
+        ':example
+        '' Explicit call needed only for raw UTF-8 from outside vt_print:
+        'Dim line As String = receive_from_server()   ' arrives as UTF-8
+        'line = vt_utf8_to_cp437(line)
+        'vt_print line
+        '<<<
+
+    Function vt_cp437_to_utf8(txt As String) As String
+        ' CP437 glyph 128..255 -> Unicode code point (for UTF-8 wire conversion)
+
+
+  -- Defines (2) --
+    #define vt_internal_unicode_to_cp437_2t(_c) iif(_c >= &hA0 andalso _c <= &h3C6,g_utfbyte2(_c),asc("?"))
+    #define vt_internal_unicode_to_cp437_3t(_c) iif(_c >= &h2022 andalso _c <= &h266B,g_utfbyte3(_c),asc("?"))
+
 
   Total: 171 public sub/function(s)
 

@@ -165,7 +165,6 @@ function show(id) {
 <a class="tlnk" href="javascript:void(0)" onclick="show('vt_rows')">vt_rows</a>
 <a class="tlnk" href="javascript:void(0)" onclick="show('vt_screeninfo')">vt_screeninfo</a>
 <div class="grp-hdr">Scroll</div>
-<a class="tlnk" href="javascript:void(0)" onclick="show('vt_screen_to_live_row')">vt_screen_to_live_row</a>
 <a class="tlnk" href="javascript:void(0)" onclick="show('vt_scroll')">vt_scroll</a>
 <a class="tlnk" href="javascript:void(0)" onclick="show('vt_view_print')">vt_view_print</a>
 <div class="grp-hdr">Sort</div>
@@ -270,10 +269,8 @@ vt_present()</pre>
 <div class="tdiv" id="c_colors">
 <h2>c_colors</h2>
 <div class="t-short">Color index constants (0-15 + VT_BLINK)</div>
-<pre class="body-pre">Used with vt_color, vt_cls, vt_set_cell etc.
-These are VT_COLOR_IDX enum values 0-15.
-OR any foreground color with VT_BLINK (16)
-to enable character blinking.</pre>
+<pre class="body-pre">Used with vt_color, vt_cls, vt_set_cell etc. These are VT_COLOR_IDX enum values 0-15.
+OR any foreground color with VT_BLINK (16) to enable character blinking.</pre>
 <div class="sec-hdr">Parameters</div>
 <pre class="param-pre">Enum
     VT_BLACK          ' 0
@@ -311,18 +308,13 @@ End Enum</pre>
 <div class="tdiv" id="c_keymacros">
 <h2>c_keymacros</h2>
 <div class="t-short">Key-event extraction macros</div>
-<pre class="body-pre">vt_inkey and vt_getkey return a packed ULong.
-Use these macros to extract fields from it.</pre>
+<pre class="body-pre">vt_inkey and vt_getkey return a packed ULong. Use these macros to extract fields from it.</pre>
 <div class="sec-hdr">Parameters</div>
 <pre class="param-pre">#Define VT_CHAR(k)    ((k) And &amp;hFF)
-  ASCII code of the resulting character
-  (Ctrl+letter gives 1-26). 0 for special
-  keys -- use VT_SCAN for those.
+  ASCII code of the resulting character (Ctrl+letter gives 1-26). 0 for special keys - use VT_SCAN for those.
 
 #Define VT_SCAN(k)    (((k) Shr 16) And &amp;hFFF)
-  VT scancode (bits 16-27). Only meaningful
-  for VT_KEY_* constants. Returns 0 for
-  regular letter/digit/symbol keys.
+  VT scancode (bits 16-27). Only meaningful for VT_KEY_* constants. Returns 0 for regular letter/digit/symbol keys.
   Always compare via this macro.
 
 #Define VT_REPEAT(k)  (((k) Shr 28) And 1)
@@ -355,9 +347,7 @@ End Select</pre>
 <div class="tdiv" id="c_keyscans">
 <h2>c_keyscans</h2>
 <div class="t-short">VT_KEY_* scancode constants</div>
-<pre class="body-pre">Compare these against VT_SCAN(k). Never
-compare them directly against the raw ULong
-value returned by vt_inkey.</pre>
+<pre class="body-pre">Compare these against VT_SCAN(k). Never compare them directly against the raw ULong value returned by vt_inkey.</pre>
 <div class="sec-hdr">Parameters</div>
 <pre class="param-pre">F-keys:
 Const VT_KEY_F1     = 59
@@ -437,7 +427,7 @@ sides -- avoid expressions with side effects
 <div class="t-short">Miscellaneous constants</div>
 <pre class="body-pre">Miscellaneous library constants</pre>
 <div class="sec-hdr">Parameters</div>
-<pre class="param-pre">Const   VT_VERSION   = &quot;1.10.0&quot;   ' major.minor.patch
+<pre class="param-pre">Const   VT_VERSION   = &quot;1.11.0&quot;   ' major.minor.patch
 #Define VT_VER_MAJOR = 1          ' preprocessor Versioning
 #Define VT_VER_MINOR = 10
 #Define VT_VER_PATCH = 0
@@ -457,8 +447,7 @@ Const   VT_ENABLED   = 1
 <div class="tdiv" id="c_mousebtns">
 <h2>c_mousebtns</h2>
 <div class="t-short">Mouse button bitmask constants</div>
-<pre class="body-pre">Bitmask values returned in the btns parameter
-of vt_getmouse.</pre>
+<pre class="body-pre">Bitmask values returned in the btns parameter of vt_getmouse.</pre>
 <div class="sec-hdr">Parameters</div>
 <pre class="param-pre">Const VT_MOUSE_BTN_LEFT   = 1   ' bit 0
 Const VT_MOUSE_BTN_RIGHT  = 2   ' bit 1
@@ -478,9 +467,7 @@ End If</pre>
 <div class="tdiv" id="c_screenmodes">
 <h2>c_screenmodes</h2>
 <div class="t-short">Screen mode constants for vt_screen</div>
-<pre class="body-pre">Passed as the mode argument to vt_screen.
-VT_SCREEN_TILES uses 8x8 font data scaled to
-16x16 glyphs -- useful for square-cell tiles.</pre>
+<pre class="body-pre">Passed as the mode argument to vt_screen. VT_SCREEN_TILES uses 8x8 font data scaled to 16x16 glyphs - useful for square-cell tiles.</pre>
 <div class="sec-hdr">Syntax</div>
 <pre class="code-pre">VT_SCREENPARAM(col, row, fontwid, fonthei)</pre>
 <div class="sec-hdr">Parameters</div>
@@ -503,10 +490,10 @@ Const VT_SCREEN_120_50  = 301 ' 120x50 8x8   960x400 - hi-res ultrawide packed
   fontwid and fonthei select the destination glyph cell size in pixels.
 
   Scaled font support:
-  fontwid must be a multiple of 8.
-  The library derives scale = fontwid \ 8 and base_gh = fonthei \ scale.
-  base_gh must equal 8, 14, or 16 (a built-in source font).
-  Invalid combinations silently fall back to the 8×16 source at scale 1.</pre>
+    fontwid must be a multiple of 8.
+    The library derives scale = fontwid \ 8 and base_gh = fonthei \ scale.
+    base_gh must equal 8, 14, or 16 (a built-in source font).
+    Invalid combinations silently fall back to the 8×16 source at scale 1.</pre>
 <div class="sec-hdr">See Also</div>
 <div class="see-list">
 <a href="javascript:void(0)" onclick="show('vt_screen')">vt_screen</a>
@@ -1006,13 +993,9 @@ immediately).</pre>
 <div class="tdiv" id="hk_alt">
 <h2>hk_alt</h2>
 <div class="t-short">Alt+letter intercept for the TUI menubar</div>
-<pre class="body-pre">VT intercepts Alt+letter combinations before
-they reach your program and delivers them to
-the TUI menubar. The key event arrives with
-VT_ALT(k) = 1 and VT_CHAR(k) set to the
-letter that was pressed. Used by
-vt_tui_menubar_draw to open a menu group by
-its first letter.</pre>
+<pre class="body-pre">VT intercepts Alt+letter combinations before they reach your program and delivers them to the TUI menubar.
+The key event arrives with VT_ALT(k) = 1 and VT_CHAR(k) set to the letter that was pressed. Used by
+vt_tui_menubar_draw to open a menu group by its first letter.</pre>
 <div class="sec-hdr">See Also</div>
 <div class="see-list">
 <a href="javascript:void(0)" onclick="show('vt_tui_menubar_draw')">vt_tui_menubar_draw</a>
@@ -1023,8 +1006,7 @@ its first letter.</pre>
 <div class="tdiv" id="hk_copypaste">
 <h2>hk_copypaste</h2>
 <div class="t-short">Internal copy/paste key and mouse bindings</div>
-<pre class="body-pre">Available only when vt_copypaste has been called
-to enable it.
+<pre class="body-pre">Available only when vt_copypaste has been called to enable it.
 
   LMB drag        Select a region. Activates
                   only once the mouse moves.
@@ -1045,10 +1027,8 @@ to enable it.
 <div class="tdiv" id="hk_scrollback">
 <h2>hk_scrollback</h2>
 <div class="t-short">Internal scrollback navigation key bindings</div>
-<pre class="body-pre">VT intercepts these combinations before they
-reach your program. Scrollback must be enabled
-with vt_scrollback for these to have any effect.
-Any key not listed below exits scrollback and
+<pre class="body-pre">VT intercepts these combinations before they reach your program. Scrollback must be enabled
+with vt_scrollback/vt_scroll_enable for these to have any effect. Any key not listed below exits scrollback and
 returns to the live view.
 
   Shift+PgUp       Scroll back 1 line
@@ -1059,6 +1039,7 @@ returns to the live view.
 <div class="see-list">
 <a href="javascript:void(0)" onclick="show('vt_scrollback')">vt_scrollback</a>
 <a href="javascript:void(0)" onclick="show('vt_scroll')">vt_scroll</a>
+<a href="javascript:void(0)" onclick="show('vt_scroll_enable')">vt_scroll_enable</a>
 </div>
 </div>
 <div class="tdiv" id="vt_on_close">
@@ -1187,12 +1168,9 @@ window below the threshold Call AFTER vt_screen.</pre>
 <div class="tdiv" id="vt_scrollback">
 <h2>vt_scrollback</h2>
 <div class="t-short">Allocate or resize the scrollback buffer</div>
-<pre class="body-pre">Allocate, resize, or disable the scrollback
-history buffer. Must be called after vt_screen.
-Calling it again clears any existing history.
-Scrollback captures lines scrolled off the top
-of the scroll region. See the Hotkeys section
-for the key bindings that activate scrollback.</pre>
+<pre class="body-pre">Allocate, resize, or disable the scrollback history buffer. Must be called after vt_screen.
+Calling it again clears any existing history. Scrollback captures lines scrolled off the top
+of the scroll region. See the Hotkeys section for the key bindings that activate scrollback.</pre>
 <div class="sec-hdr">Syntax</div>
 <pre class="code-pre">Sub vt_scrollback(lines As Long)</pre>
 <div class="sec-hdr">Parameters</div>
@@ -1203,6 +1181,7 @@ for the key bindings that activate scrollback.</pre>
 <a href="javascript:void(0)" onclick="show('vt_screen')">vt_screen</a>
 <a href="javascript:void(0)" onclick="show('vt_scroll')">vt_scroll</a>
 <a href="javascript:void(0)" onclick="show('hk_scrollback')">hk_scrollback</a>
+<a href="javascript:void(0)" onclick="show('vt_scroll_enable')">vt_scroll_enable</a>
 </div>
 </div>
 <div class="tdiv" id="vt_shutdown">
@@ -1360,14 +1339,9 @@ Loop</pre>
 <div class="tdiv" id="vt_input">
 <h2>vt_input</h2>
 <div class="t-short">Full-featured blocking single-line editor</div>
-<pre class="body-pre">Blocking single-line text editor at the current
-cursor position. Supports Home, End, Left, Right,
-Insert, Delete, Backspace, and clipboard paste
-when copy/paste is enabled. Returns the entered
-string on Enter, or &quot;&quot; on Escape. Colour must
-be set with vt_color before calling. The editor
-does not call vt_present directly; internal
-vt_inkey calls handle presentation.</pre>
+<pre class="body-pre">Blocking single-line text editor at the current cursor position. Supports Home, End, Left, Right,
+Insert, Delete, Backspace, and clipboard paste when copy/paste is enabled. Returns the entered
+string on Enter, or &quot;&quot; on Escape. Colour must be set with vt_color before calling.</pre>
 <div class="sec-hdr">Syntax</div>
 <pre class="code-pre">Function vt_input(max_len   As Long = -1, _
                   initial   As String = &quot;&quot;, _
@@ -1384,17 +1358,19 @@ allowed   Whitelist of accepted characters.
 cancelled Optional Byte Ptr. Set to 1 on Escape,
           0 on Enter. Pass 0 to ignore.</pre>
 <div class="sec-hdr">Example</div>
-<pre class="code-pre">Dim esc As Byte
+<pre class="code-pre">#Include Once &quot;vt/vt.bi&quot;
+vt_screen()
+Dim esc As Byte
 vt_locate(10, 1)
 vt_print(&quot;Enter amount: &quot;)
-Dim amount As String = _
-    vt_input(8, &quot;0&quot;, &quot;0123456789.&quot;, @esc)
+Dim amount As String = vt_input(8, &quot;0&quot;, &quot;0123456789.&quot;, @esc)
 If esc Then
     vt_print(&quot;Cancelled&quot; &amp; VT_LF)
 Else
     vt_print(&quot;Got: &quot; &amp; amount &amp; VT_LF)
 End If
-vt_present()</pre>
+vt_sleep()
+vt_shutdown()</pre>
 <div class="sec-hdr">See Also</div>
 <div class="see-list">
 <a href="javascript:void(0)" onclick="show('vt_getchar')">vt_getchar</a>
@@ -2492,14 +2468,10 @@ Loop</pre>
 <div class="tdiv" id="vt_page">
 <h2>vt_page</h2>
 <div class="t-short">Set the active draw and display page</div>
-<pre class="body-pre">Set the active drawing page and the visible
-display page independently. All drawing commands
-write to the work page; vt_present reads from
-the vis page. Multiple pages are allocated at
-vt_screen time via the pages argument (up to 8
-pages, indices 0-7). Page 0 (VT_VIDEO) is always
-the startup visible page. Invalid indices are
-silently ignored.</pre>
+<pre class="body-pre">Set the active drawing page and the visible display page independently. All drawing commands
+write to the work page; vt_present reads from the vis page. Multiple pages are allocated at
+vt_screen time via the pages argument (up to 8 pages, indices 0-7). Page 0 (VT_VIDEO) is always
+the startup visible page. Invalid indices are silently ignored.</pre>
 <div class="sec-hdr">Syntax</div>
 <pre class="code-pre">Sub vt_page(work As Long, vis As Long)</pre>
 <div class="sec-hdr">Parameters</div>
@@ -2525,10 +2497,8 @@ vt_page(VT_VIDEO, VT_VIDEO)</pre>
 <div class="tdiv" id="vt_pcopy">
 <h2>vt_pcopy</h2>
 <div class="t-short">Copy one page buffer to another</div>
-<pre class="body-pre">Copy one page buffer to another (equivalent to
-QBasic PCOPY). Marks the display dirty but does
-not call vt_present. src = dst is a no-op.
-Invalid indices are silently ignored.</pre>
+<pre class="body-pre">Copy one page buffer to another (equivalent to QBasic PCOPY). Marks the display dirty but does
+not call vt_present. src = dst is a no-op. Invalid indices are silently ignored.</pre>
 <div class="sec-hdr">Syntax</div>
 <pre class="code-pre">Sub vt_pcopy(src As Long, dst As Long)</pre>
 <div class="sec-hdr">Parameters</div>
@@ -2769,9 +2739,12 @@ last row. Scrolling is ENABLED by default.</pre>
 <div class="sec-hdr">Syntax</div>
 <pre class="code-pre">Sub vt_scroll_enable(state As Byte)</pre>
 <div class="sec-hdr">Parameters</div>
-<pre class="param-pre">state  1 = enable scrolling, 0 = disable.</pre>
+<pre class="param-pre">state  1 = enable scrolling (default)
+       0 = disable.</pre>
 <div class="sec-hdr">See Also</div>
 <div class="see-list">
+<a href="javascript:void(0)" onclick="show('vt_scroll')">vt_scroll</a>
+<a href="javascript:void(0)" onclick="show('vt_scrollback')">vt_scrollback</a>
 <a href="javascript:void(0)" onclick="show('vt_view_print')">vt_view_print</a>
 <a href="javascript:void(0)" onclick="show('vt_print')">vt_print</a>
 </div>
@@ -2869,49 +2842,13 @@ End If</pre>
 <a href="javascript:void(0)" onclick="show('vt_width')">vt_width</a>
 </div>
 </div>
-<div class="tdiv" id="vt_screen_to_live_row">
-<h2>vt_screen_to_live_row</h2>
-<div class="t-short">Map a screen row to a live buffer row</div>
-<pre class="body-pre">Translate a screen row number to the
-corresponding live buffer row while the
-scrollback view is offset. Useful for
-click-to-locate: call this before snapping
-back to the live view with vt_scroll(-99999).</pre>
-<div class="sec-hdr">Syntax</div>
-<pre class="code-pre">Function vt_screen_to_live_row(screen_row As Long) As Long</pre>
-<div class="sec-hdr">Parameters</div>
-<pre class="param-pre">screen_row  1-based screen row as seen during
-            the current scrollback offset.</pre>
-<div class="sec-hdr">Notes</div>
-<pre class="body-pre">Return values:
-  &gt; 0  Live buffer row corresponding to
-       screen_row.
-    0  Screen row is pure history with no
-       live equivalent.
-  (pass-through when scrollback is inactive)</pre>
-<div class="sec-hdr">Example</div>
-<pre class="code-pre">Dim lr As Long = vt_screen_to_live_row(clk_row)
-If lr &gt; 0 Then
-    vt_scroll(-99999)
-    vt_locate(lr, clk_col)
-End If</pre>
-<div class="sec-hdr">See Also</div>
-<div class="see-list">
-<a href="javascript:void(0)" onclick="show('vt_scroll')">vt_scroll</a>
-<a href="javascript:void(0)" onclick="show('vt_scrollback')">vt_scrollback</a>
-</div>
-</div>
 <div class="tdiv" id="vt_scroll">
 <h2>vt_scroll</h2>
 <div class="t-short">Move the scrollback view by a number of lines</div>
-<pre class="body-pre">Move the scrollback view offset. Positive values
-scroll toward older history; negative values
-scroll toward the live view. Scrollback must be
-enabled with vt_scrollback first. Does not call
-vt_present. vt_scroll is called automatically
-by the library for the built-in hotkeys -- you
-only need to call it directly for custom input
-such as a mouse wheel handler.</pre>
+<pre class="body-pre">Move the scrollback view offset. Positive values scroll toward older history; negative values
+scroll toward the live view. Scrollback buffer size must be set with vt_scrollback and it must
+be enabled by vt_scroll_enable(1) first. Does not call vt_present. vt_scroll is called automatically
+by the library for the built-in hotkeys -- you only need to call it directly for custom input such as a mouse wheel handler.</pre>
 <div class="sec-hdr">Syntax</div>
 <pre class="code-pre">Function vt_scroll(amount As Long) As Byte</pre>
 <div class="sec-hdr">Parameters</div>
@@ -2925,9 +2862,9 @@ such as a mouse wheel handler.</pre>
      scrollback is disabled.</pre>
 <div class="sec-hdr">See Also</div>
 <div class="see-list">
+<a href="javascript:void(0)" onclick="show('vt_scroll_enable')">vt_scroll_enable</a>
 <a href="javascript:void(0)" onclick="show('vt_scrollback')">vt_scrollback</a>
 <a href="javascript:void(0)" onclick="show('hk_scrollback')">hk_scrollback</a>
-<a href="javascript:void(0)" onclick="show('vt_screen_to_live_row')">vt_screen_to_live_row</a>
 </div>
 </div>
 <div class="tdiv" id="vt_view_print">
@@ -4506,7 +4443,7 @@ are fully supported; continuation bytes are validated
 before decoding. 4-byte sequences (Unicode beyond the
 Basic Multilingual Plane) are always dropped as CP437
 has no glyphs for them. Codepoints with no CP437
-equivalent are silently dropped.
+equivalent are shown as '?'.
 
 Bytes that do not form a valid UTF-8 sequence — including
 raw CP437 high bytes such as box-drawing characters from

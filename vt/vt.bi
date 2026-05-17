@@ -18,10 +18,10 @@
 #Endif
 
 '>>>
-':topic c_misc
-':short Miscellaneous constants
-':group Constants
-'Miscellaneous library constants
+    ':topic c_misc
+    ':short Miscellaneous constants
+    ':group Constants
+    'Miscellaneous library constants
 ':params
 Const   VT_VERSION   = "1.11.0"   ' major.minor.patch
 #Define VT_VER_MAJOR = 1          ' preprocessor Versioning
@@ -33,17 +33,17 @@ Const   VT_ENABLED   = 1
 #Define VT_NEWLINE     Chr(10)    ' newline for vt_print
 #Define VT_LF          VT_NEWLINE ' short alias
 ':see
-'vt_print
-'vt_copypaste
-'vt_page
-'vt_pcopy
+    'vt_print
+    'vt_copypaste
+    'vt_page
+    'vt_pcopy
 '<<<
 
 '>>>
-':topic c_winflags
-':short Window flag constants for vt_screen
-':group Constants
-'Passed as the flags argument to vt_screen. Combine multiple flags with Or.
+    ':topic c_winflags
+    ':short Window flag constants for vt_screen
+    ':group Constants
+    'Passed as the flags argument to vt_screen. Combine multiple flags with Or.
 ':params
 Const VT_WINDOWED           = 1   ' Start in a resizable window (default).
 Const VT_FULLSCREEN_ASPECT  = 2   ' Fullscreen, integer-scaled, letterboxed.
@@ -52,9 +52,9 @@ Const VT_NO_RESIZE          = 8   ' Prevent user from resizing the window.
 Const VT_VSYNC              = 16  ' Enable vsync, off by default.
 Const VT_WINDOWED_MAX       = 32  ' Start regular window maximized.
 Const VT_RENDERER_HW        = 64  ' Use HW rendering (default: software).
-':see 
-'vt_screen
-'c_screenmodes
+    ':see 
+    'vt_screen
+    'c_screenmodes
 '<<<
 
 ' custom screenmodes
@@ -72,9 +72,7 @@ End Union
 ':topic c_screenmodes
 ':short Screen mode constants for vt_screen
 ':group Constants
-'Passed as the mode argument to vt_screen.
-'VT_SCREEN_TILES uses 8x8 font data scaled to
-'16x16 glyphs -- useful for square-cell tiles.
+'Passed as the mode argument to vt_screen. VT_SCREEN_TILES uses 8x8 font data scaled to 16x16 glyphs - useful for square-cell tiles.
 ':params
 Const VT_SCREEN_0       = 0   ' 80x25  8x16  640x400 - VGA text (default)
 Const VT_SCREEN_2       = 2   ' 80x25  8x8   640x200 - CGA hi-res text grid
@@ -98,10 +96,10 @@ Const VT_SCREEN_120_50  = 301 ' 120x50 8x8   960x400 - hi-res ultrawide packed
 '  fontwid and fonthei select the destination glyph cell size in pixels.
 ' 
 '  Scaled font support: 
-'  fontwid must be a multiple of 8. 
-'  The library derives scale = fontwid \ 8 and base_gh = fonthei \ scale. 
-'  base_gh must equal 8, 14, or 16 (a built-in source font).
-'  Invalid combinations silently fall back to the 8×16 source at scale 1.
+'    fontwid must be a multiple of 8. 
+'    The library derives scale = fontwid \ 8 and base_gh = fonthei \ scale. 
+'    base_gh must equal 8, 14, or 16 (a built-in source font).
+'    Invalid combinations silently fall back to the 8×16 source at scale 1.
 '   
 ':see
 'vt_screen
@@ -128,14 +126,12 @@ Static Shared vt_default_palette(47) As UByte = { _
 }
 
 '>>>
-':topic c_colors
-':short Color index constants (0-15 + VT_BLINK)
-':group Constants
-'Used with vt_color, vt_cls, vt_set_cell etc.
-'These are VT_COLOR_IDX enum values 0-15.
-'OR any foreground color with VT_BLINK (16)
-'to enable character blinking.
-'
+    ':topic c_colors
+    ':short Color index constants (0-15 + VT_BLINK)
+    ':group Constants
+    'Used with vt_color, vt_cls, vt_set_cell etc. These are VT_COLOR_IDX enum values 0-15. 
+    'OR any foreground color with VT_BLINK (16) to enable character blinking.
+    '
 ':params
 Enum
     VT_BLACK          ' 0
@@ -158,35 +154,30 @@ Enum
 End Enum
 '
 ':example
-''Blinking red warning text :
-' vt_screen()
-' vt_color(VT_RED Or VT_BLINK)
-' vt_print("Warning, are you sure?")
-' vt_sleep()
-' vt_shutdown()
-':see
-'vt_color
-'vt_cls
-'vt_set_cell
+    ''Blinking red warning text :
+    ' vt_screen()
+    ' vt_color(VT_RED Or VT_BLINK)
+    ' vt_print("Warning, are you sure?")
+    ' vt_sleep()
+    ' vt_shutdown()
+    ':see
+    'vt_color
+    'vt_cls
+    'vt_set_cell
 '<<<
 
 '>>>
 ':topic c_keymacros
 ':short Key-event extraction macros
 ':group Constants
-'vt_inkey and vt_getkey return a packed ULong.
-'Use these macros to extract fields from it.
+'vt_inkey and vt_getkey return a packed ULong. Use these macros to extract fields from it.
 
 ':params
 #Define VT_CHAR(k)    ((k) And &hFF)
-'  ASCII code of the resulting character
-'  (Ctrl+letter gives 1-26). 0 for special
-'  keys -- use VT_SCAN for those.
+'  ASCII code of the resulting character (Ctrl+letter gives 1-26). 0 for special keys - use VT_SCAN for those.
 '
 #Define VT_SCAN(k)    (((k) Shr 16) And &hFFF)
-'  VT scancode (bits 16-27). Only meaningful
-'  for VT_KEY_* constants. Returns 0 for
-'  regular letter/digit/symbol keys.
+'  VT scancode (bits 16-27). Only meaningful for VT_KEY_* constants. Returns 0 for regular letter/digit/symbol keys.
 '  Always compare via this macro.
 '
 #Define VT_REPEAT(k)  (((k) Shr 28) And 1)
@@ -203,27 +194,25 @@ End Enum
 '
 
 ':example
-'Dim k As ULong = vt_getkey()
-'Select Case VT_SCAN(k)
-'    Case VT_KEY_UP    : ' move up
-'    Case VT_KEY_DOWN  : ' move down
-'    Case VT_KEY_ENTER : ' confirm
-'    Case Else
-'        If VT_CHAR(k) = Asc("q") Then End
-'End Select
-':see
-'vt_inkey
-'vt_getkey
-'c_keyscans
+    'Dim k As ULong = vt_getkey()
+    'Select Case VT_SCAN(k)
+    '    Case VT_KEY_UP    : ' move up
+    '    Case VT_KEY_DOWN  : ' move down
+    '    Case VT_KEY_ENTER : ' confirm
+    '    Case Else
+    '        If VT_CHAR(k) = Asc("q") Then End
+    'End Select
+    ':see
+    'vt_inkey
+    'vt_getkey
+    'c_keyscans
 '<<<
 
 '>>>
 ':topic c_keyscans
 ':short VT_KEY_* scancode constants
 ':group Constants
-'Compare these against VT_SCAN(k). Never
-'compare them directly against the raw ULong
-'value returned by vt_inkey.
+'Compare these against VT_SCAN(k). Never compare them directly against the raw ULong value returned by vt_inkey.
 ':params
 'F-keys:
 Const VT_KEY_F1     = 59
@@ -277,8 +266,7 @@ Const VT_KEY_RWIN   = 220
     ':topic c_mousebtns
     ':short Mouse button bitmask constants
     ':group Constants
-    'Bitmask values returned in the btns parameter
-    'of vt_getmouse.
+    'Bitmask values returned in the btns parameter of vt_getmouse.
 ':params
 Const VT_MOUSE_BTN_LEFT   = 1   ' bit 0
 Const VT_MOUSE_BTN_RIGHT  = 2   ' bit 1
@@ -349,10 +337,12 @@ Type vt_internal_state
 
     ' --- scroll ---
     scroll_on   As Byte
+
+    ' --- region ---
     view_top    As Long
     view_bot    As Long
-    view_left   As Long    ' 1-based, -1 = full width (default)
-    view_right  As Long    ' 1-based, -1 = full width (default)
+    view_left   As Long
+    view_right  As Long
 
     ' --- scrollback buffer ---
     sb_cells    As vt_cell Ptr
@@ -384,8 +374,7 @@ Type vt_internal_state
 
     ' --- pages ---
     ' page_buf holds all allocated cell buffers. Only 0..num_pages-1 are valid.
-    ' cells = page_buf(work_page) at all times.
-    ' vt_present reads page_buf(vis_page).
+    ' cells = page_buf(work_page) at all times. vt_present reads page_buf(vis_page).
     page_buf(_VT_PAGE_SLOTS - 1) As vt_cell Ptr
     num_pages   As Long   ' how many pages were allocated at vt_screen() time
     work_page   As Long   ' active drawing page index
@@ -504,10 +493,8 @@ Dim Shared vt_internal As vt_internal_state
     ':topic hk_scrollback
     ':short Internal scrollback navigation key bindings
     ':group Hotkeys
-    'VT intercepts these combinations before they
-    'reach your program. Scrollback must be enabled
-    'with vt_scrollback for these to have any effect.
-    'Any key not listed below exits scrollback and
+    'VT intercepts these combinations before they reach your program. Scrollback must be enabled
+    'with vt_scrollback/vt_scroll_enable for these to have any effect. Any key not listed below exits scrollback and
     'returns to the live view.
     '
     '  Shift+PgUp       Scroll back 1 line
@@ -517,14 +504,14 @@ Dim Shared vt_internal As vt_internal_state
     ':see
     'vt_scrollback
     'vt_scroll
+    'vt_scroll_enable
     '<<<
 
     '>>>
     ':topic hk_copypaste
     ':short Internal copy/paste key and mouse bindings
     ':group Hotkeys
-    'Available only when vt_copypaste has been called
-    'to enable it.
+    'Available only when vt_copypaste has been called to enable it.
     '
     '  LMB drag        Select a region. Activates
     '                  only once the mouse moves.
@@ -545,13 +532,9 @@ Dim Shared vt_internal As vt_internal_state
     ':topic hk_alt
     ':short Alt+letter intercept for the TUI menubar
     ':group Hotkeys
-    'VT intercepts Alt+letter combinations before
-    'they reach your program and delivers them to
-    'the TUI menubar. The key event arrives with
-    'VT_ALT(k) = 1 and VT_CHAR(k) set to the
-    'letter that was pressed. Used by
-    'vt_tui_menubar_draw to open a menu group by
-    'its first letter.
+    'VT intercepts Alt+letter combinations before they reach your program and delivers them to the TUI menubar. 
+    'The key event arrives with VT_ALT(k) = 1 and VT_CHAR(k) set to the letter that was pressed. Used by
+    'vt_tui_menubar_draw to open a menu group by its first letter.
     ':see
     'vt_tui_menubar_draw
     'c_keymacros
