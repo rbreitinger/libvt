@@ -1,6 +1,6 @@
 ============================================================
  libvt Public API Dump
- Generated : 05-16-2026  12:13:05
+ Generated : 05-16-2026  22:39:31
  Source    : vt
 ============================================================
 
@@ -1237,12 +1237,12 @@
         'txt  The string to print. May contain Chr(10)
         '     for newlines.
         ':notes
-        'When #Define VT_USE_ANSI is set before the
-        'include, vt_print parses ANSI/VT100 escape
-        'sequences. Supported: SGR (ESC[...m colours),
-        'CUP (ESC[row;colH cursor), ED (ESC[2J clear).
-        'Use Chr(27) or !"\x1b" for the escape byte --
-        'do NOT use !"\e" as FreeBASIC drops \e silently.
+        'When #Define VT_USE_ANSI is set, vt_print parses ANSI/VT100 escape sequences. Supported:
+        '  SGR (ESC[...m colours),
+        '  CUP (ESC[row;colH cursor),
+        '  ED (ESC[2J clear).
+        '
+        'Use Chr(27) or !"\x1b" for the escape byte - do NOT use !"\e" as FreeBASIC drops \e silently.
         ':example
         'vt_locate(5, 1)
         'vt_color(VT_CYAN, VT_BLACK)
@@ -1944,7 +1944,7 @@
     #Define VT_SHIFT(k)   (((k) Shr 29) And 1)
     #Define VT_CTRL(k)    (((k) Shr 30) And 1)
     #Define VT_ALT(k)     (((k) Shr 31) And 1)
-    #define VT_USE_NET
+    #Define VT_USE_NET
 
   -- Macros (0) --
     (none)

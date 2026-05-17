@@ -2707,27 +2707,22 @@ vt_print(&quot;Center-ish&quot;)</pre>
 <div class="tdiv" id="vt_print">
 <h2>vt_print</h2>
 <div class="t-short">Print a string at the current cursor position</div>
-<pre class="body-pre">Print a string at the current cursor position
-using the active colour. The cursor advances
-after each character; the display is not
-automatically flipped. No implicit newline --
-use VT_LF or Chr(10) within the string
-for line breaks. CRLF pairs are collapsed to
-a single line feed. Characters beyond the
-right edge of the print region are wrapped
-to the start again in the same row.</pre>
+<pre class="body-pre">Print a string at the current cursor position using the active colour. The cursor advances after each character;
+the display is not automatically flipped. No implicit newline, use VT_LF or Chr(10) within the string for line
+breaks. CRLF pairs are collapsed to a single line feed. Characters beyond the right edge of the print region are
+wrapped to the start again in the same row.</pre>
 <div class="sec-hdr">Syntax</div>
 <pre class="code-pre">Sub vt_print(txt As String)</pre>
 <div class="sec-hdr">Parameters</div>
 <pre class="param-pre">txt  The string to print. May contain Chr(10)
      for newlines.</pre>
 <div class="sec-hdr">Notes</div>
-<pre class="body-pre">When #Define VT_USE_ANSI is set before the
-include, vt_print parses ANSI/VT100 escape
-sequences. Supported: SGR (ESC[...m colours),
-CUP (ESC[row;colH cursor), ED (ESC[2J clear).
-Use Chr(27) or !&quot;\x1b&quot; for the escape byte --
-do NOT use !&quot;\e&quot; as FreeBASIC drops \e silently.</pre>
+<pre class="body-pre">When #Define VT_USE_ANSI is set, vt_print parses ANSI/VT100 escape sequences. Supported:
+  SGR (ESC[...m colours),
+  CUP (ESC[row;colH cursor),
+  ED (ESC[2J clear).
+
+Use Chr(27) or !&quot;\x1b&quot; for the escape byte - do NOT use !&quot;\e&quot; as FreeBASIC drops \e silently.</pre>
 <div class="sec-hdr">Example</div>
 <pre class="code-pre">vt_locate(5, 1)
 vt_color(VT_CYAN, VT_BLACK)

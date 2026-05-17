@@ -110,6 +110,9 @@ Function vt_input(max_len   As Long = -1, _
             If clip_ptr <> 0 Then
                 clip_str = *clip_ptr
                 _VT_DRV_free(clip_ptr)
+
+                ' TODO: simplify?
+
                 ' SDL clipboard text is UTF-8; decode multi-byte sequences to CP437.
                 ' CR / LF and unmappable codepoints are silently dropped.
                 Dim pst_len As Long  = Len(clip_str)
@@ -126,7 +129,7 @@ Function vt_input(max_len   As Long = -1, _
                         If (pst_b0 And &hE0) = &hC0 AndAlso pi + 1 < pst_len Then
                             pst_b1 = clip_str[pi + 1]
                             pst_cp = ((CLng(pst_b0) And &h1F) Shl 6) Or (CLng(pst_b1) And &h3F)
-                            pch = vt_internal_unicode_to_cp437(pst_cp)
+                            pch = vt_internal_unicode_to_cp437_2t(pst_cp)
                             pi += 2
                         ElseIf (pst_b0 And &hF0) = &hE0 AndAlso pi + 2 < pst_len Then
                             pst_b1 = clip_str[pi + 1]
@@ -134,7 +137,7 @@ Function vt_input(max_len   As Long = -1, _
                             pst_cp = ((CLng(pst_b0) And &h0F) Shl 12) _
                                   Or ((CLng(pst_b1) And &h3F) Shl 6) _
                                   Or  (CLng(pst_b2) And &h3F)
-                            pch = vt_internal_unicode_to_cp437(pst_cp)
+                            pch = vt_internal_unicode_to_cp437_3t(pst_cp)
                             pi += 3
                         Else
                             pi += 1 : Continue Do   ' stray byte: skip

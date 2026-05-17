@@ -126,13 +126,13 @@ Private Sub vt_internal_putch(ch As UByte)
 End Sub
 
 '>>>
-':topic vt_scroll_enable
-':short Enable or disable auto-scrolling
-':group Printing
-'Enable or disable automatic scrolling of the
-'scroll region. When disabled, text printed past
-'the bottom of the scroll region stays on the
-'last row. Scrolling is ENABLED by default.
+    ':topic vt_scroll_enable
+    ':short Enable or disable auto-scrolling
+    ':group Printing
+    'Enable or disable automatic scrolling of the
+    'scroll region. When disabled, text printed past
+    'the bottom of the scroll region stays on the
+    'last row. Scrolling is ENABLED by default.
 ':syntax
 Sub vt_scroll_enable(state As Byte)
         ':params
@@ -146,17 +146,17 @@ Sub vt_scroll_enable(state As Byte)
 End Sub
 
 '>>>
-':topic vt_cls
-':short Clear the screen to the current background
-':group Printing
-'Clear the active screen region to spaces using
-'the current foreground and background colours.
-'Resets the cursor to row 1, column 1 of the
-'scroll region. Does not call vt_present.
-'Respects the viewport set by vt_view_print,
-'including column bounds. When column bounds are
-'active only the cells within view_left..
-'view_right are cleared per row.
+    ':topic vt_cls
+    ':short Clear the screen to the current background
+    ':group Printing
+    'Clear the active screen region to spaces using
+    'the current foreground and background colours.
+    'Resets the cursor to row 1, column 1 of the
+    'scroll region. Does not call vt_present.
+    'Respects the viewport set by vt_view_print,
+    'including column bounds. When column bounds are
+    'active only the cells within view_left..
+    'view_right are cleared per row.
 ':syntax
 Sub vt_cls(bg As Long = -1)
         ':params
@@ -219,15 +219,15 @@ End Sub
 
 
 '>>>
-':topic vt_width
-':short Resize the virtual character grid at runtime without closing the window.
-':group Initialization
-'Reallocates all page buffers at the new dimensions, destroys and recreates 
-'the render buffer, resets the cursor to (1, 1), restores the scroll 
-'region to the full screen, and invalidates the scrollback buffer 
-'(call vt_scrollback again afterwards if needed). 
-'Finishes with vt_cls and vt_present so the cleared screen 
-'is visible immediately.
+    ':topic vt_width
+    ':short Resize the virtual character grid at runtime without closing the window.
+    ':group Initialization
+    'Reallocates all page buffers at the new dimensions, destroys and recreates 
+    'the render buffer, resets the cursor to (1, 1), restores the scroll 
+    'region to the full screen, and invalidates the scrollback buffer 
+    '(call vt_scrollback again afterwards if needed). 
+    'Finishes with vt_cls and vt_present so the cleared screen 
+    'is visible immediately.
 ':syntax
 Function vt_width(new_cols As Long, new_rows As Long) As Long
         ':params
@@ -325,13 +325,13 @@ Function vt_width(new_cols As Long, new_rows As Long) As Long
 End Function
 
 '>>>
-':topic vt_get_cell
-':short Read one character cell from the work page
-':group Cells
-'Read the character, foreground colour, and
-'background colour of a single cell on the
-'active work page. Coordinates are 1-based.
-'Out-of-range coordinates are ignored.
+    ':topic vt_get_cell
+    ':short Read one character cell from the work page
+    ':group Cells
+    'Read the character, foreground colour, and
+    'background colour of a single cell on the
+    'active work page. Coordinates are 1-based.
+    'Out-of-range coordinates are ignored.
 ':syntax
 Sub vt_get_cell(col As Long, row As Long, _
                 ByRef ch As UByte, _
@@ -360,13 +360,13 @@ Sub vt_get_cell(col As Long, row As Long, _
 End Sub
 
 '>>>
-':topic vt_set_cell
-':short Write one character cell directly
-':group Cells
-'Write a character cell directly on the active
-'work page without moving the cursor. Does not
-'call vt_present. Out-of-range coordinates are
-'silently ignored.
+    ':topic vt_set_cell
+    ':short Write one character cell directly
+    ':group Cells
+    'Write a character cell directly on the active
+    'work page without moving the cursor. Does not
+    'call vt_present. Out-of-range coordinates are
+    'silently ignored.
 ':syntax
 Sub vt_set_cell(col As Long, row As Long, _
                 ch As UByte, _
@@ -397,13 +397,13 @@ Sub vt_set_cell(col As Long, row As Long, _
 End Sub
 
 '>>>
-':topic vt_color
-':short Set the active foreground and background colour
-':group Printing
-'Set the active foreground and/or background
-'colour used by vt_print, vt_cls, and vt_input.
-'Pass -1 for either parameter to keep the current
-'value unchanged.
+    ':topic vt_color
+    ':short Set the active foreground and background colour
+    ':group Printing
+    'Set the active foreground and/or background
+    'colour used by vt_print, vt_cls, and vt_input.
+    'Pass -1 for either parameter to keep the current
+    'value unchanged.
 ':syntax
 Sub vt_color(fg As Long = -1, bg As Long = -1)
         ':params
@@ -430,14 +430,14 @@ Sub vt_color(fg As Long = -1, bg As Long = -1)
 End Sub
 
 '>>>
-':topic vt_locate
-':short Move the cursor and optionally change its style
-':group Printing
-'Move the text cursor and optionally change its
-'visibility and glyph. Coordinates are 1-based.
-'Parameters with value -1 are left unchanged.
-'vt_locate is always absolute -- column bounds
-'from vt_view_print do not affect it.
+    ':topic vt_locate
+    ':short Move the cursor and optionally change its style
+    ':group Printing
+    'Move the text cursor and optionally change its
+    'visibility and glyph. Coordinates are 1-based.
+    'Parameters with value -1 are left unchanged.
+    'vt_locate is always absolute -- column bounds
+    'from vt_view_print do not affect it.
 ':syntax
 Sub vt_locate(row As Long = -1, col As Long = -1, _
               vis As Long = -1, _
@@ -470,10 +470,10 @@ End Sub
 ' Query functions
 ' -----------------------------------------------------------------------------
 '>>>
-':topic vt_csrlin
-':short Return the current cursor row
-':group Query
-'Returns the current cursor row (1-based).
+    ':topic vt_csrlin
+    ':short Return the current cursor row
+    ':group Query
+    'Returns the current cursor row (1-based).
 ':syntax
 Function vt_csrlin() As Long
         ':see
@@ -485,10 +485,10 @@ Function vt_csrlin() As Long
 End Function
 
 '>>>
-':topic vt_pos
-':short Return the current cursor column
-':group Query
-'Returns the current cursor column (1-based).
+    ':topic vt_pos
+    ':short Return the current cursor column
+    ':group Query
+    'Returns the current cursor column (1-based).
 ':syntax
 Function vt_pos() As Long
         ':see
@@ -500,11 +500,11 @@ Function vt_pos() As Long
 End Function
 
 '>>>
-':topic vt_cols
-':short Return the number of columns on screen
-':group Query
-'Returns the total number of columns in the
-'current screen mode.
+    ':topic vt_cols
+    ':short Return the number of columns on screen
+    ':group Query
+    'Returns the total number of columns in the
+    'current screen mode.
 ':syntax
 Function vt_cols() As Long
         ':see
@@ -516,11 +516,11 @@ Function vt_cols() As Long
 End Function
 
 '>>>
-':topic vt_rows
-':short Return the number of rows on screen
-':group Query
-'Returns the total number of rows in the current
-'screen mode.
+    ':topic vt_rows
+    ':short Return the number of rows on screen
+    ':group Query
+    'Returns the total number of rows in the current
+    'screen mode.
 ':syntax
 Function vt_rows() As Long
         ':see
@@ -531,16 +531,16 @@ Function vt_rows() As Long
 End Function
 
 '>>>
-':topic vt_view_print
-':short Restrict the scroll and print region
-':group Scroll
-'Restrict the scroll region and print region to
-'a range of rows and/or columns (like QBasic
-'VIEW PRINT, extended with column bounds). Rows
-'and columns outside the active viewport are
-'unaffected by vt_cls, vt_print, and scrolling.
-'Call with no arguments (or all -1) to reset the
-'full viewport including column bounds.
+    ':topic vt_view_print
+    ':short Restrict the scroll and print region
+    ':group Scroll
+    'Restrict the scroll region and print region to
+    'a range of rows and/or columns (like QBasic
+    'VIEW PRINT, extended with column bounds). Rows
+    'and columns outside the active viewport are
+    'unaffected by vt_cls, vt_print, and scrolling.
+    'Call with no arguments (or all -1) to reset the
+    'full viewport including column bounds.
 ':syntax
 Sub vt_view_print(top_row As Long = -1, _
                   bot_row As Long = -1, _
@@ -588,151 +588,26 @@ Sub vt_view_print(top_row As Long = -1, _
     If rgt_col >= 1 AndAlso rgt_col <= vt_internal.scr_cols Then vt_internal.view_right = rgt_col
 End Sub
 
-
-' =============================================================================
-' vt_utf8_to_cp437
-' Decode a UTF-8 string to CP437 bytes suitable for vt_print / vt_set_cell.
-' Pure ASCII strings are returned unchanged (fast path, no allocation).
-' Multi-byte sequences with no CP437 equivalent are silently dropped.
-' Supports 2-byte and 3-byte UTF-8; 4-byte (beyond BMP) always dropped.
-' =============================================================================
-
 '>>>
-':topic vt_utf8_to_cp437
-':short Decode a UTF-8 encoded string to CP437 bytes.
-':group Utilities
-'SDL2 delivers all keyboard and clipboard text as UTF-8; 
-'the VT cell buffer stores one raw CP437 byte per cell. 
-'This function bridges the two.
-'
-'Pure ASCII input (no byte ≥ 0x80) is returned unchanged 
-'with no allocation. 2-byte and 3-byte UTF-8 sequences 
-'are fully supported; continuation bytes are validated 
-'before decoding. 4-byte sequences (Unicode beyond the 
-'Basic Multilingual Plane) are always dropped as CP437 
-'has no glyphs for them. Codepoints with no CP437 
-'equivalent are silently dropped.
-'
-'Bytes that do not form a valid UTF-8 sequence — including 
-'raw CP437 high bytes such as box-drawing characters from 
-'vt_input are passed through unchanged. This makes the 
-'function safe to call on already-decoded CP437 strings 
-'as well as on raw UTF-8 input.
-'vt_print calls this automatically. Call it explicitly only 
-'when you have genuinely UTF-8 encoded text outside of 
-'vt_print, for example when writing bytes directly 
-'via vt_set_cell, receiving network text, or processing 
-'a custom input loop.
-'
-'Do not call it on vt_input return values. vt_input 
-'already returns CP437 bytes (the SDL TEXTINPUT handler 
-'decodes them). Calling vt_utf8_to_cp437 on the result 
-'is redundant - it is idempotent on CP437 strings, 
-'but the call is unnecessary clutter.
-'
-':syntax
-Function vt_utf8_to_cp437(src As String) As String
-        ':params
-        'src   Input string. May be UTF-8 
-        '      (source literals, clipboard, network) or 
-        '      already-decoded CP437 — both are handled correctly.
-        '
-        'Return value
-        'A new string containing the CP437-decoded bytes. 
-        'Unmappable codepoints are omitted; the result may therefore 
-        'be shorter than the input. Raw CP437 high bytes 
-        '(invalid UTF-8) are preserved unchanged.
-        '
-        ':example
-        '' Explicit call needed only for raw UTF-8 from outside vt_print:
-        'Dim line As String = receive_from_server()   ' arrives as UTF-8
-        'line = vt_utf8_to_cp437(line)
-        'vt_print line
-    '<<<
-
-    Dim slen  As Long = Len(src)
-    Dim enc_i As Long
-
-    For enc_i = 0 To slen - 1
-        If src[enc_i] >= &h80 Then GoTo do_decode
-    Next enc_i
-    Return src
-
-    do_decode:
-    Dim dst   As String = Space(slen)
-    Dim si    As Long   = 0
-    Dim di    As Long   = 0
-    Dim b0    As UByte
-    Dim b1    As UByte
-    Dim b2    As UByte
-    Dim cp    As Long
-    Dim outch As UByte
-
-    Do While si < slen
-        b0 = src[si]
-        If b0 < &h80 Then
-            ' plain ASCII -- pass through
-            dst[di] = b0 : di += 1 : si += 1
-        ElseIf (b0 And &hE0) = &hC0 AndAlso si + 1 < slen _
-               AndAlso (src[si + 1] And &hC0) = &h80 Then
-            ' valid 2-byte UTF-8 sequence
-            b1    = src[si + 1]
-            cp    = ((CLng(b0) And &h1F) Shl 6) Or (CLng(b1) And &h3F)
-            outch = vt_internal_unicode_to_cp437(cp)
-            If outch > 0 Then dst[di] = outch : di += 1
-            si += 2
-        ElseIf (b0 And &hF0) = &hE0 AndAlso si + 2 < slen _
-               AndAlso (src[si + 1] And &hC0) = &h80 _
-               AndAlso (src[si + 2] And &hC0) = &h80 Then
-            ' valid 3-byte UTF-8 sequence
-            b1    = src[si + 1]
-            b2    = src[si + 2]
-            cp    = ((CLng(b0) And &h0F) Shl 12) _
-                 Or ((CLng(b1) And &h3F) Shl  6) _
-                 Or  (CLng(b2) And &h3F)
-            outch = vt_internal_unicode_to_cp437(cp)
-            If outch > 0 Then dst[di] = outch : di += 1
-            si += 3
-        ElseIf (b0 And &hF8) = &hF0 AndAlso si + 3 < slen _
-               AndAlso (src[si + 1] And &hC0) = &h80 _
-               AndAlso (src[si + 2] And &hC0) = &h80 _
-               AndAlso (src[si + 3] And &hC0) = &h80 Then
-            ' valid 4-byte UTF-8 -- beyond BMP, no CP437 equivalent, drop
-            si += 4
-        Else
-            ' not valid UTF-8 -- treat as raw CP437 byte and pass through
-            dst[di] = b0 : di += 1 : si += 1
-        End If
-    Loop
-
-    Return Left(dst, di)
-End Function
-
-'>>>
-':topic vt_print
-':short Print a string at the current cursor position
-':group Printing
-'Print a string at the current cursor position
-'using the active colour. The cursor advances
-'after each character; the display is not
-'automatically flipped. No implicit newline --
-'use VT_LF or Chr(10) within the string
-'for line breaks. CRLF pairs are collapsed to
-'a single line feed. Characters beyond the
-'right edge of the print region are wrapped
-'to the start again in the same row.
+    ':topic vt_print
+    ':short Print a string at the current cursor position
+    ':group Printing
+    'Print a string at the current cursor position using the active colour. The cursor advances after each character; 
+    'the display is not automatically flipped. No implicit newline, use VT_LF or Chr(10) within the string for line 
+    'breaks. CRLF pairs are collapsed to a single line feed. Characters beyond the right edge of the print region are 
+    'wrapped to the start again in the same row.
 ':syntax
 Sub vt_print(txt As String)
         ':params
         'txt  The string to print. May contain Chr(10)
         '     for newlines.
         ':notes
-        'When #Define VT_USE_ANSI is set before the
-        'include, vt_print parses ANSI/VT100 escape
-        'sequences. Supported: SGR (ESC[...m colours),
-        'CUP (ESC[row;colH cursor), ED (ESC[2J clear).
-        'Use Chr(27) or !"\x1b" for the escape byte --
-        'do NOT use !"\e" as FreeBASIC drops \e silently.
+        'When #Define VT_USE_ANSI is set, vt_print parses ANSI/VT100 escape sequences. Supported: 
+        '  SGR (ESC[...m colours),
+        '  CUP (ESC[row;colH cursor), 
+        '  ED (ESC[2J clear).
+        '
+        'Use Chr(27) or !"\x1b" for the escape byte - do NOT use !"\e" as FreeBASIC drops \e silently.
         ':example
         'vt_locate(5, 1)
         'vt_color(VT_CYAN, VT_BLACK)
@@ -936,12 +811,12 @@ Sub vt_print(txt As String)
 End Sub
 
 '>>>
-':topic vt_print_center
-':short Print a string horizontally centred on a row
-':group Printing
-'Print a string horizontally centred on the
-'given screen row. Uses the current colour and
-'does not call vt_present.
+    ':topic vt_print_center
+    ':short Print a string horizontally centred on a row
+    ':group Printing
+    'Print a string horizontally centred on the
+    'given screen row. Uses the current colour and
+    'does not call vt_present.
 ':syntax
 Sub vt_print_center(row As Long, txt As String)
         ':params

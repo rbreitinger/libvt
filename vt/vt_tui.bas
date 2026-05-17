@@ -3229,6 +3229,8 @@ Function vt_tui_form_handle(items() As vt_tui_form_item, ByRef focused As Long, 
     ' paste  (Shift+INS or MMB sets cp_paste_pend in vt_pump)
     ' Must come before the k=0 early-out so MMB paste is not swallowed.
     ' =========================================================================
+
+    'FIX: copypaste duplicated logic
     If vt_internal.cp_paste_pend AndAlso items(cur_item).kind = VT_FORM_INPUT Then
         vt_internal.cp_paste_pend = 0
         Dim clip_ptr As ZString Ptr = _VT_DRV_GetClipboardText()

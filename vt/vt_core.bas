@@ -115,185 +115,6 @@ Private Sub vt_internal_pixel_to_cell(px As Long, py As Long, col_out As Long Pt
     *row_out = CLng((py - vp_y) / sy) \ vt_internal.glyph_h + 1
 End Sub
 
-
-' =============================================================================
-' vt_internal_unicode_to_cp437
-' Map a Unicode codepoint to its CP437 byte equivalent.
-' Returns 0 if there is no CP437 mapping (caller should discard the byte).
-' Covers CP437 1..31 (graphical low chars), 127, and 128..255.
-' =============================================================================
-Private Function vt_internal_unicode_to_cp437(codepoint As Long) As UByte
-    Select Case codepoint
-        ' --- CP437 1..31 : graphical low chars ---
-        Case &h263A : Return 1    ' ☺
-        Case &h263B : Return 2    ' ☻
-        Case &h2665 : Return 3    ' ♥
-        Case &h2666 : Return 4    ' ♦
-        Case &h2663 : Return 5    ' ♣
-        Case &h2660 : Return 6    ' ♠
-        Case &h2022 : Return 7    ' •
-        Case &h25D8 : Return 8    ' ◘
-        Case &h25CB : Return 9    ' ○
-        Case &h25D9 : Return 10   ' ◙
-        Case &h2642 : Return 11   ' ♂
-        Case &h2640 : Return 12   ' ♀
-        Case &h266A : Return 13   ' ♪
-        Case &h266B : Return 14   ' ♫
-        Case &h263C : Return 15   ' ☼
-        Case &h25BA : Return 16   ' ►
-        Case &h25C4 : Return 17   ' ◄
-        Case &h2195 : Return 18   ' ↕
-        Case &h203C : Return 19   ' ‼
-        Case &h00B6 : Return 20   ' ¶
-        Case &h00A7 : Return 21   ' §
-        Case &h25AC : Return 22   ' ▬
-        Case &h21A8 : Return 23   ' ↨
-        Case &h2191 : Return 24   ' ↑
-        Case &h2193 : Return 25   ' ↓
-        Case &h2192 : Return 26   ' →
-        Case &h2190 : Return 27   ' ←
-        Case &h221F : Return 28   ' ∟
-        Case &h2194 : Return 29   ' ↔
-        Case &h25B2 : Return 30   ' ▲
-        Case &h25BC : Return 31   ' ▼
-        ' --- CP437 127 ---
-        Case &h2302 : Return 127  ' ⌂
-        ' --- CP437 128..159 ---
-        Case &h00C7 : Return 128  ' Ç
-        Case &h00FC : Return 129  ' ü
-        Case &h00E9 : Return 130  ' é
-        Case &h00E2 : Return 131  ' â
-        Case &h00E4 : Return 132  ' ä
-        Case &h00E0 : Return 133  ' à
-        Case &h00E5 : Return 134  ' å
-        Case &h00E7 : Return 135  ' ç
-        Case &h00EA : Return 136  ' ê
-        Case &h00EB : Return 137  ' ë
-        Case &h00E8 : Return 138  ' è
-        Case &h00EF : Return 139  ' ï
-        Case &h00EE : Return 140  ' î
-        Case &h00EC : Return 141  ' ì
-        Case &h00C4 : Return 142  ' Ä
-        Case &h00C5 : Return 143  ' Å
-        Case &h00C9 : Return 144  ' É
-        Case &h00E6 : Return 145  ' æ
-        Case &h00C6 : Return 146  ' Æ
-        Case &h00F4 : Return 147  ' ô
-        Case &h00F6 : Return 148  ' ö
-        Case &h00F2 : Return 149  ' ò
-        Case &h00FB : Return 150  ' û
-        Case &h00F9 : Return 151  ' ù
-        Case &h00FF : Return 152  ' ÿ
-        Case &h00D6 : Return 153  ' Ö
-        Case &h00DC : Return 154  ' Ü
-        Case &h00A2 : Return 155  ' ¢
-        Case &h00A3 : Return 156  ' £
-        Case &h00A5 : Return 157  ' ¥
-        Case &h20A7 : Return 158  ' ₧
-        Case &h0192 : Return 159  ' ƒ
-        ' --- CP437 160..175 ---
-        Case &h00E1 : Return 160  ' á
-        Case &h00ED : Return 161  ' í
-        Case &h00F3 : Return 162  ' ó
-        Case &h00FA : Return 163  ' ú
-        Case &h00F1 : Return 164  ' ñ
-        Case &h00D1 : Return 165  ' Ñ
-        Case &h00AA : Return 166  ' ª
-        Case &h00BA : Return 167  ' º
-        Case &h00BF : Return 168  ' ¿
-        Case &h2310 : Return 169  ' ⌐
-        Case &h00AC : Return 170  ' ¬
-        Case &h00BD : Return 171  ' ½
-        Case &h00BC : Return 172  ' ¼
-        Case &h00A1 : Return 173  ' ¡
-        Case &h00AB : Return 174  ' «
-        Case &h00BB : Return 175  ' »
-        ' --- CP437 176..223 : box drawing and blocks ---
-        Case &h2591 : Return 176  ' ░
-        Case &h2592 : Return 177  ' ▒
-        Case &h2593 : Return 178  ' ▓
-        Case &h2502 : Return 179  ' │
-        Case &h2524 : Return 180  ' ┤
-        Case &h2561 : Return 181  ' ╡
-        Case &h2562 : Return 182  ' ╢
-        Case &h2556 : Return 183  ' ╖
-        Case &h2555 : Return 184  ' ╕
-        Case &h2563 : Return 185  ' ╣
-        Case &h2551 : Return 186  ' ║
-        Case &h2557 : Return 187  ' ╗
-        Case &h255D : Return 188  ' ╝
-        Case &h255C : Return 189  ' ╜
-        Case &h255B : Return 190  ' ╛
-        Case &h2510 : Return 191  ' ┐
-        Case &h2514 : Return 192  ' └
-        Case &h2534 : Return 193  ' ┴
-        Case &h252C : Return 194  ' ┬
-        Case &h251C : Return 195  ' ├
-        Case &h2500 : Return 196  ' ─
-        Case &h253C : Return 197  ' ┼
-        Case &h255E : Return 198  ' ╞
-        Case &h255F : Return 199  ' ╟
-        Case &h255A : Return 200  ' ╚
-        Case &h2554 : Return 201  ' ╔
-        Case &h2569 : Return 202  ' ╩
-        Case &h2566 : Return 203  ' ╦
-        Case &h2560 : Return 204  ' ╠
-        Case &h2550 : Return 205  ' ═
-        Case &h256C : Return 206  ' ╬
-        Case &h2567 : Return 207  ' ╧
-        Case &h2568 : Return 208  ' ╨
-        Case &h2564 : Return 209  ' ╤
-        Case &h2565 : Return 210  ' ╥
-        Case &h2559 : Return 211  ' ╙
-        Case &h2558 : Return 212  ' ╘
-        Case &h2552 : Return 213  ' ╒
-        Case &h2553 : Return 214  ' ╓
-        Case &h256B : Return 215  ' ╫
-        Case &h256A : Return 216  ' ╪
-        Case &h2518 : Return 217  ' ┘
-        Case &h250C : Return 218  ' ┌
-        Case &h2588 : Return 219  ' █
-        Case &h2584 : Return 220  ' ▄
-        Case &h258C : Return 221  ' ▌
-        Case &h2590 : Return 222  ' ▐
-        Case &h2580 : Return 223  ' ▀
-        ' --- CP437 224..255 : Greek / math / misc ---
-        Case &h03B1 : Return 224  ' α
-        Case &h00DF : Return 225  ' ß
-        Case &h0393 : Return 226  ' Γ
-        Case &h03C0 : Return 227  ' π
-        Case &h03A3 : Return 228  ' Σ
-        Case &h03C3 : Return 229  ' σ
-        Case &h00B5 : Return 230  ' µ
-        Case &h03C4 : Return 231  ' τ
-        Case &h03A6 : Return 232  ' Φ
-        Case &h0398 : Return 233  ' Θ
-        Case &h03A9 : Return 234  ' Ω
-        Case &h03B4 : Return 235  ' δ
-        Case &h221E : Return 236  ' ∞
-        Case &h03C6 : Return 237  ' φ
-        Case &h03B5 : Return 238  ' ε
-        Case &h2229 : Return 239  ' ∩
-        Case &h2261 : Return 240  ' ≡
-        Case &h00B1 : Return 241  ' ±
-        Case &h2265 : Return 242  ' ≥
-        Case &h2264 : Return 243  ' ≤
-        Case &h2320 : Return 244  ' ⌠
-        Case &h2321 : Return 245  ' ⌡
-        Case &h00F7 : Return 246  ' ÷
-        Case &h2248 : Return 247  ' ≈
-        Case &h00B0 : Return 248  ' °
-        Case &h2219 : Return 249  ' ∙
-        Case &h00B7 : Return 250  ' ·
-        Case &h221A : Return 251  ' √
-        Case &h207F : Return 252  ' ⁿ
-        Case &h00B2 : Return 253  ' ²
-        Case &h25A0 : Return 254  ' ■
-        Case &h00A0 : Return 255  ' non-breaking space
-    End Select
-    Return 0   ' no CP437 equivalent
-End Function
-
 '>>>
 ':topic vt_pump
 ':short Manually drain the event queue
@@ -473,13 +294,13 @@ Sub vt_pump()
                 ElseIf (ti_b0 And &hE0) = &hC0 Then
                     ' 2-byte UTF-8
                     ti_cp = ((CLng(ti_b0) And &h1F) Shl 6) Or (CLng(ti_ptr[1]) And &h3F)
-                    ch = vt_internal_unicode_to_cp437(ti_cp)
+                    ch = vt_internal_unicode_to_cp437_2t(ti_cp)
                 ElseIf (ti_b0 And &hF0) = &hE0 Then
                     ' 3-byte UTF-8
                     ti_cp = ((CLng(ti_b0) And &h0F) Shl 12) _
                          Or ((CLng(ti_ptr[1]) And &h3F) Shl 6) _
                          Or  (CLng(ti_ptr[2]) And &h3F)
-                    ch = vt_internal_unicode_to_cp437(ti_cp)
+                    ch = vt_internal_unicode_to_cp437_3t(ti_cp)
                 End If
 
                 If ch >= 32 AndAlso ch <> 127 Then

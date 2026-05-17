@@ -86,6 +86,7 @@ Private Sub vt_internal_cp_build_text()
         End If
     Next row_idx
 
+    clip_Str = vt_cp437_to_utf8(clip_Str)
     _VT_DRV_SetClipboardText(clip_str)
 
     ' reset cp_view_* snapshot after copy

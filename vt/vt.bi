@@ -3,16 +3,18 @@
 ' Usage: #include once "vt/vt.bi"
 ' =============================================================================
 
-'#Define _FIX_ARTIFACT_ISSUE 'fixes artifact issue on HW render BUT needs revisit as
+#Define _FIX_ARTIFACT_ISSUE 
+    'fixes artifact issue on HW render BUT needs revisit as
     ' theres something fishy, rarely random crashes on window resize, not certain if lib
     ' related or vtirc related yet.
     ' see: vt_core.bas - vt_present() - line ~1565
+    ' ED: I could not reproduce the crash, probably its fine.
 
-
-#Ifndef BACKEND_VT    
+#Ifndef BACKEND_VT
     #Include Once "driver/sdl2.bi"
 #Else
     #Include Once "driver/fbgfx.bi"
+    #Include Once "driver/fbgfx.bas"
 #Endif
 
 '>>>
@@ -21,7 +23,7 @@
 ':group Constants
 'Miscellaneous library constants
 ':params
-Const   VT_VERSION   = "1.10.0"   ' major.minor.patch
+Const   VT_VERSION   = "1.11.0"   ' major.minor.patch
 #Define VT_VER_MAJOR = 1          ' preprocessor Versioning
 #Define VT_VER_MINOR = 10
 #Define VT_VER_PATCH = 0
@@ -272,24 +274,24 @@ Const VT_KEY_RWIN   = 220
 '<<<
 
 '>>>
-':topic c_mousebtns
-':short Mouse button bitmask constants
-':group Constants
-'Bitmask values returned in the btns parameter
-'of vt_getmouse.
+    ':topic c_mousebtns
+    ':short Mouse button bitmask constants
+    ':group Constants
+    'Bitmask values returned in the btns parameter
+    'of vt_getmouse.
 ':params
 Const VT_MOUSE_BTN_LEFT   = 1   ' bit 0
 Const VT_MOUSE_BTN_RIGHT  = 2   ' bit 1
 Const VT_MOUSE_BTN_MIDDLE = 4   ' bit 2
 ':example
-'Dim mb As Long
-'vt_getmouse( , , @mb)
-'If mb And VT_MOUSE_BTN_LEFT Then
-'    ' left button is held
-'End If
-':see
-'vt_getmouse
-'vt_mouse
+    'Dim mb As Long
+    'vt_getmouse( , , @mb)
+    'If mb And VT_MOUSE_BTN_LEFT Then
+    '    ' left button is held
+    'End If
+    ':see
+    'vt_getmouse
+    'vt_mouse
 '<<<
 
 ' Internal tuning constants
@@ -442,6 +444,7 @@ Dim Shared vt_internal As vt_internal_state
 #Include Once "vt_font_8x8.bi"
 #Include Once "vt_font_8x14.bi"
 #Include Once "vt_font_8x16.bi"
+#Include Once "vt_utf8.bas"
 #Include Once "vt_core.bas"
 #Include Once "vt_palette.bas"
 #Include Once "vt_pages.bas"
@@ -453,8 +456,8 @@ Dim Shared vt_internal As vt_internal_state
 #Include Once "vt_copypaste.bas"
 #Include Once "vt_font.bas"
 
-#ifdef VT_USE_FILE
-    #include once "vt_file.bas"
+#Ifdef VT_USE_FILE
+    #Include Once "vt_file.bas"
 #Endif
 #Ifdef VT_USE_STRINGS
     #include Once "vt_strings.bas"
@@ -468,15 +471,15 @@ Dim Shared vt_internal As vt_internal_state
 #Ifdef VT_USE_TUI
     #Include Once "vt_tui.bas"
 #Endif
-#ifdef VT_USE_TLS
-    #define VT_USE_NET
-#endif
+#Ifdef VT_USE_TLS
+    #Define VT_USE_NET
+#Endif
 #Ifdef VT_USE_NET
     #Include Once "vt_net.bas"
 #Endif
-#ifdef VT_USE_TLS
-    #include once "vt_tls.bas"
-#endif
+#Ifdef VT_USE_TLS
+    #Include Once "vt_tls.bas"
+#Endif
 
 ' --- undefine internals ---
 #Undef vt_internal_shutdown

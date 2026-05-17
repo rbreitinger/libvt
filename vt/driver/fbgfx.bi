@@ -178,10 +178,10 @@ end enum
 _VT_DRV_PIXELFORMAT_RGBA8888 = _VT_DRV_DEFINE_PIXELFORMAT(_VT_DRV_PIXELTYPE_PACKED32, _VT_DRV_PACKEDORDER_RGBA, _VT_DRV_PACKEDLAYOUT_8888, 32, 4)
 _VT_DRV_PIXELFORMAT_RGB24    = _VT_DRV_DEFINE_PIXELFORMAT(_VT_DRV_PIXELTYPE_ARRAYU8,  _VT_DRV_ARRAYORDER_RGB, 0, 24, 3)
 Const   _VT_DRV_TEXTUREACCESS_TARGET = 2
-Const   _VT_DRV_BLENDMODE_BLEND = &h00000001
+Const   _VT_DRV_BLENDMODE_BLEND      = &h00000001
 
 ' --- audio ---
-Const   _VT_DRV_AUDIO_U8 = &h0008
+Const   _VT_DRV_AUDIO_U8             = &h0008
 
 ' --- types ---
 Type _VT_DRV_Texture       As _VT_DRV_Texture ptr
@@ -196,7 +196,6 @@ Type _VT_DRV_AudioDeviceID As _VT_DRV_AudioDeviceID ptr
 Type _VT_DRV_AudioSpec     As _VT_DRV_AudioSpec ptr
 
 ' --- function / sub declarations ---
-'Extern "C"
 Declare Function _VT_DRV_LoadBMP               ( pzFile as zstring ptr ) As _VT_DRV_Surface ptr
 Declare Function _VT_DRV_GetTicks              () As ULong
 Declare Sub      _VT_DRV_RenderGetScale        (renderer As _VT_DRV_Renderer Ptr, scaleX As Single Ptr, scaleY As Single Ptr)
@@ -252,4 +251,3 @@ Declare Sub      _VT_DRV_CloseAudioDevice      (dev As _VT_DRV_AudioDeviceID)
 Declare Function _VT_DRV_ClearQueuedAudio      (dev As _VT_DRV_AudioDeviceID) As Long
 Declare Function _VT_DRV_QueueAudio            (dev As _VT_DRV_AudioDeviceID, data As Any Ptr, sz As ULong) As Long
 Declare Function _VT_DRV_GetQueuedAudioSize    (dev As _VT_DRV_AudioDeviceID) As ULong
-'End Extern
