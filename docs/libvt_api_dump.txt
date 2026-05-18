@@ -1,6 +1,6 @@
 ============================================================
  libvt Public API Dump
- Generated : 05-17-2026  21:29:37
+ Generated : 05-18-2026  23:25:44
  Source    : vt
 ============================================================
 
@@ -76,8 +76,18 @@
         'vt_screen(VT_SCREEN_0)
         'vt_copypaste(VT_ENABLED)
         ':see
+        'vt_set_clipboard_text
         'vt_screen
         'vt_input
+        'hk_copypaste
+        '<<<
+
+    Sub vt_set_clipboard_text(txt As String, codepage As Long = CP437)
+        ':params
+        '    txt        the string to copy
+        '    codepage   codepage to translate from (default = CP437)
+        ':see
+        'vt_copypaste
         'hk_copypaste
         '<<<
 
@@ -1867,7 +1877,7 @@
     #define vt_internal_unicode_to_cp437_3t(_c) iif(_c >= &h2022 andalso _c <= &h266B,g_utfbyte3(_c),asc("?"))
 
 
-  Total: 171 public sub/function(s)
+  Total: 172 public sub/function(s)
 
 ==== PUBLIC CONSTANTS / DEFINES / MACROS / ENUMS (vt.bi) ==
 
@@ -1948,7 +1958,12 @@
   -- Macros (0) --
     (none)
 
-  -- Enums (1) --
+  -- Enums (2) --
+    Enum
+      CPNONE = 0
+      CP437  = 437
+      End Enum
+
     Enum
       VT_BLACK          ' 0
       VT_BLUE           ' 1

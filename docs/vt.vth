@@ -342,8 +342,22 @@ joined with CRLF.
 vt_screen(VT_SCREEN_0)
 vt_copypaste(VT_ENABLED)
 :see
+vt_set_clipboard_text
 vt_screen
 vt_input
+hk_copypaste
+
+:topic vt_set_clipboard_text
+:short copies the content of a string into the clipboard
+:group Copy/Paste
+Copies the content of a string into the clipboard. It converts from codepage to utf8
+:syntax
+Sub vt_set_clipboard_text(txt As String, codepage As Long = CP437)
+:params
+    txt        the string to copy
+    codepage   codepage to translate from (default = CP437)
+:see
+vt_copypaste
 hk_copypaste
 
 :topic vt_border_color

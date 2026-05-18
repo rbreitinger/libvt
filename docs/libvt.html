@@ -69,6 +69,7 @@ function show(id) {
 <a class="tlnk" href="javascript:void(0)" onclick="show('c_winflags')">c_winflags</a>
 <div class="grp-hdr">Copy/Paste</div>
 <a class="tlnk" href="javascript:void(0)" onclick="show('vt_copypaste')">vt_copypaste</a>
+<a class="tlnk" href="javascript:void(0)" onclick="show('vt_set_clipboard_text')">vt_set_clipboard_text</a>
 <div class="grp-hdr">Display</div>
 <a class="tlnk" href="javascript:void(0)" onclick="show('vt_border_color')">vt_border_color</a>
 <a class="tlnk" href="javascript:void(0)" onclick="show('vt_present')">vt_present</a>
@@ -566,8 +567,24 @@ joined with CRLF.</pre>
 vt_copypaste(VT_ENABLED)</pre>
 <div class="sec-hdr">See Also</div>
 <div class="see-list">
+<a href="javascript:void(0)" onclick="show('vt_set_clipboard_text')">vt_set_clipboard_text</a>
 <a href="javascript:void(0)" onclick="show('vt_screen')">vt_screen</a>
 <a href="javascript:void(0)" onclick="show('vt_input')">vt_input</a>
+<a href="javascript:void(0)" onclick="show('hk_copypaste')">hk_copypaste</a>
+</div>
+</div>
+<div class="tdiv" id="vt_set_clipboard_text">
+<h2>vt_set_clipboard_text</h2>
+<div class="t-short">copies the content of a string into the clipboard</div>
+<pre class="body-pre">Copies the content of a string into the clipboard. It converts from codepage to utf8</pre>
+<div class="sec-hdr">Syntax</div>
+<pre class="code-pre">Sub vt_set_clipboard_text(txt As String, codepage As Long = CP437)</pre>
+<div class="sec-hdr">Parameters</div>
+<pre class="param-pre">    txt        the string to copy
+    codepage   codepage to translate from (default = CP437)</pre>
+<div class="sec-hdr">See Also</div>
+<div class="see-list">
+<a href="javascript:void(0)" onclick="show('vt_copypaste')">vt_copypaste</a>
 <a href="javascript:void(0)" onclick="show('hk_copypaste')">hk_copypaste</a>
 </div>
 </div>

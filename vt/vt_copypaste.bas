@@ -1,20 +1,20 @@
 ' =============================================================================
-' vt_copypaste.bas - VT Virtual Text Screen Library
-' Copy/paste: selection state, clipboard copy, and mode control.
-' Paste injection lives in vt_input.bas (cp_paste_pend flag).
-' Key interception and mouse drag tracking live in vt_pump (vt_core.bas).
-' Selection rendering lives in vt_present (vt_core.bas).
+' vt_copypaste.bas - VT Virtual Text Screen Library                            
+' Copy/paste: selection state, clipboard copy, and mode control.               
+' Paste injection lives in vt_input.bas (cp_paste_pend flag).                  
+' Key interception and mouse drag tracking live in vt_pump (vt_core.bas).      
+' Selection rendering lives in vt_present (vt_core.bas).                       
 ' =============================================================================
 
 ' -----------------------------------------------------------------------------
-' vt_internal_cp_build_text
-' Walk the active selection, build a plain-text string, trim trailing spaces
-' per row, join rows with CR+LF, push to SDL clipboard.
-' Called from vt_pump on RMB (mouse).
-' Reads from vt_internal_display_cellptr so it works during scrollback --
-' cells come from sb_cells or vis_buf depending on sb_offset, same as render.
-' Respects cp_view_* snapshot: column range is clipped to effective bounds.
-' After copy, resets cp_view_* snapshot to -1.
+' vt_internal_cp_build_text                                                    
+' Walk the active selection, build a plain-text string, trim trailing spaces   
+' per row, join rows with CR+LF, push to SDL clipboard.                        
+' Called from vt_pump on RMB (mouse).                                          
+' Reads from vt_internal_display_cellptr so it works during scrollback --      
+' cells come from sb_cells or vis_buf depending on sb_offset, same as render.  
+' Respects cp_view_* snapshot: column range is clipped to effective bounds.    
+' After copy, resets cp_view_* snapshot to -1.                                 
 ' -----------------------------------------------------------------------------
 Private Sub vt_internal_cp_build_text()
     Dim cols      As Long
@@ -129,6 +129,7 @@ Sub vt_copypaste(flags As Long)
         'vt_screen(VT_SCREEN_0)
         'vt_copypaste(VT_ENABLED)
         ':see
+        'vt_set_clipboard_text
         'vt_screen
         'vt_input
         'hk_copypaste
@@ -145,6 +146,24 @@ Sub vt_copypaste(flags As Long)
     vt_internal.cp_view_bot    = -1
     vt_internal.cp_scroll_tick = 0
     vt_internal.dirty          = 1
+End Sub
+
+'>>>
+':topic vt_set_clipboard_text
+':short copies the content of a string into the clipboard
+':group Copy/Paste
+'Copies the content of a string into the clipboard. It converts from codepage to utf8
+':syntax
+Sub vt_set_clipboard_text(txt As String, codepage As Long = CP437)
+        ':params
+        '    txt        the string to copy
+        '    codepage   codepage to translate from (default = CP437)
+        ':see
+        'vt_copypaste
+        'hk_copypaste
+    '<<<
+    txt = vt_cp437_to_utf8(txt)
+    _VT_DRV_SetClipboardText(txt)
 End Sub
 
 #Undef vt_internal_cp_build_text

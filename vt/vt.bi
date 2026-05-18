@@ -17,6 +17,11 @@
     #Include Once "driver/fbgfx.bas"
 #Endif
 
+Enum
+    CPNONE = 0
+    CP437  = 437
+End Enum
+
 '>>>
     ':topic c_misc
     ':short Miscellaneous constants
