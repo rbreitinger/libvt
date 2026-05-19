@@ -1,6 +1,6 @@
 ============================================================
  libvt Public API Dump
- Generated : 05-19-2026  12:12:53
+ Generated : 05-19-2026  21:52:23
  Source    : vt
 ============================================================
 
@@ -384,40 +384,6 @@
         '<<<
 
 
-  [vt/vt_input.bas]
-    Function vt_input(max_len   As Long = -1, initial   As String = "", allowed   As String = "", cancelled As Byte Ptr = 0) As String
-        ':params
-        'max_len   Max input length. -1 fills remaining
-        '          columns on the current row.
-        'initial   Pre-filled text. Escape restores this
-        '          text, clears the screen, and returns "".
-        'allowed   Whitelist of accepted characters.
-        '          Empty = accept any printable ASCII.
-        'cancelled Optional Byte Ptr. Set to 1 on Escape,
-        '          0 on Enter. Pass 0 to ignore.
-        ':example
-        '#Include Once "vt/vt.bi"
-        'vt_screen()
-        'Dim esc As Byte
-        'vt_locate(10, 1)
-        'vt_print("Enter amount: ")
-        'Dim amount As String = vt_input(8, "0", "0123456789.", @esc)
-        'If esc Then
-        '    vt_print("Cancelled" & VT_LF)
-        'Else
-        '    vt_print("Got: " & amount & VT_LF)
-        'End If
-        'vt_sleep()
-        'vt_shutdown()
-        ':see
-        'vt_getchar
-        'vt_getkey
-        'vt_color
-        'vt_locate
-        'vt_copypaste
-        '<<<
-
-
   [vt/vt_keyboard.bas]
     Sub vt_key_repeat(initial_ms As Long = 400, rate_ms    As Long = 30)
         ':params
@@ -501,6 +467,38 @@
     Sub vt_key_flush()
         ':see
         'vt_inkey
+        '<<<
+
+    Function vt_input(max_len   As Long = -1, initial   As String = "", allowed   As String = "", cancelled As Byte Ptr = 0) As String
+        ':params
+        'max_len   Max input length. -1 fills remaining
+        '          columns on the current row.
+        'initial   Pre-filled text. Escape restores this
+        '          text, clears the screen, and returns "".
+        'allowed   Whitelist of accepted characters.
+        '          Empty = accept any printable ASCII.
+        'cancelled Optional Byte Ptr. Set to 1 on Escape,
+        '          0 on Enter. Pass 0 to ignore.
+        ':example
+        '#Include Once "vt/vt.bi"
+        'vt_screen()
+        'Dim esc As Byte
+        'vt_locate(10, 1)
+        'vt_print("Enter amount: ")
+        'Dim amount As String = vt_input(8, "0", "0123456789.", @esc)
+        'If esc Then
+        '    vt_print("Cancelled" & VT_LF)
+        'Else
+        '    vt_print("Got: " & amount & VT_LF)
+        'End If
+        'vt_sleep()
+        'vt_shutdown()
+        ':see
+        'vt_getchar
+        'vt_getkey
+        'vt_color
+        'vt_locate
+        'vt_copypaste
         '<<<
 
 
@@ -1744,8 +1742,29 @@
 
     Sub vt_tui_listbox_draw(x       As Long, y       As Long, wid     As Long, hei     As Long, items() As String, ByRef st As vt_tui_listbox_state)
     Function vt_tui_listbox_handle(x As Long, y As Long, wid As Long, hei As Long, items() As String, ByRef st As vt_tui_listbox_state, k As ULong) As Long
-    Sub vt_tui_editor_draw(x   As Long, y   As Long, wid As Long, hei As Long, ByRef st As vt_tui_editor_state)
-    Function vt_tui_editor_handle(x As Long, y As Long, wid As Long, hei As Long, ByRef st As vt_tui_editor_state, k As ULong) As Long
+    Sub vt_tui_menubar_draw(row      As Long, groups() As String)
+    Function vt_tui_menubar_handle(row As Long, groups() As String, items() As String, counts() As Long, k As ULong) As Long
+    Sub vt_tui_form_offset(items() As vt_tui_form_item, ox As Long, oy As Long)
+        ':params
+        'items()  The form array to shift in place.
+        'ox, oy   Screen column and row of the window's
+        '         outer top-left corner (same values
+        '         passed to vt_tui_window).
+        ':example
+        'Const WIN_X = 21, WIN_Y = 5
+        '' fill items() with .x/.y relative to inner body
+        '' (1,1) = top-left inside the border
+        'vt_tui_form_offset(items(), WIN_X, WIN_Y)
+        'vt_tui_window(WIN_X, WIN_Y, 40, 16, " Settings ")
+        ':see
+        'vt_tui_form_*
+        'vt_tui_window
+        '<<<
+
+    Sub vt_tui_form_draw(items()       As vt_tui_form_item, ByRef focused As Long)
+    Function vt_tui_form_handle(items() As vt_tui_form_item, ByRef focused As Long, k As ULong, flags As Long = 0) As Long
+
+  [vt/vt_tui_dlg.bas]
     Function vt_tui_dialog(caption As String, txt     As String, flags   As Long = VT_DLG_OK) As Long
         ':params
         'caption  Title bar text.
@@ -1828,27 +1847,67 @@
         'c_tuiconsts
         '<<<
 
-    Sub vt_tui_menubar_draw(row      As Long, groups() As String)
-    Function vt_tui_menubar_handle(row As Long, groups() As String, items() As String, counts() As Long, k As ULong) As Long
-    Sub vt_tui_form_offset(items() As vt_tui_form_item, ox As Long, oy As Long)
+
+  [vt/vt_tui_ed.bas]
+    Sub vt_tui_editor_draw(x   As Long, y   As Long, wid As Long, hei As Long, ByRef st As vt_tui_editor_state)
         ':params
-        'items()  The form array to shift in place.
-        'ox, oy   Screen column and row of the window's
-        '         outer top-left corner (same values
-        '         passed to vt_tui_window).
+        'x, y     1-based top-left of the editing area.
+        'wid, hei Width and height in cells.
+        'st       Caller-owned state. Pass same struct to
+        '         both functions every frame.
+        'k        Key value from vt_inkey() this frame.
+        ':notes
+        'Return (vt_tui_editor_handle):
+        '  VT_FORM_PENDING(-2)  Always while editing.
+        '  VT_FORM_CANCEL(-1)   Escape pressed.
+        '  Check st.dirty to know if edits were made.
+        '
+        'vt_tui_editor_state fields:
+        '  work    As String  ' text buffer (Chr(10) newlines)
+        '  cpos    As Long    ' byte cursor offset -- init 0
+        '  top_ln  As Long    ' first visible line -- init 0
+        '  dirty   As Byte    ' 0 until first edit
+        '  flags   As Long    ' VT_TUI_ED_READONLY etc.
+        '
+        'Key/mouse bindings:
+        '  Up/Down          Move cursor one line.
+        '  PgUp/PgDn        Move by hei lines.
+        '  Left/Right       Move cursor one character.
+        '  Home/End         Start/end of current line.
+        '  Enter            Insert newline (edit mode only).
+        '  Backspace/Del    Delete (edit mode only).
+        '  Printable char   Insert at cursor (edit only).
+        '  Escape           Return VT_FORM_CANCEL.
+        '  Scroll wheel     Scroll the view (both modes).
+        '
         ':example
-        'Const WIN_X = 21, WIN_Y = 5
-        '' fill items() with .x/.y relative to inner body
-        '' (1,1) = top-left inside the border
-        'vt_tui_form_offset(items(), WIN_X, WIN_Y)
-        'vt_tui_window(WIN_X, WIN_Y, 40, 16, " Settings ")
+        'Dim st As vt_tui_editor_state
+        'st.work   = "First line" & Chr(10) & "Second line"
+        'st.cpos   = 0
+        'st.top_ln = 0
+        'st.dirty  = 0
+        'st.flags  = 0
+        '
+        'vt_tui_window(5, 3, 70, 20, " Notes ")
+        'Dim result As Long = VT_FORM_PENDING
+        'Dim k As ULong
+        'Do While result = VT_FORM_PENDING
+        '    k = vt_inkey()
+        '    result = vt_tui_editor_handle(6, 4, 68, 18, st, k)
+        '    vt_color(VT_BLACK, VT_CYAN)
+        '    vt_locate(24, 1)
+        '    vt_print(" Esc=Close" & _
+        '             IIf(st.dirty, "  *modified*", ""))
+        '    vt_tui_editor_draw(6, 4, 68, 18, st)
+        '    vt_sleep(16)
+        'Loop
         ':see
-        'vt_tui_form_*
         'vt_tui_window
+        'vt_tui_form_*
+        'c_tuiconsts
         '<<<
 
-    Sub vt_tui_form_draw(items()       As vt_tui_form_item, ByRef focused As Long)
-    Function vt_tui_form_handle(items() As vt_tui_form_item, ByRef focused As Long, k As ULong, flags As Long = 0) As Long
+    Function vt_tui_editor_handle(x As Long, y As Long, wid As Long, hei As Long, ByRef st As vt_tui_editor_state, k As ULong) As Long
 
   [vt/vt_utf8.bas]
     Function vt_utf8_to_cp437(src As String) As String

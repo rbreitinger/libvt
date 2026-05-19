@@ -3262,9 +3262,7 @@ Opt-in: define VT_USE_TUI before the include.
 :syntax
 Sub vt_tui_editor_draw(x   As Long, y   As Long, _
                        wid As Long, hei As Long, _
-                       ByRef st As _
-                       vt_tui_editor_state)
-                       
+                       ByRef st As vt_tui_editor_state)             
 :params
 x, y     1-based top-left of the editing area.
 wid, hei Width and height in cells.
