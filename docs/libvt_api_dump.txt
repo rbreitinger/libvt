@@ -1,6 +1,6 @@
 ============================================================
  libvt Public API Dump
- Generated : 05-18-2026  23:25:44
+ Generated : 05-19-2026  12:12:53
  Source    : vt
 ============================================================
 
@@ -241,53 +241,6 @@
         'vt_screen
         '<<<
 
-    Sub vt_key_repeat(initial_ms As Long = 400, rate_ms    As Long = 30)
-        ':params
-        'initial_ms  Delay in ms before the first repeat
-        '            event fires. Default 400.
-        'rate_ms     Interval in ms between subsequent
-        '            repeat events. Default 30.
-        ':see
-        'vt_inkey
-        '<<<
-
-    Function vt_inkey() As ULong
-        ':notes
-        'Return: packed key event (non-zero) if a key
-        'was waiting. 0 if the buffer is empty or the
-        'library is not ready.
-        ':example
-        '' Game loop pattern:
-        'Do
-        '    Dim k As ULong = vt_inkey()
-        '    If VT_SCAN(k) = VT_KEY_ESC Then Exit Do
-        '    ' ... update and draw ...
-        '    vt_sleep 16
-        'Loop
-        ':see
-        'vt_getkey
-        'vt_getchar
-        'vt_pump
-        'c_keymacros
-        'c_keyscans
-        '<<<
-
-    Function vt_key_held(vtscan As Long) As Byte
-        ':params
-        'vtscan  A VT_KEY_* scancode constant.
-        ':notes
-        'Return values:
-        '  1  Key is currently pressed.
-        '  0  Not pressed, scancode not recognized,
-        '     or library not ready.
-        ':example
-        'If vt_key_held(VT_KEY_LEFT)  Then x -= 1
-        'If vt_key_held(VT_KEY_RIGHT) Then x += 1
-        ':see
-        'vt_inkey
-        'c_keyscans
-        '<<<
-
     Sub vt_sleep(ms As Long = 0)
         ':params
         'ms  Delay in milliseconds. 0 = wait for any
@@ -301,43 +254,6 @@
         ':see
         'vt_inkey
         'vt_pump
-        '<<<
-
-    Function vt_getkey() As ULong
-        ':notes
-        'Return: packed key event value. Decode with
-        'VT_CHAR, VT_SCAN, VT_SHIFT, VT_CTRL, VT_ALT,
-        'VT_REPEAT macros.
-        ':example
-        'Dim k As ULong = vt_getkey()
-        'If VT_SCAN(k) = VT_KEY_ESC Then End
-        'If VT_CHAR(k) = Asc("q") Then End
-        ':see
-        'vt_inkey
-        'vt_getchar
-        'c_keymacros
-        'c_keyscans
-        '<<<
-
-    Function vt_getchar(allowed As String = "") As String
-        ':params
-        'allowed  Whitelist of accepted characters.
-        '         Empty string = accept any printable.
-        ':notes
-        'Return: single-character String containing the
-        'accepted character.
-        ':example
-        'vt_print("Continue? (Y/N) ")
-        'Dim ans As String = UCase(vt_getchar("YyNn"))
-        ':see
-        'vt_getkey
-        'vt_inkey
-        'vt_input
-        '<<<
-
-    Sub vt_key_flush()
-        ':see
-        'vt_inkey
         '<<<
 
 
@@ -499,6 +415,92 @@
         'vt_color
         'vt_locate
         'vt_copypaste
+        '<<<
+
+
+  [vt/vt_keyboard.bas]
+    Sub vt_key_repeat(initial_ms As Long = 400, rate_ms    As Long = 30)
+        ':params
+        'initial_ms  Delay in ms before the first repeat
+        '            event fires. Default 400.
+        'rate_ms     Interval in ms between subsequent
+        '            repeat events. Default 30.
+        ':see
+        'vt_inkey
+        '<<<
+
+    Function vt_inkey() As ULong
+        ':notes
+        'Return: packed key event (non-zero) if a key
+        'was waiting. 0 if the buffer is empty or the
+        'library is not ready.
+        ':example
+        '' Game loop pattern:
+        'Do
+        '    Dim k As ULong = vt_inkey()
+        '    If VT_SCAN(k) = VT_KEY_ESC Then Exit Do
+        '    ' ... update and draw ...
+        '    vt_sleep 16
+        'Loop
+        ':see
+        'vt_getkey
+        'vt_getchar
+        'vt_pump
+        'c_keymacros
+        'c_keyscans
+        '<<<
+
+    Function vt_key_held(vtscan As Long) As Byte
+        ':params
+        'vtscan  A VT_KEY_* scancode constant.
+        ':notes
+        'Return values:
+        '  1  Key is currently pressed.
+        '  0  Not pressed, scancode not recognized,
+        '     or library not ready.
+        ':example
+        'If vt_key_held(VT_KEY_LEFT)  Then x -= 1
+        'If vt_key_held(VT_KEY_RIGHT) Then x += 1
+        ':see
+        'vt_inkey
+        'c_keyscans
+        '<<<
+
+    Function vt_getkey() As ULong
+        ':notes
+        'Return: packed key event value. Decode with
+        'VT_CHAR, VT_SCAN, VT_SHIFT, VT_CTRL, VT_ALT,
+        'VT_REPEAT macros.
+        ':example
+        'Dim k As ULong = vt_getkey()
+        'If VT_SCAN(k) = VT_KEY_ESC Then End
+        'If VT_CHAR(k) = Asc("q") Then End
+        ':see
+        'vt_inkey
+        'vt_getchar
+        'c_keymacros
+        'c_keyscans
+        '<<<
+
+    Function vt_getchar(allowed As String = "") As String
+        ':params
+        'allowed  Whitelist of accepted characters.
+        '         Empty string = accept any printable.
+        ':notes
+        'Return: single-character String containing the
+        'accepted character.
+        ':example
+        'vt_print("Continue? (Y/N) ")
+        'Dim ans As String = UCase(vt_getchar("YyNn"))
+        ':see
+        'vt_getkey
+        'vt_inkey
+        'vt_input
+        '<<<
+
+    Sub vt_key_flush()
+        ':see
+        'vt_inkey
         '<<<
 
 

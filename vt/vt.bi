@@ -440,6 +440,7 @@ Dim Shared vt_internal As vt_internal_state
 #Include Once "vt_font_8x16.bi"
 #Include Once "vt_utf8.bas"
 #Include Once "vt_core.bas"
+#Include Once "vt_keyboard.bas"
 #Include Once "vt_palette.bas"
 #Include Once "vt_pages.bas"
 #Include Once "vt_misc.bas"
